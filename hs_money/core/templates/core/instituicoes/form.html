@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ titulo }} — HS Money{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+
+    <div class="d-flex align-items-center mb-4">
+      <a href="{% url 'core:instituicao_lista' %}" class="text-muted text-decoration-none me-2">← Instituições</a>
+      <h5 class="mb-0">{{ titulo }}</h5>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="{{ form.nome.id_for_label }}" class="form-label fw-semibold">Nome</label>
+            {{ form.nome }}
+            {% if form.nome.errors %}
+              <div class="text-danger small mt-1">{{ form.nome.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.codigo.id_for_label }}" class="form-label fw-semibold">Código</label>
+            {{ form.codigo }}
+            <div class="form-text">Usado para importação automática de OFX (ex.: <code>bb</code>, <code>nubank</code>).</div>
+            {% if form.codigo.errors %}
+              <div class="text-danger small mt-1">{{ form.codigo.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label for="{{ form.tipo.id_for_label }}" class="form-label fw-semibold">Tipo</label>
+            {{ form.tipo }}
+            {% if form.tipo.errors %}
+              <div class="text-danger small mt-1">{{ form.tipo.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a href="{% url 'core:instituicao_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

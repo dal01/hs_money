@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'conta_corrente:conta_lista' %}" class="text-decoration-none text-muted">
+    ← Contas Correntes
+  </a>
+  <h1 class="h3 mt-1">{{ titulo }}</h1>
+</div>
+
+<div class="card" style="max-width: 560px;">
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label">Instituição Financeira</label>
+        {{ form.instituicao }}
+        {% if form.instituicao.errors %}
+          <div class="text-danger small">{{ form.instituicao.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Titular</label>
+        {{ form.membro }}
+        {% if form.membro.errors %}
+          <div class="text-danger small">{{ form.membro.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col">
+          <label class="form-label">Agência</label>
+          {{ form.agencia }}
+          {% if form.agencia.errors %}
+            <div class="text-danger small">{{ form.agencia.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="col">
+          <label class="form-label">Número da conta</label>
+          {{ form.numero }}
+          {% if form.numero.errors %}
+            <div class="text-danger small">{{ form.numero.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mb-4 form-check">
+        {{ form.ativa }}
+        <label class="form-check-label">Conta ativa</label>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'conta_corrente:conta_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

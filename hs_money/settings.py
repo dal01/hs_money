@@ -15,6 +15,9 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Pasta raiz dos dados brutos (OFX, PDFs, etc.)
+DADOS_DIR = BASE_DIR / "data"
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -39,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'hs_money.core.apps.CoreConfig',
     'hs_money.cartao_credito.apps.CartaoCreditoConfig',
+    'hs_money.conta_corrente.apps.ContaCorrenteConfig',
 ]
 
 MIDDLEWARE = [
@@ -122,3 +126,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Mapeia tags do messages para classes Bootstrap
+from django.contrib.messages import constants as message_constants
+MESSAGE_TAGS = {
+    message_constants.ERROR: 'danger',
+}

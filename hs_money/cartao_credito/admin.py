@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cartao, FaturaCartao, Lancamento, RegraMembroCartao
+from .models import Cartao, FaturaCartao, Transacao, RegraMembroCartao
 
 
 @admin.register(Cartao)
@@ -15,8 +15,8 @@ class FaturaCartaoAdmin(admin.ModelAdmin):
     list_filter = ('competencia',)
 
 
-@admin.register(Lancamento)
-class LancamentoAdmin(admin.ModelAdmin):
+@admin.register(Transacao)
+class TransacaoAdmin(admin.ModelAdmin):
     list_display = ('id', 'fatura', 'data', 'descricao', 'valor', 'categoria', 'oculta')
     list_filter = ('oculta', 'categoria')
     search_fields = ('descricao',)

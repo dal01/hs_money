@@ -1,0 +1,68 @@
+{% extends "core/base.html" %}
+
+{% block title %}Contas Correntes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Contas Correntes</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'conta_corrente:listar_extratos' %}" class="btn btn-outline-success">
+      📂 Extratos no disco
+    </a>
+    <a href="{% url 'conta_corrente:conta_criar' %}" class="btn btn-primary">
+      + Nova Conta
+    </a>
+  </div>
+</div>
+
+{% if not grupos %}
+  <div class="alert alert-info">Nenhuma conta cadastrada ainda.</div>
+{% endif %}
+
+{% for grupo in grupos %}
+<div class="mb-4">
+  <h5 class="text-muted mb-2">
+    {% if grupo.membro %}
+      👤 {{ grupo.membro.nome }}
+    {% else %}
+      <span class="text-secondary">— Sem titular —</span>
+    {% endif %}
+  </h5>
+
+  <div class="row g-3">
+    {% for conta in grupo.contas %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100 {% if not conta.ativa %}border-secondary opacity-50{% endif %}">
+        <div class="card-body">
+          <h6 class="card-title mb-1">
+            {{ conta.instituicao.nome }}
+            {% if not conta.ativa %}
+              <span class="badge bg-secondary ms-1">Inativa</span>
+            {% endif %}
+          </h6>
+          <p class="card-text text-muted small mb-2">
+            {% if conta.agencia %}Ag. {{ conta.agencia }} /{% endif %}
+            Cc {{ conta.numero }}
+          </p>
+        </div>
+        <div class="card-footer d-flex gap-2">
+          <a href="{% url 'conta_corrente:transacoes_conta' conta.pk %}"
+             class="btn btn-sm btn-outline-primary flex-fill">
+            📊 Transações
+          </a>
+          <a href="{% url 'conta_corrente:upload_por_conta' conta.pk %}"
+             class="btn btn-sm btn-success flex-fill">
+            ⬆ Upload extrato
+          </a>
+          <a href="{% url 'conta_corrente:conta_editar' conta.pk %}"
+             class="btn btn-sm btn-outline-secondary">
+            ✏
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

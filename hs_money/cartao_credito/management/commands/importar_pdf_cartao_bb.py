@@ -13,7 +13,7 @@ from django.conf import settings
 import pdfplumber
 
 from hs_money.core.models import InstituicaoFinanceira, Membro
-from hs_money.cartao_credito.models import Cartao, FaturaCartao, Lancamento
+from hs_money.cartao_credito.models import Cartao, FaturaCartao, Transacao
 from hs_money.cartao_credito.parsers.bb.dados_fatura import parse_dados_fatura
 from hs_money.cartao_credito.parsers.bb.lancamentos import parse_lancamentos
 
@@ -83,7 +83,7 @@ class Command(BaseCommand):
         # --force-all: limpa tudo
         if force_all:
             self.stdout.write(self.style.WARNING("Apagando TODAS as faturas e lançamentos..."))
-            Lancamento.objects.all().delete()
+            Transacao.objects.all().delete()
             FaturaCartao.objects.all().delete()
             Cartao.objects.all().delete()
             self.stdout.write(self.style.SUCCESS("Base limpa para reimportação."))
@@ -171,7 +171,7 @@ class Command(BaseCommand):
                         fatura.save()
 
                     for l in linhas:
-                        existe = Lancamento.objects.filter(
+                        existe = Transacao.objects.filter(
                             fatura=fatura,
                             data=l.data,
                             descricao=l.descricao[:255],
@@ -183,7 +183,7 @@ class Command(BaseCommand):
                         if existe:
                             self.stdout.write(self.style.WARNING(f"Lançamento já existe, ignorando: {l.descricao}."))
                         else:
-                            Lancamento.objects.create(
+                            Transacao.objects.create(
                                 fatura=fatura,
                                 data=l.data,
                                 descricao=l.descricao[:255],

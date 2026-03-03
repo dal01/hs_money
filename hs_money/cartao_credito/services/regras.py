@@ -3,11 +3,11 @@ from typing import Iterable, Dict, List, Tuple, Set
 
 from django.db import transaction
 
-from cartao_credito.models import Lancamento, RegraMembroCartao
+from ..models import Transacao, RegraMembroCartao
 
 
 def aplicar_regras_em_lancamento(
-    l: Lancamento,
+    l: Transacao,
     pular_se_ja_tem_membros: bool = True,
 ) -> Tuple[List[int], bool]:
     """
@@ -42,7 +42,7 @@ def aplicar_regras_em_lancamento(
 
 @transaction.atomic
 def aplicar_regras_em_queryset(
-    qs: Iterable[Lancamento],
+    qs: Iterable[Transacao],
     pular_se_ja_tem_membros: bool = True,
 ) -> Dict[int, List[int]]:
     """

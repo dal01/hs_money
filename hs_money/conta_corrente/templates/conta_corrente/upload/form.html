@@ -1,0 +1,123 @@
+﻿{% extends "core/base.html" %}
+
+{% block title %}Importar Extrato CC  HS Money{% endblock %}
+
+{% block content %}
+{% if conta_selecionada %}
+<p class="mb-2">
+  <a href="{% url 'conta_corrente:conta_lista' %}" class="text-decoration-none text-muted">
+    ← Contas Correntes
+  </a>
+</p>
+<h4 class="mb-1">Upload — {{ conta_selecionada.instituicao.nome }}</h4>
+<p class="text-muted small mb-4">
+  {% if conta_selecionada.membro %}{{ conta_selecionada.membro.nome }} /{% endif %}
+  {% if conta_selecionada.agencia %}Ag. {{ conta_selecionada.agencia }} /{% endif %}
+  Cc {{ conta_selecionada.numero }}
+</p>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"> Importar Extratos  Conta Corrente</h4>
+</div>
+{% endif %}
+
+<div class="row g-4">
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+          {% csrf_token %}
+
+          <div id="dropzone"
+               class="border border-2 rounded-3 text-center p-5 mb-3"
+               style="border-style:dashed; border-color:#adb5bd; cursor:pointer; transition: background .2s;">
+            <div id="dz-idle">
+              <div style="font-size:2.5rem;">&#128193;</div>
+              <p class="mb-1 fw-semibold">Arraste os arquivos aqui</p>
+              <p class="text-muted small mb-3">ou clique para selecionar</p>
+              <span class="badge bg-secondary me-1">.ofx</span>
+              <span class="badge bg-secondary">.pdf</span>
+            </div>
+            <div id="dz-preview" class="d-none text-start"></div>
+            <input type="file" id="file-input" name="arquivos" multiple accept=".ofx,.pdf" class="d-none">
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Membro <span class="text-muted fw-normal">(opcional)</span></label>
+              <select name="membro" class="form-select">
+                <option value=""> Detectar automaticamente </option>
+                {% for m in membros %}
+                  <option value="{{ m.pk }}"{% if conta_selecionada and conta_selecionada.membro and conta_selecionada.membro.pk == m.pk %} selected{% endif %}>{{ m.nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Instituição <span class="text-muted fw-normal">(opcional)</span></label>
+              <select name="instituicao" class="form-select">
+                <option value=""> Detectar automaticamente </option>
+                {% for inst in instituicoes %}
+                  <option value="{{ inst.pk }}"{% if conta_selecionada and conta_selecionada.instituicao.pk == inst.pk %} selected{% endif %}>{{ inst.nome }}{% if inst.codigo %} ({{ inst.codigo }}){% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submit-btn" disabled>Salvar arquivos</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm h-100 border-0 bg-light">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Como funciona</h6>
+        <p class="small text-muted mb-2">Os arquivos são salvos na estrutura:</p>
+        <pre class="bg-white border rounded p-2 small">data/conta_corrente/
+  &lt;membro&gt;/
+    &lt;ano&gt;/
+      &lt;banco&gt;/
+        extrato_cc_mmaaaa.ofx</pre>
+        <h6 class="fw-bold mt-3 mb-2">Para OFX</h6>
+        <ul class="small text-muted ps-3 mb-3">
+          <li>Instituição via <code>&lt;FI&gt;&lt;ORG&gt;</code></li>
+          <li>Membro via número de conta (<code>&lt;ACCTID&gt;</code>)</li>
+          <li>Ano via <code>&lt;DTSTART&gt;</code> ou nome do arquivo</li>
+        </ul>
+        <h6 class="fw-bold mb-2">Para PDF</h6>
+        <ul class="small text-muted ps-3">
+          <li>Selecione membro e instituição manualmente</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const input=document.getElementById('file-input'),dropzone=document.getElementById('dropzone'),dzIdle=document.getElementById('dz-idle'),dzPreview=document.getElementById('dz-preview'),submitBtn=document.getElementById('submit-btn');
+dropzone.addEventListener('click',()=>input.click());
+dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.style.background='#e9f3ff';});
+dropzone.addEventListener('dragleave',()=>dropzone.style.background='');
+dropzone.addEventListener('drop',e=>{e.preventDefault();dropzone.style.background='';input.files=e.dataTransfer.files;show(input.files);});
+input.addEventListener('change',()=>show(input.files));
+function show(files){
+  if(!files.length)return;
+  dzIdle.classList.add('d-none');dzPreview.classList.remove('d-none');dzPreview.innerHTML='';
+  const ul=document.createElement('ul');ul.className='list-unstyled mb-0';let v=0;
+  Array.from(files).forEach(f=>{
+    const ext=f.name.split('.').pop().toLowerCase(),ok=['ofx','pdf'].includes(ext);
+    const li=document.createElement('li');
+    li.className='d-flex align-items-center gap-2 py-1'+(ok?'':' text-danger');
+    li.innerHTML=`<span>${ext==='ofx'?'':ext==='pdf'?'':''}</span><span class="text-truncate flex-grow-1" style="max-width:300px">${f.name}</span><span class="text-muted small">${(f.size/1024).toFixed(0)} KB</span>`;
+    ul.appendChild(li);if(ok)v++;
+  });
+  dzPreview.appendChild(ul);
+  const p=document.createElement('p');p.className='mt-2 mb-0 text-muted small';
+  p.textContent=`${v} aceito(s) de ${files.length}. Clique para trocar.`;dzPreview.appendChild(p);
+  submitBtn.disabled=v===0;
+}
+</script>
+{% endblock %}

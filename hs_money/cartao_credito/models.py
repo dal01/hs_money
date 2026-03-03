@@ -93,12 +93,12 @@ class FaturaCartao(models.Model):
         return f"Fatura {self.competencia:%Y-%m} • {self.cartao}"
 
 
-class Lancamento(models.Model):
-    """Linha de lançamento pertencente a uma fatura."""
+class Transacao(models.Model):
+    """Linha de transação pertencente a uma fatura."""
     fatura = models.ForeignKey(
         FaturaCartao,
         on_delete=models.CASCADE,
-        related_name="lancamentos",
+        related_name="transacoes",
     )
 
     # Dados da linha
@@ -109,7 +109,7 @@ class Lancamento(models.Model):
     secao = models.CharField(max_length=40, blank=True, null=True)         # "ENCARGOS", etc.
     oculta = models.BooleanField(default=False, db_index=True)
     oculta_manual = models.BooleanField(default=False, db_index=True)
-    categoria = models.ForeignKey(Categoria, null=True, blank=True, on_delete=models.SET_NULL, related_name="lancamentos")
+    categoria = models.ForeignKey(Categoria, null=True, blank=True, on_delete=models.SET_NULL, related_name="transacoes")
 
     # Valor final em BRL
     valor = models.DecimalField(max_digits=12, decimal_places=2)
@@ -136,7 +136,7 @@ class Lancamento(models.Model):
     fitid = models.CharField(max_length=100, blank=True, null=True)
 
     # Atribuição de membros (opcional por linha; mantém flexibilidade)
-    membros = models.ManyToManyField(Membro, blank=True, related_name="lancamentos_cartao")
+    membros = models.ManyToManyField(Membro, blank=True, related_name="transacoes_cartao")
 
     class Meta:
         constraints = [
@@ -172,11 +172,11 @@ class RegraMembroCartao(models.Model):
     # Identificação
     nome = models.CharField(max_length=120)
 
-    # Padrão (aplicado em Lancamento.descricao)
+    # Padrão (aplicado em Transacao.descricao)
     tipo_padrao = models.CharField(max_length=20, choices=TIPO_PADRAO_CHOICES, default='contem')
     padrao = models.CharField(max_length=200)
 
-    # Condição por valor absoluto (em BRL, campo Lancamento.valor)
+    # Condição por valor absoluto (em BRL, campo Transacao.valor)
     tipo_valor = models.CharField(max_length=10, choices=TIPO_VALOR_CHOICES, default='nenhum')
     valor = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
 

@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('hs_money.core.urls')),
     path('cartao/', include('hs_money.cartao_credito.urls')),
+    path('conta/', include('hs_money.conta_corrente.urls')),
 ]

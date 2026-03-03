@@ -197,6 +197,11 @@ class InstituicaoFinanceira(models.Model):
     codigo = models.CharField(max_length=20, blank=True, null=True)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default="banco")
 
+    def save(self, *args, **kwargs):
+        if self.codigo:
+            self.codigo = self.codigo.strip().lower()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.nome
 

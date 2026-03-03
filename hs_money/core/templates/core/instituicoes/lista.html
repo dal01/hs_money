@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+
+{% block title %}Instituições Financeiras — HS Money{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">🏛️ Instituições Financeiras</h4>
+  <a href="{% url 'core:instituicao_criar' %}" class="btn btn-primary btn-sm">+ Nova Instituição</a>
+</div>
+
+{% if instituicoes %}
+<div class="card shadow-sm">
+  <table class="table table-hover mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Nome</th>
+        <th>Código</th>
+        <th>Tipo</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inst in instituicoes %}
+      <tr>
+        <td class="text-muted">{{ inst.pk }}</td>
+        <td>{{ inst.nome }}</td>
+        <td><code>{{ inst.codigo|default:"—" }}</code></td>
+        <td>{{ inst.get_tipo_display }}</td>
+        <td class="text-end">
+          <a href="{% url 'core:instituicao_editar' inst.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
+          <a href="{% url 'core:instituicao_excluir' inst.pk %}" class="btn btn-outline-danger btn-sm">Excluir</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <p>Nenhuma instituição cadastrada ainda.</p>
+  <a href="{% url 'core:instituicao_criar' %}" class="btn btn-primary">Criar primeira instituição</a>
+</div>
+{% endif %}
+{% endblock %}

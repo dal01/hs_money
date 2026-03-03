@@ -1,0 +1,525 @@
+OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:NONE
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+
+
+<OFX>
+  <SIGNONMSGSRSV1>
+   <SONRS>
+    <STATUS>
+      <CODE>0</CODE>
+      <SEVERITY>INFO</SEVERITY>
+    </STATUS>
+    <DTSERVER>20250827084426[-3:BRT]</DTSERVER>
+    <LANGUAGE>POR</LANGUAGE>
+    <FI>
+     <ORG>Banco do Brasil</ORG>
+     <FID>1</FID>
+    </FI>
+   </SONRS>
+  </SIGNONMSGSRSV1>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <TRNUID>1</TRNUID>
+        <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+       </STATUS>
+      <STMTRS>
+        <CURDEF>BRL</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>1</BANKID>
+          <BRANCHID>813</BRANCHID>
+          <ACCTID>743109</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+            <DTSTART>20250228000000[-3:BRT]</DTSTART>
+            <DTEND>20250827084426[-3:BRT]</DTEND>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250131000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>94.55</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo Anterior</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250203000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-600.00</TRNAMT>
+              <FITID>20.301</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>03/02 16:26 Nilton Massahito Nishimura</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250203000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>505.45</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250205000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-378.74</TRNAMT>
+              <FITID>20.501</FITID>
+              <NAME>TED Transf.Eletr.Disponiv</NAME>
+              <MEMO>033 4551 15757629860 MILTON M 084/999M</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250205000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>378.74</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250206000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>10.00</TRNAMT>
+              <FITID>388.395.505.232.511</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>06/02 07:59 81001274172 SERGIO R P V O</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250206000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>8.00</TRNAMT>
+              <FITID>388.395.572.297.511</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>06/02 07:59 17832978830 CARLOS EDUARDO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250206000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-27.00</TRNAMT>
+              <FITID>20.601</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>06/02 08:14 Antônia Alves Da Silva</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250206000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-26.10</TRNAMT>
+              <FITID>20.602</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>06/02 11:45 Minas Brazil Restaurante L</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250206000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>35.10</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250207000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-520.00</TRNAMT>
+              <FITID>20.701</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>07/02 08:27 Thiago Rodrigues Silva Zic</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250207000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>520.00</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-197.02</TRNAMT>
+              <FITID>21.001</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>SOCIEDADE DE ENSINO SUPERIOR E</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-8.00</TRNAMT>
+              <FITID>21.002</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>10/02 07:34 Antônia Alves Da Silva</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-30.00</TRNAMT>
+              <FITID>21.003</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>10/02 17:48 Antonio Derivaldo Teotonio</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>235.02</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250213000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-8.00</TRNAMT>
+              <FITID>21.301</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>13/02 12:39 Antônia Alves Da Silva</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250213000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>8.00</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250217000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-47.70</TRNAMT>
+              <FITID>553.534</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>15/02 15:02 CAMPEAO DA CONS</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250217000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-50.00</TRNAMT>
+              <FITID>21.701</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>15/02 11:03 Demetrio Ayala Duarte</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250217000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-41.90</TRNAMT>
+              <FITID>21.702</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>15/02 15:25 Ac Coelho Materiais Para C</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250217000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-8.00</TRNAMT>
+              <FITID>21.703</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>17/02 07:41 Antônia Alves Da Silva</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250217000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>147.60</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250218000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>15592.50</TRNAMT>
+              <FITID>100.490.800.027.156</FITID>
+              <NAME>Venda de ações</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250218000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-147.48</TRNAMT>
+              <FITID>607.419.028.122.023</FITID>
+              <NAME>Transferência enviada</NAME>
+              <MEMO>18/02 13:09 VENDA COMPUT FUNCBB</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250218000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-0.77</TRNAMT>
+              <FITID>100.490.800.027.155</FITID>
+              <NAME>Taxa Compra/Venda Ações</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250218000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-3.89</TRNAMT>
+              <FITID>100.490.800.027.159</FITID>
+              <NAME>Taxa Compra/Venda Ações</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250218000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-4.00</TRNAMT>
+              <FITID>21.801</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>18/02 16:06 Mss Restaurante E Padaria</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>15436.36</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250219000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-2986.36</TRNAMT>
+              <FITID>1.200.032</FITID>
+              <NAME>BB RF Ref DI Plus Ágil</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250219000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-12000.00</TRNAMT>
+              <FITID>1.200.916</FITID>
+              <NAME>BB RF Ref DI Mega</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250219000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-450.00</TRNAMT>
+              <FITID>21.901</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>19/02 11:24 Moises Rodrigues De Olivei</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250220000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>6953.74</TRNAMT>
+              <FITID>743</FITID>
+              <NAME>Recebimento de Proventos</NAME>
+              <MEMO>BANCO DO BRASIL S A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250220000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-4.00</TRNAMT>
+              <FITID>22.001</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>20/02 16:21 Mss Restaurante E Padaria</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250220000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-483.25</TRNAMT>
+              <FITID>76.710.961</FITID>
+              <NAME>Pagto cartão crédito</NAME>
+              <MEMO>PLATINUM ESTILO VISA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250220000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-497.64</TRNAMT>
+              <FITID>90.884.888</FITID>
+              <NAME>Pagto cartão crédito</NAME>
+              <MEMO>ELO GRAFITE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>5968.85</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250221000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1500.00</TRNAMT>
+              <FITID>22.101</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>21/02 16:13 Lécio Santos Chagas</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250221000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-55.00</TRNAMT>
+              <FITID>22.102</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>21/02 18:13 Telefonica Brasil S A</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>4413.85</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250224000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-2277.00</TRNAMT>
+              <FITID>605.977.000.014.006</FITID>
+              <NAME>Transferência enviada</NAME>
+              <MEMO>24/02 07:49 DALTON EIDI HISAYASU</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250224000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-225.59</TRNAMT>
+              <FITID>22.401</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>22/02 09:20 Posto Brasal</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250224000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-550.00</TRNAMT>
+              <FITID>22.402</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>22/02 17:21 Dhione Marcial Da Silva</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250224000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-550.00</TRNAMT>
+              <FITID>22.403</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>24/02 18:20 Dhione Marcial Da Silva</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250224000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-440.00</TRNAMT>
+              <FITID>22.404</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>24/02 19:47 Cristiane Lopes Mendes</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>371.26</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250226000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-10.00</TRNAMT>
+              <FITID>22.601</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>26/02 07:13 Pagarme Pagamentos Sa</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>361.26</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20250228000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>16298.70</TRNAMT>
+              <FITID>5.887.000.743.109</FITID>
+              <NAME>PLR</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250228000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-700.00</TRNAMT>
+              <FITID>22.801</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>28/02 14:50 Dhione Marcial Da Silva</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20250228000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1800.00</TRNAMT>
+              <FITID>22.802</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>28/02 16:27 Lécio Santos Chagas</MEMO>
+            </STMTTRN>
+      </BANKTRANLIST>
+      <LEDGERBAL>
+        <BALAMT>14159.96</BALAMT>
+        <DTASOF>20250228000000[-3:BRT]</DTASOF>
+      </LEDGERBAL>
+    </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

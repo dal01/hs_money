@@ -1,0 +1,113 @@
+{% extends "core/base.html" %}
+
+{% block title %}Processamento OFX — HS Money{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0">
+      🏦 Resultado do Processamento
+      {% if dry_run %}<span class="badge bg-warning text-dark ms-2">Simulação</span>{% endif %}
+    </h4>
+  </div>
+  <a href="{% url 'conta_corrente:conta_lista' %}" class="btn btn-outline-secondary btn-sm">
+    ← Contas
+  </a>
+</div>
+
+<!-- Totalizador -->
+<div class="row g-3 mb-4">
+  <div class="col-auto">
+    <div class="card text-center border-success" style="min-width:120px">
+      <div class="card-body py-2 px-4">
+        <div class="fs-3 fw-bold text-success">{{ totais.novos }}</div>
+        <div class="small text-muted">transações novas</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-auto">
+    <div class="card text-center" style="min-width:120px">
+      <div class="card-body py-2 px-4">
+        <div class="fs-3 fw-bold text-secondary">{{ totais.pulados }}</div>
+        <div class="small text-muted">já existiam</div>
+      </div>
+    </div>
+  </div>
+  {% if totais.erros %}
+  <div class="col-auto">
+    <div class="card text-center border-danger" style="min-width:120px">
+      <div class="card-body py-2 px-4">
+        <div class="fs-3 fw-bold text-danger">{{ totais.erros }}</div>
+        <div class="small text-muted">erros</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Se foi dry-run, oferece processar de verdade -->
+{% if dry_run %}
+<div class="alert alert-warning d-flex align-items-center gap-3 mb-4">
+  <span class="fs-5">⚠️</span>
+  <div>
+    Isso foi uma <strong>simulação</strong> — nenhum dado foi gravado ainda.
+    <form method="post" action="{% url 'conta_corrente:processar_extratos' %}" class="d-inline ms-3">
+      {% csrf_token %}
+      {% for c in caminhos %}
+        <input type="hidden" name="caminhos" value="{{ c }}">
+      {% endfor %}
+      <button type="submit" class="btn btn-success btn-sm">
+        Confirmar e processar de verdade
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- Tabela de resultados -->
+<div class="card shadow-sm">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Arquivo</th>
+        <th>Conta</th>
+        <th>Período</th>
+        <th class="text-end">Novas</th>
+        <th class="text-end">Puladas</th>
+        <th>Status / Avisos</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in resultados %}
+      <tr>
+        <td class="text-muted small font-monospace">{{ r.arquivo }}</td>
+        <td class="small">
+          {{ r.conta_str }}
+          {% if r.conta_criada %}
+            <span class="badge bg-info text-dark ms-1">nova conta</span>
+          {% endif %}
+        </td>
+        <td class="small text-muted">{{ r.periodo }}</td>
+        <td class="text-end fw-semibold {% if r.novos > 0 %}text-success{% endif %}">
+          {{ r.novos }}
+        </td>
+        <td class="text-end text-secondary">{{ r.pulados }}</td>
+        <td>
+          {% if r.status == 'erro' %}
+            <span class="badge bg-danger">Erro</span>
+            <span class="text-danger small ms-1">{{ r.erro }}</span>
+          {% elif r.status == 'ignorado' %}
+            <span class="badge bg-secondary">Ignorado</span>
+          {% else %}
+            <span class="badge bg-success">OK</span>
+          {% endif %}
+          {% for av in r.avisos %}
+            <div class="text-warning small">⚠ {{ av }}</div>
+          {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

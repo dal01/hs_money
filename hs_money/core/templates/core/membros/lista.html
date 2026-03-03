@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}
+
+{% block title %}Membros — HS Money{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">👤 Membros</h4>
+  <a href="{% url 'core:membro_criar' %}" class="btn btn-primary btn-sm">+ Novo Membro</a>
+</div>
+
+{% if membros %}
+<div class="card shadow-sm">
+  <table class="table table-hover mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Nome</th>
+        <th class="text-center">Adulto</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in membros %}
+      <tr>
+        <td class="text-muted">{{ m.pk }}</td>
+        <td>{{ m.nome }}</td>
+        <td class="text-center">
+          {% if m.adulto %}
+            <span class="badge bg-success">Sim</span>
+          {% else %}
+            <span class="badge bg-secondary">Não</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <a href="{% url 'core:membro_editar' m.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
+          <a href="{% url 'core:membro_excluir' m.pk %}" class="btn btn-outline-danger btn-sm">Excluir</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <p>Nenhum membro cadastrado ainda.</p>
+  <a href="{% url 'core:membro_criar' %}" class="btn btn-primary">Criar primeiro membro</a>
+</div>
+{% endif %}
+{% endblock %}
