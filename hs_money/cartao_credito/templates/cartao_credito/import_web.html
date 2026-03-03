@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Importar PDFs - Cartão Crédito</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { padding: 6px 8px; border: 1px solid #ddd; }
+        th { background: #f4f4f4; }
+        .ok { color: green; }
+        .err { color: red; }
+        pre { background: #f9f9f9; padding: 10px; border: 1px solid #eee; overflow:auto }
+    </style>
+</head>
+<body>
+<h1>Importar PDFs (Cartão Crédito)</h1>
+<form method="post">
+    {% csrf_token %}
+    <p>Selecione os PDFs a importar (usará `importar_pdf_cartao_bb`):</p>
+    <p>
+        <button type="button" id="select-all-btn">Selecionar todos</button>
+    </p>
+    <table>
+        <thead>
+            <tr><th></th><th>Arquivo</th><th>Tamanho (bytes)</th></tr>
+        </thead>
+        <tbody>
+            {% for p in pdfs %}
+            <tr>
+                <td><input type="checkbox" name="files" value="{{ p.path }}"></td>
+                <td>{{ p.name }}</td>
+                <td style="text-align:right">{{ p.size }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">Nenhum PDF encontrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p>
+        <label><input type="checkbox" name="dry" checked> Dry-run (não grava no DB)</label>
+    </p>
+    <p>
+        <button type="submit">Importar selecionados</button>
+    </p>
+</form>
+
+{% if results %}
+<h2>Resultados</h2>
+<ul>
+    {% for r in results %}
+    <li>
+        <strong>{{ r.file }}</strong> -
+        {% if r.ok %}<span class="ok">OK</span>{% else %}<span class="err">ERRO</span>{% endif %}
+        <pre>{{ r.output }}</pre>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<script>
+    (function(){
+        const btn = document.getElementById('select-all-btn');
+        btn.addEventListener('click', function(){
+            const checkboxes = Array.from(document.querySelectorAll('input[type=checkbox][name=files]'));
+            if (checkboxes.length === 0) return;
+            const anyUnchecked = checkboxes.some(cb => !cb.checked);
+            checkboxes.forEach(cb => cb.checked = anyUnchecked);
+            btn.textContent = anyUnchecked ? 'Desmarcar todos' : 'Selecionar todos';
+        });
+    })();
+</script>
+
+</body>
+</html>
