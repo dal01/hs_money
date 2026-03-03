@@ -21,5 +21,7 @@ urlpatterns = [
     path('extratos/',                     views.listar_extratos_disco, name='listar_extratos'),
     # Transações
     path('contas/<int:pk>/transacoes/',   views.transacoes_conta,  name='transacoes_conta'),
-    path('transacoes/',                   views.transacoes_lista,  name='transacoes_lista'),
+    path('transacoes/',                         views.transacoes_lista,         name='transacoes_lista'),
+    path('transacoes/<int:pk>/ocultar/',          views.transacao_toggle_oculta,  name='transacao_toggle_oculta'),
+    path('transacoes/bulk/',                      views.transacoes_bulk_action,   name='transacoes_bulk_action'),
 ]

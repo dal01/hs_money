@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 # Categoria (2 níveis: macro e sub)
 # =========================================
 class Categoria(models.Model):
-    NIVEL_CHOICES = [(1, "Macro"), (2, "Sub")]
+    NIVEL_CHOICES = [(1, "Categoria"), (2, "Subcategoria")]
 
     nome = models.CharField(max_length=100)
     nivel = models.PositiveSmallIntegerField(choices=NIVEL_CHOICES, default=1)

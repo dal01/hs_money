@@ -17,6 +17,6 @@ class ExtratoAdmin(admin.ModelAdmin):
 
 @admin.register(Transacao)
 class TransacaoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'extrato', 'data', 'tipo', 'descricao', 'valor', 'categoria')
-    list_filter = ('categoria',)
+    list_display = ('id', 'extrato', 'data', 'tipo', 'descricao', 'valor', 'categoria', 'oculta')
+    list_filter = ('categoria', 'oculta')
     search_fields = ('tipo', 'descricao')

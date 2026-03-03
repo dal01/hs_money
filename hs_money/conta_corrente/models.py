@@ -86,6 +86,8 @@ class Transacao(models.Model):
         related_name='transacoes_cc',
     )
 
+    oculta = models.BooleanField('Oculta', default=False)
+
     # Dedupe
     hash_linha = models.CharField(max_length=40)
     hash_ordem = models.PositiveSmallIntegerField(default=1)

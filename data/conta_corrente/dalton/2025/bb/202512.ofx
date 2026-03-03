@@ -1,0 +1,557 @@
+OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:NONE
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+
+
+<OFX>
+  <SIGNONMSGSRSV1>
+   <SONRS>
+    <STATUS>
+      <CODE>0</CODE>
+      <SEVERITY>INFO</SEVERITY>
+    </STATUS>
+    <DTSERVER>20260303170420[-3:BRT]</DTSERVER>
+    <LANGUAGE>POR</LANGUAGE>
+    <FI>
+     <ORG>Banco do Brasil</ORG>
+     <FID>1</FID>
+    </FI>
+   </SONRS>
+  </SIGNONMSGSRSV1>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <TRNUID>1</TRNUID>
+        <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+       </STATUS>
+      <STMTRS>
+        <CURDEF>BRL</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>1</BANKID>
+          <BRANCHID>5977</BRANCHID>
+          <ACCTID>14006</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+            <DTSTART>20251231000000[-3:BRT]</DTSTART>
+            <DTEND>20260303170420[-3:BRT]</DTEND>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251125000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo Anterior</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251201000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>6438.59</TRNAMT>
+              <FITID>507</FITID>
+              <NAME>Recebimento de Proventos</NAME>
+              <MEMO>00.530.279/0001-15 SENADO FEDERAL</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251201000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-3501.23</TRNAMT>
+              <FITID>1.200.032</FITID>
+              <NAME>BB RF Ref DI Plus Ágil</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251201000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1468.68</TRNAMT>
+              <FITID>120.101</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>PREVENT SENIOR PRIVATE OPERADORA DE SA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251201000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1468.68</TRNAMT>
+              <FITID>120.102</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>PREVENT SENIOR PRIVATE OPERADORA DE SA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251205000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-30.00</TRNAMT>
+              <FITID>647.946</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>05/12 09:15 NovaAlianca</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251205000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>30.00</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251208000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-7.40</TRNAMT>
+              <FITID>4.628</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>07/12 09:04 CONCEBRA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251208000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-5.40</TRNAMT>
+              <FITID>154.377</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>07/12 10:17 CONCEBRA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251208000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-250.00</TRNAMT>
+              <FITID>120.801</FITID>
+              <NAME>Pix Agendado</NAME>
+              <MEMO>08/12 Ab Soul Sports           005/999</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251208000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-225.50</TRNAMT>
+              <FITID>120.802</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>06/12 12:14 OLIVEIRA ALVES PEREIRA FI</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251208000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-55.00</TRNAMT>
+              <FITID>40.929</FITID>
+              <NAME>Vivo Celular</NAME>
+              <MEMO>VIVO MOVEL - DF</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251208000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-43.00</TRNAMT>
+              <FITID>40.929</FITID>
+              <NAME>Vivo Celular</NAME>
+              <MEMO>VIVO MOVEL - DF</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251208000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>586.30</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-5.40</TRNAMT>
+              <FITID>65.973</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>10/12 12:39 CONCEBRA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-7.40</TRNAMT>
+              <FITID>150.664</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>10/12 13:21 CONCEBRA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1100.00</TRNAMT>
+              <FITID>121.001</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>AMIGA ASSOCIACAO MAXXIMO GARDEN</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-240.00</TRNAMT>
+              <FITID>121.002</FITID>
+              <NAME>Pix - Agendamento</NAME>
+              <MEMO>10/12 05:54 PARIS SAINT-GERMAIN ACADE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-367.00</TRNAMT>
+              <FITID>121.003</FITID>
+              <NAME>Pix - Agendamento</NAME>
+              <MEMO>10/12 05:54 PARIS SAINT-GERMAIN ACADE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>86.60</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251210000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1633.20</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251212000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-300.00</TRNAMT>
+              <FITID>121.201</FITID>
+              <NAME>Pix Agendado</NAME>
+              <MEMO>12/12 JOAB PEREIRA BENEVIDES   003/999</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251212000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>300.00</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251215000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-51.40</TRNAMT>
+              <FITID>121.501</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>15/12 09:50 MARTA MODESTO DE OLIVEIRA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251215000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>51.40</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251222000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>28542.34</TRNAMT>
+              <FITID>509</FITID>
+              <NAME>Recebimento de Proventos</NAME>
+              <MEMO>00.530.279/0001-15 SENADO FEDERAL</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251222000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1075.00</TRNAMT>
+              <FITID>122.201</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>21/12 09:05 ALBERTO MATSUDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251222000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-170.91</TRNAMT>
+              <FITID>122.202</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>21/12 12:38 AMAZON.COM.BR</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251222000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-250.00</TRNAMT>
+              <FITID>122.203</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>21/12 12:38 DALTON EIDI HISAYASU</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251222000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-27046.43</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251223000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-228.00</TRNAMT>
+              <FITID>132.686</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>23/12 09:04 STB*SUECIABUSINESSLT</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251223000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-39.00</TRNAMT>
+              <FITID>233.884</FITID>
+              <NAME>Compra com Cartão</NAME>
+              <MEMO>23/12 09:24 STAFE BANK*Planeta P</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251223000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-151.89</TRNAMT>
+              <FITID>40.310</FITID>
+              <NAME>Pagto Energia Elétrica</NAME>
+              <MEMO>NEOENERGIA BRASíLIA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251223000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>418.89</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251226000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-2400.00</TRNAMT>
+              <FITID>122.601</FITID>
+              <NAME>Pix Agendado</NAME>
+              <MEMO>25/12 DALTON EIDI HISAYASU     003/999</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251226000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-89.90</TRNAMT>
+              <FITID>122.602</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>25/12 22:37 ONITEL SERVICOS LTDA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251226000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-4968.27</TRNAMT>
+              <FITID>89.114.979</FITID>
+              <NAME>Pagto cartão crédito</NAME>
+              <MEMO>VISA INFINITE</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251226000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-20863.20</TRNAMT>
+              <FITID>95.082.065</FITID>
+              <NAME>Pagto cartão crédito</NAME>
+              <MEMO>ELO NANQUIM</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251226000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>26628.04</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251226000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>1693.33</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251229000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>24.00</TRNAMT>
+              <FITID>291.808.091.121.572</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>29/12 18:08 00017008749856 FABIO YOITI</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251229000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>36.00</TRNAMT>
+              <FITID>291.912.248.190.692</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>29/12 19:12 00017613836800 ROGERIO JUN</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251229000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>15.60</TRNAMT>
+              <FITID>292.037.218.797.122</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>29/12 20:37 00026104590845 NILTON MASS</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251229000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>15.60</TRNAMT>
+              <FITID>292.110.476.530.182</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>29/12 21:10 00014328636812 NELSON AKIR</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251229000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>15.60</TRNAMT>
+              <FITID>292.113.043.928.232</FITID>
+              <NAME>Pix - Recebido</NAME>
+              <MEMO>29/12 21:13 07395871000109 OPEN STUDIO</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251229000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-106.80</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251230000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1468.68</TRNAMT>
+              <FITID>123.001</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>PREVENT SENIOR PRIVATE OPERADORA DE SA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251230000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-1468.68</TRNAMT>
+              <FITID>123.002</FITID>
+              <NAME>Pagamento de Boleto</NAME>
+              <MEMO>PREVENT SENIOR PRIVATE OPERADORA DE SA</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251230000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-54.00</TRNAMT>
+              <FITID>123.003</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>30/12 09:25 Fabio de Souza da Costa</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>DEBIT</TRNTYPE>
+              <DTPOSTED>20251230000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>-2000.00</TRNAMT>
+              <FITID>123.004</FITID>
+              <NAME>Pix - Enviado</NAME>
+              <MEMO>30/12 11:38 DALTON EIDI HISAYASU</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251230000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>106.80</TRNAMT>
+              <FITID>9.903</FITID>
+              <NAME>BB Rende Fácil</NAME>
+              <MEMO>Rende Facil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>20251230000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>4884.56</TRNAMT>
+              <FITID>32</FITID>
+              <NAME>Resgate Fundo</NAME>
+              <MEMO>BB RF Ref DI Plus Agil</MEMO>
+            </STMTTRN>
+            <STMTTRN>
+              <TRNTYPE>CREDIT</TRNTYPE>
+              <DTPOSTED>00021130000000[-3:BRT]</DTPOSTED>
+              <TRNAMT>0.00</TRNAMT>
+              <FITID></FITID>
+              <NAME>Saldo do dia</NAME>
+              <MEMO></MEMO>
+            </STMTTRN>
+      </BANKTRANLIST>
+      <LEDGERBAL>
+        <BALAMT>0.00</BALAMT>
+        <DTASOF>20251231000000[-3:BRT]</DTASOF>
+      </LEDGERBAL>
+    </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

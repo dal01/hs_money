@@ -8,12 +8,13 @@ from itertools import groupby
 
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.conf import settings
 
 from unidecode import unidecode
 
-from hs_money.core.models import Membro, InstituicaoFinanceira
+from hs_money.core.models import Membro, InstituicaoFinanceira, Categoria
 from hs_money.conta_corrente.models import ContaCorrente, Extrato, Transacao
 from hs_money.conta_corrente.services.importar import importar_arquivo_ofx, hash_arquivo_ofx
 
@@ -171,11 +172,10 @@ def _slug(s: str) -> str:
 
 
 def _normalizar_nome(filename: str) -> str:
-    """extrato conta corrente - 012024.ofx  →  extrato_cc_012024.ofx"""
+    """Fallback: limpa o nome original caso seja necessário."""
     stem, _, ext = filename.rpartition('.')
     stem = unidecode(stem)
     stem = re.sub(r'[^a-zA-Z0-9]+', '_', stem).strip('_').lower()
-    # compacta duplos underscores
     stem = re.sub(r'_+', '_', stem)
     return f"{stem}.{ext.lower()}" if ext else stem
 
@@ -351,7 +351,7 @@ def upload_extrato(request, conta_pk=None):
         ano, mm = _detectar_ano_mes(nome_original, ofx_data.get('dtstart', ''))
         membro_slug = _slug(membro.nome) if membro else 'sem_membro'
         inst_slug   = inst.codigo or _slug(inst.nome)
-        nome_norm   = _normalizar_nome(nome_original)
+        nome_norm   = f"{ano}{mm}.{ext}" if ext else f"{ano}{mm}"
 
         destino = dados_dir / 'conta_corrente' / membro_slug / ano / inst_slug
         destino.mkdir(parents=True, exist_ok=True)
@@ -394,12 +394,45 @@ def upload_extrato(request, conta_pk=None):
 
 def transacoes_conta(request, pk):
     """Atalho: redireciona para a lista global pré-filtrada pela conta."""
-    from django.urls import reverse
     return redirect(reverse('conta_corrente:transacoes_lista') + f'?conta={pk}')
+
+
+def transacoes_bulk_action(request):
+    """Ação em massa: ocultar, mostrar ou categorizar transações."""
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
+    ids    = request.POST.getlist('ids')
+    action = request.POST.get('action', '')
+    voltar = request.POST.get('next', reverse('conta_corrente:transacoes_lista'))
+    if ids and action in ('ocultar', 'mostrar'):
+        Transacao.objects.filter(pk__in=ids).update(oculta=(action == 'ocultar'))
+    elif ids and action == 'categorizar':
+        categoria_id = request.POST.get('categoria_id', '').strip()
+        if categoria_id:
+            cat = Categoria.objects.filter(pk=categoria_id).first()
+            if cat:
+                Transacao.objects.filter(pk__in=ids).update(categoria=cat)
+        else:
+            Transacao.objects.filter(pk__in=ids).update(categoria=None)
+    return redirect(voltar)
 
 
 # ---------------------------------------------------------------------------
 # Lista GLOBAL de transações (todas as contas)
+def transacao_toggle_oculta(request, pk):
+    """Toggle do campo oculta de uma transação (POST)."""
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
+    t = get_object_or_404(Transacao, pk=pk)
+    t.oculta = not t.oculta
+    t.save(update_fields=['oculta'])
+    # volta para onde veio, mantendo todos os query params
+    voltar = request.POST.get('next', reverse('conta_corrente:transacoes_lista'))
+    return redirect(voltar)
+
+
 # ---------------------------------------------------------------------------
 
 def transacoes_lista(request):
@@ -412,6 +445,8 @@ def transacoes_lista(request):
     inst_sel   = request.GET.get('instituicao', '').strip()
     conta_sel  = request.GET.get('conta',       '').strip()
     busca      = request.GET.get('q',           '').strip()
+    cat_sel    = request.GET.get('categoria',   '').strip()
+    tab_sel    = request.GET.get('tab',         'visiveis').strip()
 
     order_sel = request.GET.get('order', 'data').strip()
     dir_sel   = request.GET.get('dir',   'desc').strip()
@@ -428,52 +463,72 @@ def transacoes_lista(request):
     if dir_sel == 'desc':
         order_field = f'-{order_field}'
 
-    qs = (
+    qs_base = (
         Transacao.objects
         .select_related('extrato__conta__instituicao', 'extrato__conta__membro', 'categoria')
         .order_by(order_field, '-pk')
     )
 
     if ano_sel:
-        qs = qs.filter(data__year=ano_sel)
+        qs_base = qs_base.filter(data__year=ano_sel)
     if mes_sel:
-        qs = qs.filter(data__month=mes_sel)
+        qs_base = qs_base.filter(data__month=mes_sel)
     if membro_sel:
-        qs = qs.filter(extrato__conta__membro__pk=membro_sel)
+        qs_base = qs_base.filter(extrato__conta__membro__pk=membro_sel)
     if inst_sel:
-        qs = qs.filter(extrato__conta__instituicao__pk=inst_sel)
+        qs_base = qs_base.filter(extrato__conta__instituicao__pk=inst_sel)
     if conta_sel:
-        qs = qs.filter(extrato__conta__pk=conta_sel)
+        qs_base = qs_base.filter(extrato__conta__pk=conta_sel)
     if busca:
-        qs = qs.filter(descricao__icontains=busca)
+        qs_base = qs_base.filter(descricao__icontains=busca)
+    if cat_sel == '0':
+        qs_base = qs_base.filter(categoria__isnull=True)
+    elif cat_sel:
+        # filtra pela categoria escolhida OU qualquer subcategoria dela
+        cat_obj = Categoria.objects.filter(pk=cat_sel).first()
+        if cat_obj:
+            if cat_obj.nivel == 1:
+                sub_ids = list(cat_obj.subcategorias.values_list('pk', flat=True))
+                qs_base = qs_base.filter(categoria__pk__in=[cat_obj.pk] + sub_ids)
+            else:
+                qs_base = qs_base.filter(categoria__pk=cat_obj.pk)
 
-    # totais (calcula sobre o qs filtrado)
-    total_credito = sum(t.valor for t in qs if t.valor > 0)
-    total_debito  = sum(t.valor for t in qs if t.valor < 0)
+    qs_visiveis = qs_base.filter(oculta=False)
+    qs_ocultas  = qs_base.filter(oculta=True)
 
-    # opções dos filtros
-    anos_disponiveis = (
-        Transacao.objects.dates('data', 'year', order='DESC')
-    )
+    # totais sobre as visíveis
+    total_credito = sum(t.valor for t in qs_visiveis if t.valor > 0)
+    total_debito  = sum(t.valor for t in qs_visiveis if t.valor < 0)
+
+    # totais sobre as ocultas
+    total_credito_ocultas = sum(t.valor for t in qs_ocultas if t.valor > 0)
+    total_debito_ocultas  = sum(t.valor for t in qs_ocultas if t.valor < 0)
+
+    anos_disponiveis = Transacao.objects.dates('data', 'year', order='DESC')
 
     return render(request, 'conta_corrente/transacoes/lista.html', {
-        'transacoes':        qs,
-        'total_credito':     total_credito,
-        'total_debito':      total_debito,
-        'total_liquido':     total_credito + total_debito,
-        # dropdowns
-        'membros':           Membro.objects.order_by('nome'),
-        'instituicoes':      InstituicaoFinanceira.objects.order_by('nome'),
-        'anos_disponiveis':  anos_disponiveis,
-        # selecionados
-        'ano_sel':           ano_sel,
-        'mes_sel':           mes_sel,
-        'membro_sel':        membro_sel,
-        'inst_sel':          inst_sel,
-        'conta_sel':         conta_sel,
-        'busca':             busca,
-        'order_sel':         order_sel,
-        'dir_sel':           dir_sel,
+        'transacoes':          qs_visiveis,
+        'transacoes_ocultas':  qs_ocultas,
+        'total_credito':       total_credito,
+        'total_debito':        total_debito,
+        'total_liquido':       total_credito + total_debito,
+        'total_credito_ocultas': total_credito_ocultas,
+        'total_debito_ocultas':  total_debito_ocultas,
+        'total_liquido_ocultas': total_credito_ocultas + total_debito_ocultas,
+        'membros':             Membro.objects.order_by('nome'),
+        'instituicoes':        InstituicaoFinanceira.objects.order_by('nome'),
+        'anos_disponiveis':    anos_disponiveis,
+        'categorias':          Categoria.objects.filter(nivel=1).prefetch_related('subcategorias').order_by('nome'),
+        'cat_sel':             cat_sel,
+        'ano_sel':             ano_sel,
+        'mes_sel':             mes_sel,
+        'membro_sel':          membro_sel,
+        'inst_sel':            inst_sel,
+        'conta_sel':           conta_sel,
+        'busca':               busca,
+        'tab_sel':             tab_sel,
+        'order_sel':           order_sel,
+        'dir_sel':             dir_sel,
         'meses': [
             (1,'Jan'),(2,'Fev'),(3,'Mar'),(4,'Abr'),(5,'Mai'),(6,'Jun'),
             (7,'Jul'),(8,'Ago'),(9,'Set'),(10,'Out'),(11,'Nov'),(12,'Dez'),

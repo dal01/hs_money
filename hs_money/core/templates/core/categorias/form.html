@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ titulo }} — HS Money{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-2">
+  <a href="{% url 'core:categoria_lista' %}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
+  <h4 class="mb-0">{{ titulo }}</h4>
+</div>
+
+<div class="card shadow-sm" style="max-width: 480px;">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+
+      {% if categoria.nivel == 2 %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Categoria</label>
+        {{ form.categoria_pai }}
+        {% if form.categoria_pai.errors %}
+          <div class="text-danger small mt-1">{{ form.categoria_pai.errors.0 }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Nome</label>
+        {{ form.nome }}
+        {% if form.nome.errors %}
+          <div class="text-danger small mt-1">{{ form.nome.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger py-1">
+        {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'core:categoria_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

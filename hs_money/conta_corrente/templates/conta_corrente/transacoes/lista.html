@@ -7,18 +7,22 @@
 
 {% block extra_head %}
 <style>
-  .th-sort {
-    color: inherit;
-    text-decoration: none;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
+  .th-sort { color: inherit; text-decoration: none; white-space: nowrap;
+             display: inline-flex; align-items: center; gap: 4px; }
   .th-sort:hover { color: #0d6efd; }
   .th-sort.active { color: #0d6efd; font-weight: 600; }
   .sort-icon { font-size: .75em; opacity: .8; }
-  thead th { cursor: pointer; user-select: none; }
+  th.col-sort { cursor: pointer; user-select: none; }
+  .btn-ocultar { font-size: .7rem; line-height: 1; padding: 2px 6px; }
+  .bulk-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: #fff3cd; border: 1px solid #ffc107;
+    border-radius: 6px; padding: 8px 14px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  .nav-link .badge { font-size: .7em; }
 </style>
 {% endblock %}
 
@@ -29,6 +33,11 @@
 
 <!-- Filtros -->
 <form method="get" id="form-filtro" class="row g-2 align-items-end mb-4">
+
+  {# preserva a aba ativa ao filtrar #}
+  {% if tab_sel == 'ocultas' %}
+    <input type="hidden" name="tab" value="ocultas">
+  {% endif %}
 
   <div class="col-auto">
     <label class="form-label small mb-1">Membro</label>
@@ -84,123 +93,374 @@
            placeholder="Descrição…">
   </div>
 
+  <div class="col-auto">
+    <label class="form-label small mb-1">Categoria</label>
+    <select name="categoria" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      <option value="0" {% if cat_sel == '0' %}selected{% endif %}>-- Sem categoria --</option>
+      {% for mac in categorias %}
+        {% if mac.subcategorias.all %}
+          <optgroup label="{{ mac.nome }}">
+            <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
+              {{ mac.nome }} (todas)
+            </option>
+            {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+              <option value="{{ sub.pk }}" {% if cat_sel == sub.pk|stringformat:'s' %}selected{% endif %}>
+                  {{ sub.nome }}
+              </option>
+            {% endfor %}
+          </optgroup>
+        {% else %}
+          <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
+            {{ mac.nome }}
+          </option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+
   {% if conta_sel %}<input type="hidden" name="conta" value="{{ conta_sel }}">{% endif %}
 
   <div class="col-auto">
     <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button>
-    {% if ano_sel or mes_sel or membro_sel or inst_sel or conta_sel or busca %}
+    {% if ano_sel or mes_sel or membro_sel or inst_sel or conta_sel or busca or cat_sel %}
       <a href="{% url 'conta_corrente:transacoes_lista' %}" class="btn btn-sm btn-link text-muted">Limpar</a>
     {% endif %}
   </div>
+
 </form>
 
-<!-- Totalizadores -->
-<div class="row g-2 mb-3">
-  <div class="col-auto">
-    <div class="card border-0 bg-light text-center px-3 py-2">
-      <div class="small text-muted">Créditos</div>
-      <div class="fw-semibold text-success">{{ total_credito|brl }}</div>
-    </div>
-  </div>
-  <div class="col-auto">
-    <div class="card border-0 bg-light text-center px-3 py-2">
-      <div class="small text-muted">Débitos</div>
-      <div class="fw-semibold text-danger">{{ total_debito|brl }}</div>
-    </div>
-  </div>
-  <div class="col-auto">
-    <div class="card border-0 bg-light text-center px-3 py-2">
-      <div class="small text-muted">Saldo período</div>
-      <div class="fw-semibold {% if total_liquido >= 0 %}text-success{% else %}text-danger{% endif %}">
-        {{ total_liquido|brl }}
+<!-- Abas -->
+<ul class="nav nav-tabs mb-0" id="tabsTransacoes" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if tab_sel != 'ocultas' %}active{% endif %}"
+            id="tab-vis-btn" data-bs-toggle="tab" data-bs-target="#tab-vis"
+            type="button" role="tab">
+      Transações
+      <span class="badge bg-secondary ms-1">{{ transacoes|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if tab_sel == 'ocultas' %}active{% endif %}"
+            id="tab-ocultas-btn" data-bs-toggle="tab" data-bs-target="#tab-ocultas"
+            type="button" role="tab">
+      🙈 Ocultas
+      {% if transacoes_ocultas %}
+        <span class="badge bg-warning text-dark ms-1">{{ transacoes_ocultas|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content border border-top-0 rounded-bottom">
+
+  <!-- ── Aba: Visíveis ── -->
+  <div class="tab-pane fade {% if tab_sel != 'ocultas' %}show active{% endif %} p-0"
+       id="tab-vis" role="tabpanel">
+
+    <div class="row g-2 m-3 mb-0">
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Créditos</div>
+          <div class="fw-semibold text-success">{{ total_credito|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Débitos</div>
+          <div class="fw-semibold text-danger">{{ total_debito|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Saldo período</div>
+          <div class="fw-semibold {% if total_liquido >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ total_liquido|brl }}
+          </div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Transações</div>
+          <div class="fw-semibold">{{ transacoes|length }}</div>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="col-auto">
-    <div class="card border-0 bg-light text-center px-3 py-2">
-      <div class="small text-muted">Transações</div>
-      <div class="fw-semibold">{{ transacoes|length }}</div>
-    </div>
-  </div>
-</div>
 
-{% if not transacoes %}
-  <div class="alert alert-info">
-    Nenhuma transação encontrada.
-    {% if not ano_sel and not mes_sel and not membro_sel and not inst_sel and not busca %}
-      Importe extratos OFX pela
-      <a href="{% url 'conta_corrente:listar_extratos' %}">página de extratos no disco</a>.
+    {% if not transacoes %}
+      <div class="alert alert-info m-3">
+        Nenhuma transação encontrada.
+        {% if not ano_sel and not mes_sel and not membro_sel and not inst_sel and not busca %}
+          Importe extratos OFX pela
+          <a href="{% url 'conta_corrente:listar_extratos' %}">página de extratos no disco</a>.
+        {% endif %}
+      </div>
+    {% else %}
+
+    <form id="form-bulk-vis" method="post"
+          action="{% url 'conta_corrente:transacoes_bulk_action' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+      <div id="bulk-bar-vis" class="bulk-bar d-none mx-3 mt-3">
+        <span id="bulk-count-vis" class="fw-semibold me-2">0 selecionadas</span>
+        <button type="submit" name="action" value="ocultar"
+                class="btn btn-sm btn-warning">🙈 Ocultar</button>
+        <div class="vr mx-1"></div>
+        <select name="categoria_id" class="form-select form-select-sm" style="width:210px" title="Selecione a categoria">
+          <option value="">— Remover categoria —</option>
+          {% for mac in categorias %}
+            {% if mac.subcategorias.all %}
+              <optgroup label="{{ mac.nome }}">
+                {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+                  <option value="{{ sub.pk }}">{{ sub.nome }}</option>
+                {% endfor %}
+              </optgroup>
+            {% else %}
+              <option value="{{ mac.pk }}">{{ mac.nome }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <button type="submit" name="action" value="categorizar"
+                class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        <button type="button" data-deselect="vis"
+                class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
+      </div>
+
+      <table class="table table-hover align-middle mb-0 table-sm">
+        <thead class="table-light">
+          <tr>
+            <th style="width:32px">
+              <input type="checkbox" id="chk-all-vis" class="form-check-input" title="Selecionar todos">
+            </th>
+            {% with f='data' %}
+            <th class="col-sort" style="width:95px">
+              <a href="{% sort_url f 'desc' %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Data{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='tipo' %}
+            <th class="col-sort" style="width:160px">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Tipo{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='descricao' %}
+            <th class="col-sort">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Descrição{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='conta' %}
+            <th class="col-sort">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Conta{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='valor' %}
+            <th class="col-sort text-end" style="width:130px">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Valor{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='categoria' %}
+            <th class="col-sort" style="width:130px">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Categoria{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in transacoes %}
+          <tr>
+            <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-vis"></td>
+            <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
+            <td class="small text-muted">{{ t.tipo|default:"—" }}</td>
+            <td class="small">{{ t.descricao }}</td>
+            <td class="small text-muted">
+              {{ t.extrato.conta.instituicao.nome }}
+              {% if t.extrato.conta.membro %}
+                <span class="text-secondary">/ {{ t.extrato.conta.membro.nome }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ t.valor|brl }}
+            </td>
+            <td class="small text-muted">{{ t.categoria|default:"—" }}</td>
+            <td class="text-center">
+              <button type="submit"
+                      formaction="{% url 'conta_corrente:transacao_toggle_oculta' t.pk %}"
+                      class="btn btn-ocultar btn-outline-warning"
+                      title="Ocultar transação">🙈</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
     {% endif %}
-  </div>
-{% else %}
-<div class="card shadow-sm">
-  <table class="table table-hover align-middle mb-0 table-sm">
-    <thead class="table-light">
-      <tr>
-        {% with f='data' %}
-        <th style="width:95px">
-          <a href="{% sort_url f 'desc' %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-            Data
-            {% if order_sel == f %}<span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-          </a>
-        </th>{% endwith %}
-        {% with f='tipo' %}
-        <th style="width:160px">
-          <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-            Tipo
-            {% if order_sel == f %}<span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-          </a>
-        </th>{% endwith %}
-        {% with f='descricao' %}
-        <th>
-          <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-            Descrição
-            {% if order_sel == f %}<span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-          </a>
-        </th>{% endwith %}
-        {% with f='conta' %}
-        <th>
-          <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-            Conta
-            {% if order_sel == f %}<span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-          </a>
-        </th>{% endwith %}
-        {% with f='valor' %}
-        <th class="text-end" style="width:130px">
-          <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-            Valor
-            {% if order_sel == f %}<span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-          </a>
-        </th>{% endwith %}
-        {% with f='categoria' %}
-        <th style="width:130px">
-          <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-            Categoria
-            {% if order_sel == f %}<span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-          </a>
-        </th>{% endwith %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for t in transacoes %}
-      <tr>
-        <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
-        <td class="small text-muted">{{ t.tipo|default:"—" }}</td>
-        <td class="small">{{ t.descricao }}</td>
-        <td class="small text-muted">
-          {{ t.extrato.conta.instituicao.nome }}
-          {% if t.extrato.conta.membro %}
-            <span class="text-secondary">/ {{ t.extrato.conta.membro.nome }}</span>
-          {% endif %}
-        </td>
-        <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
-          {{ t.valor|brl }}
-        </td>
-        <td class="small text-muted">{{ t.categoria|default:"—" }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
+  </div><!-- /tab-vis -->
+
+  <!-- ── Aba: Ocultas ── -->
+  <div class="tab-pane fade {% if tab_sel == 'ocultas' %}show active{% endif %} p-0"
+       id="tab-ocultas" role="tabpanel">
+
+    <div class="row g-2 m-3 mb-0">
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Créditos</div>
+          <div class="fw-semibold text-success">{{ total_credito_ocultas|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Débitos</div>
+          <div class="fw-semibold text-danger">{{ total_debito_ocultas|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Saldo período</div>
+          <div class="fw-semibold {% if total_liquido_ocultas >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ total_liquido_ocultas|brl }}
+          </div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Transações</div>
+          <div class="fw-semibold">{{ transacoes_ocultas|length }}</div>
+        </div>
+      </div>
+    </div>
+
+    {% if not transacoes_ocultas %}
+      <div class="alert alert-info m-3">Nenhuma transação oculta com os filtros atuais.</div>
+    {% else %}
+
+    <form id="form-bulk-ocultas" method="post"
+          action="{% url 'conta_corrente:transacoes_bulk_action' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+      <div id="bulk-bar-ocultas" class="bulk-bar d-none mx-3 mt-3">
+        <span id="bulk-count-ocultas" class="fw-semibold me-2">0 selecionadas</span>
+        <button type="submit" name="action" value="mostrar"
+                class="btn btn-sm btn-outline-secondary">👁 Mostrar</button>
+        <div class="vr mx-1"></div>
+        <select name="categoria_id" class="form-select form-select-sm" style="width:210px" title="Selecione a categoria">
+          <option value="">— Remover categoria —</option>
+          {% for mac in categorias %}
+            {% if mac.subcategorias.all %}
+              <optgroup label="{{ mac.nome }}">
+                {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+                  <option value="{{ sub.pk }}">{{ sub.nome }}</option>
+                {% endfor %}
+              </optgroup>
+            {% else %}
+              <option value="{{ mac.pk }}">{{ mac.nome }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <button type="submit" name="action" value="categorizar"
+                class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        <button type="button" data-deselect="ocultas"
+                class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
+      </div>
+
+      <table class="table table-hover align-middle mb-0 table-sm">
+        <thead class="table-light">
+          <tr>
+            <th style="width:32px">
+              <input type="checkbox" id="chk-all-ocultas" class="form-check-input" title="Selecionar todos">
+            </th>
+            <th style="width:95px">Data</th>
+            <th style="width:160px">Tipo</th>
+            <th>Descrição</th>
+            <th>Conta</th>
+            <th class="text-end" style="width:130px">Valor</th>
+            <th style="width:130px">Categoria</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in transacoes_ocultas %}
+          <tr style="opacity:.6">
+            <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-ocultas"></td>
+            <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
+            <td class="small text-muted">{{ t.tipo|default:"—" }}</td>
+            <td class="small">{{ t.descricao }}</td>
+            <td class="small text-muted">
+              {{ t.extrato.conta.instituicao.nome }}
+              {% if t.extrato.conta.membro %}
+                <span class="text-secondary">/ {{ t.extrato.conta.membro.nome }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ t.valor|brl }}
+            </td>
+            <td class="small text-muted">{{ t.categoria|default:"—" }}</td>
+            <td class="text-center">
+              <button type="submit"
+                      formaction="{% url 'conta_corrente:transacao_toggle_oculta' t.pk %}"
+                      class="btn btn-ocultar btn-outline-secondary"
+                      title="Mostrar transação">👁</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+    {% endif %}
+  </div><!-- /tab-ocultas -->
+
+</div><!-- /tab-content -->
+
+<script>
+(function () {
+  /* Atualiza URL e campos "next" quando o usuário troca de aba */
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
+    btn.addEventListener('shown.bs.tab', () => {
+      const target  = btn.getAttribute('data-bs-target');
+      const tabName = target === '#tab-ocultas' ? 'ocultas' : 'visiveis';
+      const url     = new URL(window.location.href);
+      if (tabName === 'visiveis') url.searchParams.delete('tab');
+      else url.searchParams.set('tab', tabName);
+      history.replaceState(null, '', url);
+      const nextVal = url.pathname + (url.search || '');
+      document.querySelectorAll('input[name="next"]').forEach(inp => inp.value = nextVal);
+    });
+  });
+
+  /* Select-all / bulk-bar por aba */
+  function setupBulk(suffix) {
+    const chkAll  = document.getElementById(`chk-all-${suffix}`);
+    const bar     = document.getElementById(`bulk-bar-${suffix}`);
+    const countEl = document.getElementById(`bulk-count-${suffix}`);
+    const desel   = document.querySelector(`[data-deselect="${suffix}"]`);
+    if (!chkAll) return;
+
+    const rows = () => Array.from(document.querySelectorAll(`.row-chk-${suffix}`));
+
+    function update() {
+      const checked = rows().filter(c => c.checked);
+      const n = checked.length;
+      bar.classList.toggle('d-none', n === 0);
+      countEl.textContent = n === 1 ? '1 selecionada' : `${n} selecionadas`;
+      chkAll.indeterminate = n > 0 && n < rows().length;
+      chkAll.checked = n > 0 && n === rows().length;
+    }
+
+    chkAll.addEventListener('change', () => { rows().forEach(c => c.checked = chkAll.checked); update(); });
+    document.addEventListener('change', e => { if (e.target.classList.contains(`row-chk-${suffix}`)) update(); });
+    if (desel) desel.addEventListener('click', () => { rows().forEach(c => c.checked = false); chkAll.checked = false; update(); });
+  }
+
+  setupBulk('vis');
+  setupBulk('ocultas');
+})();
+</script>
+
 {% endblock %}

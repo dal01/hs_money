@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}
+
+{% block title %}Excluir Categoria — HS Money{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-2">
+  <a href="{% url 'core:categoria_lista' %}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
+  <h4 class="mb-0">Excluir Categoria</h4>
+</div>
+
+<div class="card shadow-sm border-danger" style="max-width: 480px;">
+  <div class="card-body">
+    <p class="mb-1">
+      Tem certeza que deseja excluir a categoria
+      <strong>{{ categoria }}</strong>?
+    </p>
+    {% if categoria.nivel == 1 and categoria.subcategorias.exists %}
+    <div class="alert alert-warning py-2 mt-3 mb-0">
+      ⚠️ Esta categoria possui
+      <strong>{{ categoria.subcategorias.count }} subcategoria(s)</strong>.
+      Elas serão desvinculadas (categoria_pai ficará vazia).
+    </div>
+    {% endif %}
+    <div class="d-flex gap-2 mt-4">
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Sim, excluir</button>
+      </form>
+      <a href="{% url 'core:categoria_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

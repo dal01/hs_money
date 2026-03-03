@@ -17,4 +17,11 @@ urlpatterns = [
     path('instituicoes/nova/',           views.instituicao_criar,  name='instituicao_criar'),
     path('instituicoes/<int:pk>/editar/',  views.instituicao_editar, name='instituicao_editar'),
     path('instituicoes/<int:pk>/excluir/', views.instituicao_excluir, name='instituicao_excluir'),
+
+    # Categorias
+    path('categorias/',                        views.categoria_lista,        name='categoria_lista'),
+    path('categorias/nova-macro/',             views.categoria_criar_macro,  name='categoria_criar_macro'),
+    path('categorias/nova-sub/',               views.categoria_criar_sub,    name='categoria_criar_sub'),
+    path('categorias/<int:pk>/editar/',        views.categoria_editar,       name='categoria_editar'),
+    path('categorias/<int:pk>/excluir/',       views.categoria_excluir,      name='categoria_excluir'),
 ]

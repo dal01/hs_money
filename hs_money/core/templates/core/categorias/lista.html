@@ -1,0 +1,163 @@
+{% extends "core/base.html" %}
+
+{% block title %}Categorias — HS Money{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">🏷️ Categorias</h4>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-nova-macro">
+    + Nova Categoria
+  </button>
+</div>
+
+{% if macros %}
+<div class="accordion shadow-sm" id="acc-categorias">
+  {% for macro in macros %}
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="head-{{ macro.pk }}">
+      <button class="accordion-button collapsed fw-semibold" type="button"
+              data-bs-toggle="collapse" data-bs-target="#body-{{ macro.pk }}"
+              aria-expanded="false" aria-controls="body-{{ macro.pk }}">
+        {{ macro.nome }}
+        <span class="badge bg-secondary ms-2">{{ macro.subcategorias.count }}</span>
+      </button>
+    </h2>
+    <div id="body-{{ macro.pk }}" class="accordion-collapse collapse"
+         aria-labelledby="head-{{ macro.pk }}">
+      <div class="accordion-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Subcategoria</th>
+              <th class="text-end pe-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in macro.subcategorias.all|dictsort:"nome" %}
+            <tr>
+              <td class="ps-3">{{ sub.nome }}</td>
+              <td class="text-end pe-3">
+                <a href="{% url 'core:categoria_editar' sub.pk %}"
+                   class="btn btn-outline-secondary btn-sm py-0">Editar</a>
+                <a href="{% url 'core:categoria_excluir' sub.pk %}"
+                   class="btn btn-outline-danger btn-sm py-0">Excluir</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="2" class="ps-3 text-muted fst-italic py-2">Nenhuma subcategoria.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="p-2 border-top bg-light d-flex gap-2">
+          <button class="btn btn-outline-success btn-sm"
+                  data-bs-toggle="modal" data-bs-target="#modal-nova-sub"
+                  data-macro-id="{{ macro.pk }}"
+                  data-macro-nome="{{ macro.nome }}">
+            + Nova Subcategoria
+          </button>
+          <a href="{% url 'core:categoria_editar' macro.pk %}"
+             class="btn btn-outline-secondary btn-sm">Editar Categoria</a>
+          <a href="{% url 'core:categoria_excluir' macro.pk %}"
+             class="btn btn-outline-danger btn-sm">Excluir Categoria</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <p class="mb-3">Nenhuma categoria cadastrada ainda.</p>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-nova-macro">
+    Criar primeira Macro
+  </button>
+</div>
+{% endif %}
+
+
+<!-- ─── Modal: Nova Macro ─────────────────────────────────────────────── -->
+<div class="modal fade" id="modal-nova-macro" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <form method="post" action="{% url 'core:categoria_criar_macro' %}">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Nova Categoria</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label fw-semibold mb-1">Nome</label>
+          {{ macro_form.nome }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Criar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ─── Modal: Nova Sub ──────────────────────────────────────────────── -->
+<div class="modal fade" id="modal-nova-sub" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <form method="post" action="{% url 'core:categoria_criar_sub' %}">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-nova-sub-titulo">Nova Subcategoria</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold mb-1">Macro</label>
+            {{ sub_form.categoria_pai }}
+          </div>
+          <div class="mb-0">
+            <label class="form-label fw-semibold mb-1">Nome</label>
+            {{ sub_form.nome }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Criar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var modalEl = document.getElementById('modal-nova-sub');
+    if (!modalEl) return;
+    modalEl.addEventListener('show.bs.modal', function (e) {
+      var btn = e.relatedTarget;
+      if (!btn) return;
+      var macroId   = btn.getAttribute('data-macro-id');
+      var macroNome = btn.getAttribute('data-macro-nome');
+      // Update title
+      var title = document.getElementById('modal-nova-sub-titulo');
+      if (title) title.textContent = macroNome ? 'Nova Subcategoria em ' + macroNome : 'Nova Subcategoria';
+      // Pre-select macro in the <select>
+      var sel = modalEl.querySelector('select[name="categoria_pai"]');
+      if (sel && macroId) sel.value = macroId;
+      // Focus nome input
+      var nome = modalEl.querySelector('input[name="nome"]');
+      if (nome) setTimeout(function () { nome.focus(); }, 200);
+    });
+
+    // Reset title when closed without selecting a macro
+    modalEl.addEventListener('hidden.bs.modal', function () {
+      var title = document.getElementById('modal-nova-sub-titulo');
+      if (title) title.textContent = 'Nova Subcategoria';
+    });
+  })();
+</script>
+{% endblock %}
