@@ -63,7 +63,21 @@
       </li>
       <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.app_name == 'cartao_credito' %}active{% endif %}"
-           href="{% url 'cartao_credito:index' %}">💳 Cartão de Crédito</a>
+           href="{% url 'cartao_credito:cartao_lista' %}">💳 Cartão de Crédito</a>
+        <ul class="nav flex-column ms-3 mt-1">
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name in 'cartao_lista,cartao_criar,cartao_editar' %}active{% endif %}"
+               href="{% url 'cartao_credito:cartao_lista' %}">Cartões</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'upload_fatura' or request.resolver_match.url_name == 'upload_por_cartao' %}active{% endif %}"
+               href="{% url 'cartao_credito:upload_fatura' %}">⬆️ Importar fatura</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'listar_faturas' %}active{% endif %}"
+               href="{% url 'cartao_credito:listar_faturas' %}">📂 Faturas no disco</a>
+          </li>
+        </ul>
       </li>
     </ul>
   </nav>
