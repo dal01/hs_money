@@ -4,6 +4,6 @@ from . import views
 app_name = 'cartao_credito'
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('import-web/', views.import_pdf_web, name='import_pdf_web'),
+    path('',           views.listar_faturas_disco, name='listar_faturas'),
+    path('processar/', views.processar_faturas,    name='processar_faturas'),
 ]

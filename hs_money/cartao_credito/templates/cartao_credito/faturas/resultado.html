@@ -1,0 +1,122 @@
+{% extends "core/base.html" %}
+
+{% block title %}Resultado da Importação — HS Money{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{% url 'cartao_credito:listar_faturas' %}" class="btn btn-secondary btn-sm">
+    ← Voltar
+  </a>
+</div>
+
+<h4 class="mb-1">
+  {% if dry_run %}
+    🔍 Simulação — Resultado
+  {% else %}
+    📥 Importação — Resultado
+  {% endif %}
+</h4>
+{% if dry_run %}
+  <p class="text-muted small mb-3">
+    Modo simulação: nenhum dado foi gravado no banco.
+  </p>
+{% endif %}
+
+<!-- Totais -->
+<div class="row g-3 mb-4">
+  <div class="col-auto">
+    <div class="card text-bg-success text-center px-4 py-2">
+      <div class="fs-3 fw-bold">{{ totais.novos }}</div>
+      <div class="small">transação(ões) nova(s)</div>
+    </div>
+  </div>
+  <div class="col-auto">
+    <div class="card text-bg-secondary text-center px-4 py-2">
+      <div class="fs-3 fw-bold">{{ totais.pulados }}</div>
+      <div class="small">transação(ões) pulada(s)</div>
+    </div>
+  </div>
+  <div class="col-auto">
+    <div class="card text-bg-danger text-center px-4 py-2">
+      <div class="fs-3 fw-bold">{{ totais.erros }}</div>
+      <div class="small">arquivo(s) com erro</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabela de resultados -->
+<table class="table table-sm table-bordered table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Arquivo</th>
+      <th>Cartão</th>
+      <th>Competência</th>
+      <th class="text-center">Novos</th>
+      <th class="text-center">Pulados</th>
+      <th>Status / Avisos</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in resultados %}
+    <tr class="{% if r.status == 'erro' %}table-danger{% elif r.status == 'ok' %}table-success{% elif r.status == 'simulado' %}table-info{% else %}table-warning{% endif %}">
+      <td class="text-break" style="max-width:200px; word-break:break-all;">{{ r.arquivo }}</td>
+      <td>
+        {{ r.cartao_str|default:"—" }}
+        {% if r.cartao_criado %}
+          <span class="badge bg-info text-dark ms-1">novo</span>
+        {% endif %}
+      </td>
+      <td>{{ r.competencia|default:"—" }}</td>
+      <td class="text-center">
+        {% if r.status == 'erro' %}—{% else %}{{ r.novos }}{% endif %}
+      </td>
+      <td class="text-center">
+        {% if r.status == 'erro' %}—{% else %}{{ r.pulados }}{% endif %}
+      </td>
+      <td>
+        {% if r.status == 'erro' %}
+          <span class="text-danger fw-semibold">❌ Erro:</span>
+          <code class="small text-danger">{{ r.erro }}</code>
+        {% elif r.status == 'simulado' %}
+          <span class="text-info">🔍 Simulado</span>
+          {% for av in r.avisos %}
+            <div class="text-muted small">• {{ av }}</div>
+          {% endfor %}
+        {% elif r.status == 'ja_importado' %}
+          <span class="text-secondary">⏭ Já importado</span>
+        {% else %}
+          <span class="text-success">✔ OK</span>
+          {% for av in r.avisos %}
+            <div class="text-muted small">• {{ av }}</div>
+          {% endfor %}
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6" class="text-center text-muted">Nenhum arquivo processado.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if dry_run and caminhos %}
+  <!-- Formulário para confirmar após simulação -->
+  <form method="post" action="{% url 'cartao_credito:processar_faturas' %}">
+    {% csrf_token %}
+    {% for c in caminhos %}
+      <input type="hidden" name="caminhos" value="{{ c }}">
+    {% endfor %}
+    <button type="submit" class="btn btn-success">
+      📥 Confirmar importação dos {{ caminhos|length }} arquivo(s)
+    </button>
+    <a href="{% url 'cartao_credito:listar_faturas' %}" class="btn btn-outline-secondary ms-2">
+      Cancelar
+    </a>
+  </form>
+{% elif not dry_run %}
+  <a href="{% url 'cartao_credito:listar_faturas' %}" class="btn btn-primary">
+    ← Voltar à lista
+  </a>
+{% endif %}
+{% endblock %}
