@@ -145,6 +145,18 @@ def importar_arquivo_pdf_caixa(
     if dry_run:
         extrato = None
     else:
+        # Remove duplicatas para o mesmo período antes de get_or_create
+        duplicatas = list(
+            Extrato.objects.filter(conta=conta, data_inicio=dt_inicio, data_fim=dt_fim)
+            .order_by('pk')
+        )
+        if len(duplicatas) > 1:
+            ids_excluir = [e.pk for e in duplicatas[:-1]]
+            Extrato.objects.filter(pk__in=ids_excluir).delete()
+            result.avisos.append(
+                f"Removidos {len(ids_excluir)} registro(s) duplicado(s) de Extrato para o período {result.periodo}."
+            )
+
         extrato, extrato_criado = Extrato.objects.get_or_create(
             conta=conta,
             data_inicio=dt_inicio,
@@ -158,6 +170,11 @@ def importar_arquivo_pdf_caixa(
                     f"Extrato {result.periodo} já importado com hash igual — pulado."
                 )
                 return result
+            # Arquivo diferente para o mesmo período: atualiza o hash para que
+            # listar_extratos_disco marque o arquivo como "importado".
+            extrato.arquivo_hash  = arquivo_hash
+            extrato.fonte_arquivo = str(caminho_pdf)
+            extrato.save(update_fields=["arquivo_hash", "fonte_arquivo"])
             result.avisos.append(
                 f"Extrato {result.periodo} já existe mas hash diferente — reimportando lançamentos novos."
             )
