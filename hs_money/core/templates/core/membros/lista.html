@@ -16,6 +16,7 @@
         <th>#</th>
         <th>Nome</th>
         <th class="text-center">Adulto</th>
+        <th class="text-center">Ordem</th>
         <th></th>
       </tr>
     </thead>
@@ -31,6 +32,7 @@
             <span class="badge bg-secondary">Não</span>
           {% endif %}
         </td>
+        <td class="text-center text-muted">{{ m.ordem }}</td>
         <td class="text-end">
           <a href="{% url 'core:membro_editar' m.pk %}" class="btn btn-outline-secondary btn-sm">Editar</a>
           <a href="{% url 'core:membro_excluir' m.pk %}" class="btn btn-outline-danger btn-sm">Excluir</a>

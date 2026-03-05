@@ -82,14 +82,14 @@
 <div id="processar-panel" class="mt-4 p-4 bg-light rounded border" style="display:none">
   <h6 class="fw-bold mb-2">📥 Importar para o banco de dados</h6>
   <p class="text-muted small mb-3">
-    Os arquivos OFX abaixo foram salvos em disco. Clique para importar as transações para o banco.
+    Os arquivos OFX/PDF abaixo foram salvos em disco. Clique para importar as transações para o banco.
   </p>
   <form method="post" action="{% url 'conta_corrente:processar_extratos' %}">
     {% csrf_token %}
     {% for r in resultados %}
       {% if r.caminho %}
         {% if r.status == 'ok' or r.status == 'aviso' %}
-          {% if r.is_ofx %}
+          {% if r.is_ofx or r.is_pdf %}
           <input class="ofx-path d-none" type="checkbox" name="caminhos" value="{{ r.caminho }}"
                  data-nome="{{ r.nome_norm|default:r.nome_original }}">
           {% endif %}

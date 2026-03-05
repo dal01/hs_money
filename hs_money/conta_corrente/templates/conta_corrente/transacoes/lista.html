@@ -18,17 +18,27 @@
     position: sticky; top: 0; z-index: 100;
     background: #fff3cd; border: 1px solid #ffc107;
     border-radius: 6px; padding: 8px 14px;
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
     margin-bottom: 10px;
     box-shadow: 0 2px 6px rgba(0,0,0,.12);
   }
+  .bulk-group { display: flex; align-items: center; gap: 6px; }
   .nav-link .badge { font-size: .7em; }
+  .badge-membro { font-size: .65rem; padding: .2em .5em; }
+  .cat-cell { line-height: 1.3; }
+  .cat-cell .cat-name {
+    font-size: .75rem; color: #6c757d; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 150px; display: block;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">📊 Transações — Conta Corrente</h4>
+  <a href="{% url 'conta_corrente:transacao_criar' %}" class="btn btn-sm btn-success">
+    + Nova transação
+  </a>
 </div>
 
 <!-- Filtros -->
@@ -122,8 +132,16 @@
   {% if conta_sel %}<input type="hidden" name="conta" value="{{ conta_sel }}">{% endif %}
 
   <div class="col-auto">
+    <label class="form-label small mb-1">Membros</label>
+    <select name="atribuicao" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      <option value="0" {% if atrib_sel == '0' %}selected{% endif %}>Sem membro</option>
+    </select>
+  </div>
+
+  <div class="col-auto">
     <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button>
-    {% if ano_sel or mes_sel or membro_sel or inst_sel or conta_sel or busca or cat_sel %}
+    {% if ano_sel or mes_sel or membro_sel or inst_sel or conta_sel or busca or cat_sel or atrib_sel %}
       <a href="{% url 'conta_corrente:transacoes_lista' %}" class="btn btn-sm btn-link text-muted">Limpar</a>
     {% endif %}
   </div>
@@ -204,25 +222,41 @@
 
       <div id="bulk-bar-vis" class="bulk-bar d-none mx-3 mt-3">
         <span id="bulk-count-vis" class="fw-semibold me-2">0 selecionadas</span>
-        <button type="submit" name="action" value="ocultar"
-                class="btn btn-sm btn-warning">🙈 Ocultar</button>
+        <div class="bulk-group">
+          <button type="submit" name="action" value="ocultar"
+                  class="btn btn-sm btn-warning">🙈 Ocultar</button>
+        </div>
         <div class="vr mx-1"></div>
-        <select name="categoria_id" class="form-select form-select-sm" style="width:210px" title="Selecione a categoria">
-          <option value="">— Remover categoria —</option>
-          {% for mac in categorias %}
-            {% if mac.subcategorias.all %}
-              <optgroup label="{{ mac.nome }}">
-                {% for sub in mac.subcategorias.all|dictsort:"nome" %}
-                  <option value="{{ sub.pk }}">{{ sub.nome }}</option>
-                {% endfor %}
-              </optgroup>
-            {% else %}
-              <option value="{{ mac.pk }}">{{ mac.nome }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-        <button type="submit" name="action" value="categorizar"
-                class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        <div class="bulk-group">
+          <select name="categoria_id" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
+            <option value="">— Remover categoria —</option>
+            {% for mac in categorias %}
+              {% if mac.subcategorias.all %}
+                <optgroup label="{{ mac.nome }}">
+                  {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+                    <option value="{{ sub.pk }}">{{ sub.nome }}</option>
+                  {% endfor %}
+                </optgroup>
+              {% else %}
+                <option value="{{ mac.pk }}">{{ mac.nome }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="categorizar"
+                  class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group">
+          <select name="membro_ids" class="form-select form-select-sm" style="width:160px"
+                  size="{{ membros|length }}"
+                  multiple title="Ctrl+clique para selecionar múltiplos">
+            {% for m in membros %}
+              <option value="{{ m.pk }}">{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="atribuir_membros"
+                  class="btn btn-sm btn-secondary">👥 Atribuir</button>
+        </div>
         <button type="button" data-deselect="vis"
                 class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
       </div>
@@ -237,12 +271,6 @@
             <th class="col-sort" style="width:95px">
               <a href="{% sort_url f 'desc' %}" class="th-sort {% if order_sel == f %}active{% endif %}">
                 Data{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-              </a>
-            </th>{% endwith %}
-            {% with f='tipo' %}
-            <th class="col-sort" style="width:160px">
-              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-                Tipo{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
               </a>
             </th>{% endwith %}
             {% with f='descricao' %}
@@ -264,12 +292,12 @@
               </a>
             </th>{% endwith %}
             {% with f='categoria' %}
-            <th class="col-sort" style="width:130px">
+            <th class="col-sort" style="width:160px">
               <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-                Categoria{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+                Categoria / Membros{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
               </a>
             </th>{% endwith %}
-            <th style="width:40px"></th>
+            <th style="width:36px"></th>
           </tr>
         </thead>
         <tbody>
@@ -277,7 +305,6 @@
           <tr>
             <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-vis"></td>
             <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
-            <td class="small text-muted">{{ t.tipo|default:"—" }}</td>
             <td class="small">{{ t.descricao }}</td>
             <td class="small text-muted">
               {{ t.extrato.conta.instituicao.nome }}
@@ -288,7 +315,18 @@
             <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
               {{ t.valor|brl }}
             </td>
-            <td class="small text-muted">{{ t.categoria|default:"—" }}</td>
+            <td class="cat-cell">
+              {% if t.categoria %}
+                <span class="cat-name" title="{{ t.categoria }}">{{ t.categoria }}</span>
+              {% endif %}
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                {% for m in t.membros.all %}
+                  <span class="badge rounded-pill bg-primary badge-membro">{{ m.nome }}</span>
+                {% empty %}
+                  {% if not t.categoria %}<span class="text-muted small">—</span>{% endif %}
+                {% endfor %}
+              </div>
+            </td>
             <td class="text-center">
               <button type="submit"
                       formaction="{% url 'conta_corrente:transacao_toggle_oculta' t.pk %}"
@@ -347,25 +385,41 @@
 
       <div id="bulk-bar-ocultas" class="bulk-bar d-none mx-3 mt-3">
         <span id="bulk-count-ocultas" class="fw-semibold me-2">0 selecionadas</span>
-        <button type="submit" name="action" value="mostrar"
-                class="btn btn-sm btn-outline-secondary">👁 Mostrar</button>
+        <div class="bulk-group">
+          <button type="submit" name="action" value="mostrar"
+                  class="btn btn-sm btn-outline-secondary">👁 Mostrar</button>
+        </div>
         <div class="vr mx-1"></div>
-        <select name="categoria_id" class="form-select form-select-sm" style="width:210px" title="Selecione a categoria">
-          <option value="">— Remover categoria —</option>
-          {% for mac in categorias %}
-            {% if mac.subcategorias.all %}
-              <optgroup label="{{ mac.nome }}">
-                {% for sub in mac.subcategorias.all|dictsort:"nome" %}
-                  <option value="{{ sub.pk }}">{{ sub.nome }}</option>
-                {% endfor %}
-              </optgroup>
-            {% else %}
-              <option value="{{ mac.pk }}">{{ mac.nome }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-        <button type="submit" name="action" value="categorizar"
-                class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        <div class="bulk-group">
+          <select name="categoria_id" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
+            <option value="">— Remover categoria —</option>
+            {% for mac in categorias %}
+              {% if mac.subcategorias.all %}
+                <optgroup label="{{ mac.nome }}">
+                  {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+                    <option value="{{ sub.pk }}">{{ sub.nome }}</option>
+                  {% endfor %}
+                </optgroup>
+              {% else %}
+                <option value="{{ mac.pk }}">{{ mac.nome }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="categorizar"
+                  class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group">
+          <select name="membro_ids" class="form-select form-select-sm" style="width:160px"
+                  size="{{ membros|length }}"
+                  multiple title="Ctrl+clique para selecionar múltiplos">
+            {% for m in membros %}
+              <option value="{{ m.pk }}">{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="atribuir_membros"
+                  class="btn btn-sm btn-secondary">👥 Atribuir</button>
+        </div>
         <button type="button" data-deselect="ocultas"
                 class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
       </div>
@@ -377,12 +431,11 @@
               <input type="checkbox" id="chk-all-ocultas" class="form-check-input" title="Selecionar todos">
             </th>
             <th style="width:95px">Data</th>
-            <th style="width:160px">Tipo</th>
             <th>Descrição</th>
             <th>Conta</th>
             <th class="text-end" style="width:130px">Valor</th>
-            <th style="width:130px">Categoria</th>
-            <th style="width:40px"></th>
+            <th style="width:160px">Categoria / Membros</th>
+            <th style="width:36px"></th>
           </tr>
         </thead>
         <tbody>
@@ -390,7 +443,6 @@
           <tr style="opacity:.6">
             <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-ocultas"></td>
             <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
-            <td class="small text-muted">{{ t.tipo|default:"—" }}</td>
             <td class="small">{{ t.descricao }}</td>
             <td class="small text-muted">
               {{ t.extrato.conta.instituicao.nome }}
@@ -401,7 +453,18 @@
             <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
               {{ t.valor|brl }}
             </td>
-            <td class="small text-muted">{{ t.categoria|default:"—" }}</td>
+            <td class="cat-cell">
+              {% if t.categoria %}
+                <span class="cat-name" title="{{ t.categoria }}">{{ t.categoria }}</span>
+              {% endif %}
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                {% for m in t.membros.all %}
+                  <span class="badge rounded-pill bg-primary badge-membro">{{ m.nome }}</span>
+                {% empty %}
+                  {% if not t.categoria %}<span class="text-muted small">—</span>{% endif %}
+                {% endfor %}
+              </div>
+            </td>
             <td class="text-center">
               <button type="submit"
                       formaction="{% url 'conta_corrente:transacao_toggle_oculta' t.pk %}"

@@ -4,4 +4,5 @@ from .models import Membro
 
 @admin.register(Membro)
 class MembroAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nome', 'adulto')
+    list_display = ('id', 'nome', 'adulto', 'ordem')
+    list_editable = ('ordem',)

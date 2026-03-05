@@ -96,8 +96,8 @@ class Transacao(models.Model):
     fitid = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        verbose_name = 'Transação CC'
-        verbose_name_plural = 'Transações CC'
+        verbose_name = 'Transação'
+        verbose_name_plural = 'Transações'
         constraints = [
             models.UniqueConstraint(
                 fields=['extrato', 'hash_linha', 'hash_ordem'],

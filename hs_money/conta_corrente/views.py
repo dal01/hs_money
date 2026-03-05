@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import hashlib
+from datetime import date
 from io import BytesIO
 from pathlib import Path
 from itertools import groupby
@@ -17,6 +18,7 @@ from unidecode import unidecode
 from hs_money.core.models import Membro, InstituicaoFinanceira, Categoria
 from hs_money.conta_corrente.models import ContaCorrente, Extrato, Transacao
 from hs_money.conta_corrente.services.importar import importar_arquivo_ofx, hash_arquivo_ofx
+from hs_money.conta_corrente.services.importar_pdf_caixa import importar_arquivo_pdf_caixa
 
 
 # ---------------------------------------------------------------------------
@@ -36,6 +38,42 @@ class ContaCorrenteForm(forms.ModelForm):
         }
 
 
+class TransacaoManualForm(forms.Form):
+    conta = forms.ModelChoiceField(
+        queryset=ContaCorrente.objects.select_related('instituicao', 'membro').order_by('membro__nome', 'numero'),
+        label='Conta',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    data = forms.DateField(
+        label='Data',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+    )
+    tipo = forms.CharField(
+        label='Tipo', max_length=100, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'PIX, TED, DÉBITO…'}),
+    )
+    descricao = forms.CharField(
+        label='Descrição', max_length=255,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+    )
+    valor = forms.DecimalField(
+        label='Valor', max_digits=12, decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        help_text='Negativo para débito, positivo para crédito.',
+    )
+    categoria = forms.ModelChoiceField(
+        queryset=Categoria.objects.order_by('nivel', 'nome'),
+        required=False, label='Categoria',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        empty_label='— sem categoria —',
+    )
+    membros = forms.ModelMultipleChoiceField(
+        queryset=Membro.objects.order_by('nome'),
+        required=False, label='Membros',
+        widget=forms.CheckboxSelectMultiple(),
+    )
+
+
 def index(request):
     return redirect('conta_corrente:conta_lista')
 
@@ -50,7 +88,7 @@ def _sha1_bytes(b: bytes) -> str:
 
 def listar_extratos_disco(request):
     """
-    Varre DADOS_DIR/conta_corrente/**/*.ofx e mostra quais já foram
+    Varre DADOS_DIR/conta_corrente/**/*.ofx e *.pdf e mostra quais já foram
     importados (via Extrato.arquivo_hash) e quais ainda estão pendentes.
     """
     dados_dir = getattr(settings, 'DADOS_DIR', Path(settings.BASE_DIR) / 'data')
@@ -59,13 +97,21 @@ def listar_extratos_disco(request):
     # hashes já importados — set para lookup O(1)
     hashes_importados = set(Extrato.objects.values_list('arquivo_hash', flat=True))
 
-    arquivos = sorted(raiz_cc.rglob('*.ofx')) if raiz_cc.exists() else []
+    arquivos = []
+    if raiz_cc.exists():
+        arquivos = sorted(
+            list(raiz_cc.rglob('*.ofx')) + list(raiz_cc.rglob('*.pdf'))
+        )
 
     itens = []
     for arq in arquivos:
+        ext = arq.suffix.lower()
         try:
             raw = arq.read_bytes()
-            sha = hash_arquivo_ofx(raw)   # mesmo algoritmo do service
+            if ext == '.ofx':
+                sha = hash_arquivo_ofx(raw)
+            else:  # pdf — hash binário direto
+                sha = hashlib.sha1(raw).hexdigest()
         except OSError:
             raw, sha = b'', ''
 
@@ -79,6 +125,7 @@ def listar_extratos_disco(request):
         itens.append({
             'caminho':    caminho_rel,
             'nome':       arq.name,
+            'tipo':       arq.suffix.upper().lstrip('.'),
             'membro':     membro_slug.replace('-', ' ').title(),
             'ano':        ano,
             'banco':      banco_slug.replace('-', ' ').title(),
@@ -86,11 +133,17 @@ def listar_extratos_disco(request):
             'tamanho_kb': round(len(raw) / 1024, 1) if raw else 0,
         })
 
-    grupos = {}
+    grupos_raw = {}
     for item in itens:
-        g1 = grupos.setdefault(item['membro'], {})
+        g1 = grupos_raw.setdefault(item['membro'], {})
         g2 = g1.setdefault(item['ano'], {})
         g2.setdefault(item['banco'], []).append(item)
+
+    # Sort anos descending (mais recente primeiro)
+    grupos = {
+        membro: dict(sorted(anos.items(), reverse=True))
+        for membro, anos in grupos_raw.items()
+    }
 
     pendentes = sum(1 for i in itens if not i['importado'])
 
@@ -98,6 +151,7 @@ def listar_extratos_disco(request):
         'grupos':      grupos,
         'total':       len(itens),
         'pendentes':   pendentes,
+        'ano_atual':   str(date.today().year),
         'raiz_existe': raiz_cc.exists(),
     })
 
@@ -122,11 +176,12 @@ def processar_extratos(request):
     resultados = []
     for rel in caminhos_rel:
         caminho = (dados_dir / rel).resolve()
-        if not caminho.exists() or caminho.suffix.lower() != '.ofx':
+        ext = caminho.suffix.lower()
+        if not caminho.exists() or ext not in ('.ofx', '.pdf'):
             resultados.append({
                 'arquivo':  rel,
                 'status':   'erro',
-                'erro':     'Arquivo não encontrado ou não é OFX.',
+                'erro':     'Arquivo não encontrado ou formato não suportado (use .ofx ou .pdf).',
                 'novos':    0,
                 'pulados':  0,
                 'periodo':  '',
@@ -134,7 +189,10 @@ def processar_extratos(request):
                 'avisos':   [],
             })
             continue
-        r = importar_arquivo_ofx(caminho, dry_run=dry_run)
+        if ext == '.pdf':
+            r = importar_arquivo_pdf_caixa(caminho, dry_run=dry_run)
+        else:
+            r = importar_arquivo_ofx(caminho, dry_run=dry_run)
         resultados.append({
             'arquivo':      r.arquivo,
             'status':       r.status,
@@ -164,7 +222,54 @@ def processar_extratos(request):
 
 
 # ---------------------------------------------------------------------------
-# Helpers de deteção
+# Excluir arquivos de extrato do disco
+# ---------------------------------------------------------------------------
+
+def excluir_extratos_disco(request):
+    """POST: exclui arquivos de extrato selecionados e seus registros de Extrato no banco."""
+    if request.method != 'POST':
+        return redirect('conta_corrente:listar_extratos')
+
+    dados_dir    = getattr(settings, 'DADOS_DIR', Path(settings.BASE_DIR) / 'data')
+    caminhos_rel = request.POST.getlist('caminhos')
+
+    excluidos  = []
+    nao_encontrados = []
+    erros      = []
+
+    for rel in caminhos_rel:
+        caminho = (dados_dir / rel).resolve()
+        # Garante que o arquivo está dentro de dados_dir (segurança)
+        try:
+            caminho.relative_to(dados_dir.resolve())
+        except ValueError:
+            erros.append(rel)
+            continue
+
+        if not caminho.exists():
+            nao_encontrados.append(rel)
+            continue
+
+        try:
+            # Remove registro de Extrato do banco (pelo hash do arquivo)
+            raw = caminho.read_bytes()
+            arq_hash = hashlib.sha1(raw).hexdigest()
+            from hs_money.conta_corrente.models import Extrato
+            Extrato.objects.filter(arquivo_hash=arq_hash).delete()
+
+            caminho.unlink()
+            excluidos.append(rel)
+        except Exception as exc:
+            erros.append(f"{rel}: {exc}")
+
+    if excluidos:
+        messages.success(request, f"{len(excluidos)} arquivo(s) excluído(s) com sucesso.")
+    if nao_encontrados:
+        messages.warning(request, f"{len(nao_encontrados)} arquivo(s) não encontrado(s) no disco.")
+    if erros:
+        messages.error(request, f"Erro ao excluir {len(erros)} arquivo(s): " + ' | '.join(erros))
+
+    return redirect('conta_corrente:listar_extratos')
 # ---------------------------------------------------------------------------
 
 def _slug(s: str) -> str:
@@ -250,6 +355,53 @@ def _detectar_ano_mes(filename: str, dtstart: str) -> tuple[str, str]:
     return str(hoje.year), f'{hoje.month:02d}'
 
 
+_MESES_PT = {
+    'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03',
+    'abril': '04', 'maio': '05', 'junho': '06', 'julho': '07',
+    'agosto': '08', 'setembro': '09', 'outubro': '10',
+    'novembro': '11', 'dezembro': '12',
+}
+
+
+def _detectar_pdf_caixa(raw: bytes) -> dict:
+    """Lê o cabeçalho do PDF da Caixa e retorna {'ano', 'mm', 'cliente'}.
+
+    Faz uma única passagem pelo PDF para evitar abrir duas vezes.
+    """
+    result = {'ano': '', 'mm': '', 'cliente': ''}
+    try:
+        import pdfplumber
+        from io import BytesIO
+        with pdfplumber.open(BytesIO(raw)) as pdf:
+            texto = ''
+            for pg in pdf.pages:
+                texto += (pg.extract_text(x_tolerance=3, y_tolerance=3) or '') + '\n'
+                if texto.count('\n') > 60:
+                    break
+    except Exception:
+        return result
+
+    # Período: "Mês: Julho/2025" ou "Período: Novembro/2024"
+    m = re.search(
+        r'(?:M[eê]s|Per[ií]odo)[:\s]+([A-Za-z\u00e7\u00e3\u00e1\u00e0\u00e2\u00e9\u00ea\u00f3\u00f4\u00fa]+)/?\s*(\d{4})',
+        texto, re.IGNORECASE,
+    )
+    if m:
+        from unidecode import unidecode
+        mes_nome_ascii = unidecode(m.group(1).lower().strip())
+        mm = _MESES_PT.get(mes_nome_ascii, '')
+        if mm:
+            result['ano'] = m.group(2)
+            result['mm']  = mm
+
+    # Cliente: "Cliente: DALTON EIDI HISAYASU  Conta:..."
+    mc = re.search(r'Cliente:\s*(.+?)(?:\s{2,}|Conta:|$)', texto, re.IGNORECASE)
+    if mc:
+        result['cliente'] = mc.group(1).strip()
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Contas Correntes
 # ---------------------------------------------------------------------------
@@ -303,7 +455,7 @@ def conta_editar(request, pk):
 def upload_extrato(request, conta_pk=None):
     """Upload genérico ou pré-selecionado para uma conta específica."""
     conta_selecionada = get_object_or_404(ContaCorrente, pk=conta_pk) if conta_pk else None
-    membros      = Membro.objects.order_by('nome')
+    membros      = Membro.objects.all()
     instituicoes = InstituicaoFinanceira.objects.order_by('nome')
 
     if request.method != 'POST':
@@ -329,14 +481,32 @@ def upload_extrato(request, conta_pk=None):
         raw = f.read()
 
         info = {'nome_original': nome_original, 'status': 'ok', 'erro': '', 'caminho': '',
-                'is_ofx': ext == 'ofx'}
+                'is_ofx': ext == 'ofx',
+                'is_pdf': ext == 'pdf'}
 
         ofx_data = {}
+        pdf_data = {}
         if ext == 'ofx':
             ofx_data = _detectar_ofx(raw)
+        elif ext == 'pdf':
+            pdf_data = _detectar_pdf_caixa(raw)
 
         inst   = inst_obj_force   or _match_instituicao(ofx_data.get('org', ''), ofx_data.get('fid', ''))
         membro = membro_obj_force or _match_membro(ofx_data.get('acctid', ''), inst)
+
+        if not inst and ext == 'pdf':
+            # Para PDFs da Caixa, tenta casar pelo código da instituição
+            inst = InstituicaoFinanceira.objects.filter(nome__icontains='caixa').first()
+
+        if not membro and pdf_data.get('cliente'):
+            # Tenta casar o nome do cliente no PDF com os membros cadastrados
+            from unidecode import unidecode as _ud
+            slug_cliente = _slug(_ud(pdf_data['cliente']))
+            for m_obj in Membro.objects.all():
+                slug_m = _slug(_ud(m_obj.nome))
+                if slug_m and slug_m in slug_cliente:
+                    membro = m_obj
+                    break
 
         if not inst:
             info['status'] = 'erro'
@@ -348,7 +518,10 @@ def upload_extrato(request, conta_pk=None):
             info['status'] = 'aviso'
             info['erro']   = 'Membro não detectado — arquivo salvo sem titular.'
 
-        ano, mm = _detectar_ano_mes(nome_original, ofx_data.get('dtstart', ''))
+        if ext == 'pdf' and pdf_data.get('ano') and pdf_data.get('mm'):
+            ano, mm = pdf_data['ano'], pdf_data['mm']
+        else:
+            ano, mm = _detectar_ano_mes(nome_original, ofx_data.get('dtstart', ''))
         membro_slug = _slug(membro.nome) if membro else 'sem_membro'
         inst_slug   = inst.codigo or _slug(inst.nome)
         nome_norm   = f"{ano}{mm}.{ext}" if ext else f"{ano}{mm}"
@@ -415,6 +588,13 @@ def transacoes_bulk_action(request):
                 Transacao.objects.filter(pk__in=ids).update(categoria=cat)
         else:
             Transacao.objects.filter(pk__in=ids).update(categoria=None)
+    elif ids and action == 'atribuir_membros':
+        membro_ids = request.POST.getlist('membro_ids')
+        for t in Transacao.objects.filter(pk__in=ids):
+            if membro_ids:
+                t.membros.set(membro_ids)
+            else:
+                t.membros.clear()
     return redirect(voltar)
 
 
@@ -446,6 +626,7 @@ def transacoes_lista(request):
     conta_sel  = request.GET.get('conta',       '').strip()
     busca      = request.GET.get('q',           '').strip()
     cat_sel    = request.GET.get('categoria',   '').strip()
+    atrib_sel  = request.GET.get('atribuicao',  '').strip()
     tab_sel    = request.GET.get('tab',         'visiveis').strip()
 
     order_sel = request.GET.get('order', 'data').strip()
@@ -466,6 +647,7 @@ def transacoes_lista(request):
     qs_base = (
         Transacao.objects
         .select_related('extrato__conta__instituicao', 'extrato__conta__membro', 'categoria')
+        .prefetch_related('membros')
         .order_by(order_field, '-pk')
     )
 
@@ -492,6 +674,8 @@ def transacoes_lista(request):
                 qs_base = qs_base.filter(categoria__pk__in=[cat_obj.pk] + sub_ids)
             else:
                 qs_base = qs_base.filter(categoria__pk=cat_obj.pk)
+    if atrib_sel == '0':
+        qs_base = qs_base.filter(membros__isnull=True)
 
     qs_visiveis = qs_base.filter(oculta=False)
     qs_ocultas  = qs_base.filter(oculta=True)
@@ -515,11 +699,12 @@ def transacoes_lista(request):
         'total_credito_ocultas': total_credito_ocultas,
         'total_debito_ocultas':  total_debito_ocultas,
         'total_liquido_ocultas': total_credito_ocultas + total_debito_ocultas,
-        'membros':             Membro.objects.order_by('nome'),
+        'membros':             Membro.objects.all(),
         'instituicoes':        InstituicaoFinanceira.objects.order_by('nome'),
         'anos_disponiveis':    anos_disponiveis,
         'categorias':          Categoria.objects.filter(nivel=1).prefetch_related('subcategorias').order_by('nome'),
         'cat_sel':             cat_sel,
+        'atrib_sel':           atrib_sel,
         'ano_sel':             ano_sel,
         'mes_sel':             mes_sel,
         'membro_sel':          membro_sel,
@@ -533,4 +718,70 @@ def transacoes_lista(request):
             (1,'Jan'),(2,'Fev'),(3,'Mar'),(4,'Abr'),(5,'Mai'),(6,'Jun'),
             (7,'Jul'),(8,'Ago'),(9,'Set'),(10,'Out'),(11,'Nov'),(12,'Dez'),
         ],
+    })
+
+
+# ---------------------------------------------------------------------------
+# Criar transação manual
+# ---------------------------------------------------------------------------
+
+def _get_or_create_extrato_manual(conta: 'ContaCorrente', data: 'date') -> 'Extrato':
+    """Encontra ou cria um Extrato 'manual' para a conta no mês/ano da data."""
+    import calendar
+    first = data.replace(day=1)
+    last  = data.replace(day=calendar.monthrange(data.year, data.month)[1])
+    extrato, _ = Extrato.objects.get_or_create(
+        conta=conta,
+        fonte_arquivo='manual',
+        data_inicio=first,
+        data_fim=last,
+        defaults={'arquivo_hash': ''},
+    )
+    return extrato
+
+
+def transacao_criar(request):
+    """Cria uma transação manualmente (sem arquivo de extrato)."""
+    initial = {}
+    if request.GET.get('conta'):
+        initial['conta'] = request.GET.get('conta')
+
+    form = TransacaoManualForm(request.POST or None, initial=initial)
+
+    if form.is_valid():
+        cd      = form.cleaned_data
+        extrato = _get_or_create_extrato_manual(cd['conta'], cd['data'])
+
+        # gera hash_linha a partir do conteúdo
+        raw_hash   = f"{cd['conta'].pk}|{cd['data']}|{cd['descricao']}|{cd['valor']}"
+        hash_linha = hashlib.sha1(raw_hash.encode()).hexdigest()
+
+        # resolve hash_ordem para evitar colisão de unique constraint
+        hash_ordem = 1
+        while Transacao.objects.filter(
+            extrato=extrato, hash_linha=hash_linha, hash_ordem=hash_ordem
+        ).exists():
+            hash_ordem += 1
+
+        t = Transacao.objects.create(
+            extrato=extrato,
+            data=cd['data'],
+            tipo=cd['tipo'],
+            descricao=cd['descricao'],
+            valor=cd['valor'],
+            categoria=cd['categoria'],
+            hash_linha=hash_linha,
+            hash_ordem=hash_ordem,
+        )
+        if cd['membros']:
+            t.membros.set(cd['membros'])
+
+        messages.success(request, f'Transação "{t.descricao}" criada com sucesso.')
+        voltar = request.POST.get('next') or reverse('conta_corrente:transacoes_lista')
+        return redirect(voltar)
+
+    return render(request, 'conta_corrente/transacoes/form.html', {
+        'form':  form,
+        'titulo': 'Nova Transação Manual',
+        'next':  request.GET.get('next', ''),
     })

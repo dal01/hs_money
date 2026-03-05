@@ -5,7 +5,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div>
-    <h4 class="mb-0">📂 Extratos OFX no Disco</h4>
+    <h4 class="mb-0">📂 Extratos no Disco</h4>
     <p class="text-muted small mb-0 mt-1">
       {{ total }} arquivo(s) encontrado(s) —
       <strong class="text-{% if pendentes > 0 %}warning{% else %}success{% endif %}">
@@ -13,9 +13,14 @@
       </strong> de importação
     </p>
   </div>
-  <a href="{% url 'conta_corrente:conta_lista' %}" class="btn btn-outline-secondary btn-sm">
-    ← Contas
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'conta_corrente:upload_extrato' %}" class="btn btn-primary btn-sm">
+      ⬆️ Importar extrato
+    </a>
+    <a href="{% url 'conta_corrente:conta_lista' %}" class="btn btn-outline-secondary btn-sm">
+      ← Contas
+    </a>
+  </div>
 </div>
 
 {% if not raiz_existe %}
@@ -54,97 +59,177 @@
   <div class="mb-4">
     <h6 class="fw-bold text-secondary mb-2">👤 {{ membro }}</h6>
 
-    {% for ano, bancos in anos.items %}
-    <div class="ms-2 mb-3">
-      <p class="text-muted small mb-1 fw-semibold">{{ ano }}</p>
+    <div class="accordion ms-2" id="acc-{{ forloop.counter }}">
+      {% for ano, bancos in anos.items %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="hd-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+          <button class="accordion-button py-2 {% if ano != ano_atual %}collapsed{% endif %}"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#col-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                  aria-expanded="{% if ano == ano_atual %}true{% else %}false{% endif %}"
+                  aria-controls="col-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+            <span class="fw-semibold">{{ ano }}</span>
+          </button>
+        </h2>
+        <div id="col-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+             class="accordion-collapse collapse {% if ano == ano_atual %}show{% endif %}"
+             aria-labelledby="hd-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+             data-bs-parent="#acc-{{ forloop.parentloop.counter }}">
+          <div class="accordion-body py-2 ps-2">
 
-      {% for banco, itens in bancos.items %}
-      <div class="ms-2 mb-2">
-        <p class="text-muted small mb-1">🏦 {{ banco }}</p>
-        <div class="ms-3">
-          {% for item in itens %}
-          <div class="form-check arquivo-row {% if item.importado %}importado{% else %}pendente{% endif %}" style="margin-bottom:.3rem">
-            <input class="form-check-input arquivo-check"
-                   type="checkbox"
-                   name="caminhos"
-                   id="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
-                   value="{{ item.caminho }}"
-                   {% if not item.importado %}checked{% endif %}>
-            <label class="form-check-label small {% if item.importado %}text-muted{% endif %}"
-                   for="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-              {{ item.nome }}
-              <span class="text-muted">({{ item.tamanho_kb }} KB)</span>
-              {% if item.importado %}
-                <span class="badge bg-success ms-1">importado</span>
-              {% else %}
-                <span class="badge bg-warning text-dark ms-1">pendente</span>
-              {% endif %}
-            </label>
+            {% for banco, itens in bancos.items %}
+            <div class="mb-2">
+              <p class="text-muted small mb-1">🏦 {{ banco }}</p>
+              <div class="ms-2">
+                {% for item in itens %}
+                <div class="form-check arquivo-row {% if item.importado %}importado{% else %}pendente{% endif %}" style="margin-bottom:.3rem">
+                  <input class="form-check-input arquivo-check"
+                         type="checkbox"
+                         name="caminhos"
+                         id="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                         value="{{ item.caminho }}"
+                         {% if not item.importado %}checked{% endif %}>
+                  <label class="form-check-label small {% if item.importado %}text-muted{% endif %}"
+                         for="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                    {{ item.nome }}
+                    <span class="badge bg-secondary ms-1" style="font-size:.6rem">{{ item.tipo }}</span>
+                    <span class="text-muted">({{ item.tamanho_kb }} KB)</span>
+                    {% if item.importado %}
+                      <span class="badge bg-success ms-1">importado</span>
+                    {% else %}
+                      <span class="badge bg-warning text-dark ms-1">pendente</span>
+                    {% endif %}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+
           </div>
-          {% endfor %}
         </div>
       </div>
       {% endfor %}
     </div>
-    {% endfor %}
+
   </div>
   {% endfor %}
 
   <!-- Rodapé fixo com ações -->
   <div class="d-flex align-items-center gap-3 mt-4 flex-wrap">
-    <button type="submit" class="btn btn-success" id="btn-processar" disabled>
+    <button type="submit" name="action" value="processar" class="btn btn-success" id="btn-processar" disabled>
       📥 Processar <span id="count-badge">0</span> extrato(s)
     </button>
     <label class="form-check mb-0 d-flex align-items-center gap-1">
       <input type="checkbox" name="dry_run" value="1" class="form-check-input">
       <span class="small text-muted">Simulação (sem gravar)</span>
     </label>
+    <div class="vr"></div>
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btn-excluir" disabled
+            data-bs-toggle="modal" data-bs-target="#modal-excluir">
+      🗑️ Excluir <span id="count-badge-del">0</span> selecionado(s)
+    </button>
   </div>
 </form>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="modal-excluir" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header border-danger">
+        <h5 class="modal-title text-danger">🗑️ Confirmar exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Você vai excluir <strong id="modal-count">0</strong> arquivo(s) do disco.</p>
+        <p class="text-danger small mb-0">Esta ação também remove o registro de importação no banco, permitindo reimportá-los depois. Os dados de transações <strong>não são apagados</strong>.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post" action="{% url 'conta_corrente:excluir_extratos' %}" id="form-excluir">
+          {% csrf_token %}
+          {# caminhos injetados via JS antes de submeter #}
+          <button type="submit" class="btn btn-danger">🗑️ Sim, excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Overlay de loading -->
 <div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999;
      align-items:center; justify-content:center; flex-direction:column; gap:1rem;">
   <div class="spinner-border text-light" style="width:3rem;height:3rem;" role="status"></div>
   <div class="text-white fw-semibold fs-5">Processando extratos…</div>
-  <div class="text-white-50 small">Não feche nem navegue para outra página.</div>
+  <div class="text-white-50 small">Aguarde enquanto os arquivos são importados.</div>
+  <button class="btn btn-outline-light btn-sm mt-2" id="btn-cancelar-overlay" style="display:none">
+    ✕ Fechar overlay
+  </button>
 </div>
 {% endif %}
 
 <script>
 (function() {
-  const checks   = Array.from(document.querySelectorAll('.arquivo-check'));
-  const countEl  = document.getElementById('count-badge');
-  const nsEl     = document.getElementById('n-selecionados');
-  const btnProc  = document.getElementById('btn-processar');
+  const checks    = Array.from(document.querySelectorAll('.arquivo-check'));
+  const countEl   = document.getElementById('count-badge');
+  const countDelEl= document.getElementById('count-badge-del');
+  const modalCount= document.getElementById('modal-count');
+  const nsEl      = document.getElementById('n-selecionados');
+  const btnProc   = document.getElementById('btn-processar');
+  const btnExcluir= document.getElementById('btn-excluir');
   const toggleImp = document.getElementById('show-imported');
-  const rows     = Array.from(document.querySelectorAll('.arquivo-row'));
-  const form     = document.getElementById('form-processar');
-  const overlay  = document.getElementById('loading-overlay');
-  let   enviando = false;
+  const rows      = Array.from(document.querySelectorAll('.arquivo-row'));
+  const form      = document.getElementById('form-processar');
+  const formExcl  = document.getElementById('form-excluir');
+  const overlay   = document.getElementById('loading-overlay');
 
   function atualizar() {
     const n = checks.filter(c => c.checked).length;
-    if (countEl) countEl.textContent = n;
-    if (nsEl)    nsEl.textContent    = n;
-    if (btnProc) btnProc.disabled    = n === 0;
+    if (countEl)    countEl.textContent    = n;
+    if (countDelEl) countDelEl.textContent = n;
+    if (modalCount) modalCount.textContent = n;
+    if (nsEl)       nsEl.textContent       = n;
+    if (btnProc)    btnProc.disabled       = n === 0;
+    if (btnExcluir) btnExcluir.disabled    = n === 0;
   }
 
   checks.forEach(c => c.addEventListener('change', atualizar));
 
+  // Injeta os caminhos selecionados no form de exclusão antes de abrir o modal
+  document.getElementById('btn-excluir')?.addEventListener('click', () => {
+    if (!formExcl) return;
+    // Remove inputs antigos
+    formExcl.querySelectorAll('input[name="caminhos"]').forEach(el => el.remove());
+    checks.filter(c => c.checked).forEach(c => {
+      const inp = document.createElement('input');
+      inp.type  = 'hidden';
+      inp.name  = 'caminhos';
+      inp.value = c.value;
+      formExcl.appendChild(inp);
+    });
+  });
+
+  function fecharOverlay() {
+    if (overlay) overlay.style.display = 'none';
+    if (btnProc) { btnProc.disabled = false; btnProc.textContent = '📥 Processar ' + (countEl ? countEl.textContent : '?') + ' extrato(s)'; }
+  }
+
   if (form) {
     form.addEventListener('submit', () => {
-      enviando = true;
       if (overlay) { overlay.style.display = 'flex'; }
       if (btnProc) { btnProc.disabled = true; btnProc.textContent = 'Processando…'; }
+      // Após 15s mostra botão para fechar o overlay (caso tenha travado)
+      setTimeout(() => {
+        const btnCancel = document.getElementById('btn-cancelar-overlay');
+        if (btnCancel && overlay && overlay.style.display === 'flex') {
+          btnCancel.style.display = '';
+        }
+      }, 15000);
     });
   }
 
-  window.addEventListener('beforeunload', e => {
-    if (enviando) {
-      e.preventDefault();
-      e.returnValue = 'O processamento ainda está em andamento. Tem certeza que quer sair?';
-    }
-  });
+  document.getElementById('btn-cancelar-overlay')?.addEventListener('click', fecharOverlay);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharOverlay(); });
 
   if (toggleImp) {
     toggleImp.addEventListener('change', () => {

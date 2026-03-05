@@ -24,13 +24,22 @@
             {% endif %}
           </div>
 
-          <div class="mb-4">
+          <div class="mb-3">
             <div class="form-check">
               {{ form.adulto }}
               <label class="form-check-label" for="{{ form.adulto.id_for_label }}">Adulto</label>
             </div>
             {% if form.adulto.errors %}
               <div class="text-danger small mt-1">{{ form.adulto.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label for="{{ form.ordem.id_for_label }}" class="form-label fw-semibold">Ordem</label>
+            {{ form.ordem }}
+            <div class="form-text text-muted">Valor menor aparece primeiro. Use valores maiores para exibir o membro por último.</div>
+            {% if form.ordem.errors %}
+              <div class="text-danger small mt-1">{{ form.ordem.errors|join:", " }}</div>
             {% endif %}
           </div>
 

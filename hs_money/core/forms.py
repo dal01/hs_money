@@ -21,14 +21,16 @@ class InstituicaoFinanceiraForm(forms.ModelForm):
 class MembroForm(forms.ModelForm):
     class Meta:
         model = Membro
-        fields = ["nome", "adulto"]
+        fields = ["nome", "adulto", "ordem"]
         widgets = {
             "nome": forms.TextInput(attrs={"class": "form-control", "autofocus": True}),
             "adulto": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "ordem": forms.NumberInput(attrs={"class": "form-control"}),
         }
         labels = {
             "nome": "Nome",
             "adulto": "Adulto",
+            "ordem": "Ordem",
         }
 
 class MacroCategoriaForm(forms.ModelForm):

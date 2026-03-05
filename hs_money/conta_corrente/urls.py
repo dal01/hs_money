@@ -18,10 +18,12 @@ urlpatterns = [
     # Processar OFX (disco → banco)
     path('processar/',                    views.processar_extratos,    name='processar_extratos'),
     # Listagem de OFX no disco
-    path('extratos/',                     views.listar_extratos_disco, name='listar_extratos'),
+    path('extratos/',                     views.listar_extratos_disco,   name='listar_extratos'),
+    path('extratos/excluir/',             views.excluir_extratos_disco,  name='excluir_extratos'),
     # Transações
     path('contas/<int:pk>/transacoes/',   views.transacoes_conta,  name='transacoes_conta'),
     path('transacoes/',                         views.transacoes_lista,         name='transacoes_lista'),
+    path('transacoes/nova/',                    views.transacao_criar,           name='transacao_criar'),
     path('transacoes/<int:pk>/ocultar/',          views.transacao_toggle_oculta,  name='transacao_toggle_oculta'),
     path('transacoes/bulk/',                      views.transacoes_bulk_action,   name='transacoes_bulk_action'),
 ]
