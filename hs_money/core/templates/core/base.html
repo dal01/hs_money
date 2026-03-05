@@ -44,7 +44,6 @@
       <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.app_name == 'conta_corrente' %}active{% endif %}"
            href="{% url 'conta_corrente:conta_lista' %}">🏦 Conta Corrente</a>
-        {% if request.resolver_match.app_name == 'conta_corrente' %}
         <ul class="nav flex-column ms-3 mt-1">
           <li class="nav-item">
             <a class="nav-link py-1 {% if request.resolver_match.url_name in 'conta_lista,conta_criar,conta_editar' %}active{% endif %}"
@@ -59,7 +58,6 @@
                href="{% url 'conta_corrente:listar_extratos' %}">📂 Extratos no disco</a>
           </li>
         </ul>
-        {% endif %}
       </li>
       <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.app_name == 'cartao_credito' %}active{% endif %}"
