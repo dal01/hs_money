@@ -27,9 +27,17 @@ MESES_NOME = {n: label for n, label in MESES}
 # ---------------------------------------------------------------------------
 
 def _cc_qs(ano, mes, membro_id):
+    # Exclui pagamentos de fatura de cartão (já contabilizados no app cartão de crédito)
+    from hs_money.core.models import Categoria as _Cat
+    ids_fatura = list(
+        _Cat.objects.filter(nome__icontains='fatura do cart')
+        .values_list('pk', flat=True)
+    )
     qs = (TransacaoCC.objects
           .filter(oculta=False)
-          .select_related('extrato__conta__membro', 'categoria'))
+          .exclude(categoria_id__in=ids_fatura)
+          .select_related('extrato__conta__membro', 'categoria', 'categoria__categoria_pai')
+          .prefetch_related('membros'))
     if ano:
         qs = qs.filter(data__year=ano)
     if mes:
@@ -42,7 +50,8 @@ def _cc_qs(ano, mes, membro_id):
 def _cartao_qs(ano, mes, membro_id):
     qs = (TransacaoCartao.objects
           .filter(oculta=False)
-          .select_related('fatura__cartao__membro', 'categoria'))
+          .select_related('fatura__cartao__membro', 'categoria', 'categoria__categoria_pai')
+          .prefetch_related('membros'))
     if ano:
         qs = qs.filter(fatura__competencia__year=ano)
     if mes:
@@ -98,22 +107,35 @@ def _por_mes(lista_cc, lista_cartao):
     return rows
 
 
-def _por_categoria(lista_cc, lista_cartao):
-    """Top categorias por valor absoluto (despesas), combinando as duas fontes."""
+def _por_categoria(lista_cc, lista_cartao, agrupar='sub'):
+    """Top categorias por valor absoluto (despesas), combinando as duas fontes.
+    agrupar='sub'  → usa a categoria/subcategoria da transação (comportamento original)
+    agrupar='mac'  → agrupa pela categoria-pai (macro); subcategorias são somadas ao pai
+    """
     cat_map: dict = defaultdict(lambda: {'nome': '', 'cc': ZERO, 'cartao': ZERO})
+
+    def _key_and_nome(t):
+        cat = t.categoria
+        if not cat:
+            return 0, '— Sem categoria —'
+        if agrupar == 'mac' and cat.categoria_pai_id:
+            # subcategoria → agrupa no pai
+            pai = cat.categoria_pai
+            return pai.pk, pai.nome
+        return cat.pk, cat.nome
 
     for t in lista_cc:
         if t.valor >= ZERO:
             continue
-        key = t.categoria_id or 0
-        cat_map[key]['nome']   = str(t.categoria) if t.categoria else '— Sem categoria —'
-        cat_map[key]['cc']    += t.valor
+        key, nome = _key_and_nome(t)
+        cat_map[key]['nome']  = nome
+        cat_map[key]['cc']   += t.valor
 
     for t in lista_cartao:
         if t.valor >= ZERO:
             continue
-        key = t.categoria_id or 0
-        cat_map[key]['nome']    = str(t.categoria) if t.categoria else '— Sem categoria —'
+        key, nome = _key_and_nome(t)
+        cat_map[key]['nome']    = nome
         cat_map[key]['cartao'] += t.valor
 
     rows = []
@@ -131,20 +153,35 @@ def _por_categoria(lista_cc, lista_cartao):
 
 
 def _por_membro(lista_cc, lista_cartao, membros):
-    """Breakdown por membro (despesas)."""
+    """Breakdown por membro usando a atribuição M2M das transações.
+    Se uma transação tem N membros, divide o valor igualmente entre eles.
+    Transações sem nenhum membro vão para 'Sem membro'.
+    """
     membro_map = {m.pk: {'nome': m.nome, 'cc': ZERO, 'cartao': ZERO}
                   for m in membros}
     sem = {'nome': '— Sem membro —', 'cc': ZERO, 'cartao': ZERO}
 
     for t in lista_cc:
-        membro_id = t.extrato.conta.membro_id
-        bucket = membro_map.get(membro_id, sem)
-        bucket['cc'] += t.valor
+        ms = list(t.membros.all())
+        if ms:
+            parte = t.valor / len(ms)
+            for m in ms:
+                bucket = membro_map.get(m.pk)
+                if bucket:
+                    bucket['cc'] += parte
+        else:
+            sem['cc'] += t.valor
 
     for t in lista_cartao:
-        membro_id = t.fatura.cartao.membro_id
-        bucket = membro_map.get(membro_id, sem)
-        bucket['cartao'] += t.valor
+        ms = list(t.membros.all())
+        if ms:
+            parte = t.valor / len(ms)
+            for m in ms:
+                bucket = membro_map.get(m.pk)
+                if bucket:
+                    bucket['cartao'] += parte
+        else:
+            sem['cartao'] += t.valor
 
     rows = list(membro_map.values())
     if sem['cc'] or sem['cartao']:
@@ -152,8 +189,6 @@ def _por_membro(lista_cc, lista_cartao, membros):
 
     for r in rows:
         r['total'] = r['cc'] + r['cartao']
-        r['gastos_cc']     = r['cc']
-        r['gastos_cartao'] = r['cartao']
 
     return rows
 
@@ -170,9 +205,10 @@ def dashboard(request):
     # --- filtros ---
     import datetime
     ano_atual = datetime.date.today().year
-    ano_sel    = request.GET.get('ano',    str(ano_atual))
-    mes_sel    = request.GET.get('mes',    '')
-    membro_sel = request.GET.get('membro', '')
+    ano_sel    = request.GET.get('ano',       str(ano_atual))
+    mes_sel    = request.GET.get('mes',       '')
+    membro_sel = request.GET.get('membro',    '')
+    cat_nivel  = request.GET.get('cat_nivel', 'sub')   # 'sub' ou 'mac'
 
     # anos disponíveis (união de CC e cartão)
     anos_cc     = set(d.year for d in _TCC.objects.dates('data', 'year'))
@@ -194,7 +230,7 @@ def dashboard(request):
 
     # --- breakdowns ---
     por_mes       = _por_mes(lista_cc, lista_cartao) if not mes_sel else []
-    por_categoria = _por_categoria(lista_cc, lista_cartao)
+    por_categoria = _por_categoria(lista_cc, lista_cartao, agrupar=cat_nivel)
     por_membro    = _por_membro(lista_cc, lista_cartao, membros)
 
     context = {
@@ -220,5 +256,6 @@ def dashboard(request):
         'por_mes':         por_mes,
         'por_categoria':   por_categoria,
         'por_membro':      por_membro,
+        'cat_nivel':       cat_nivel,
     }
     return render(request, 'relatorios/dashboard.html', context)
