@@ -133,17 +133,40 @@ def listar_extratos_disco(request):
             'tamanho_kb': round(len(raw) / 1024, 1) if raw else 0,
         })
 
+<<<<<<< HEAD
     grupos_raw = {}
+=======
+    # ---  montar estrutura grupos_raw: {membro: {ano: {banco: [items]}}}  ---
+    grupos_raw: dict = {}
+>>>>>>> bug-de-extrato-pendente
     for item in itens:
         g1 = grupos_raw.setdefault(item['membro'], {})
         g2 = g1.setdefault(item['ano'], {})
         g2.setdefault(item['banco'], []).append(item)
 
+<<<<<<< HEAD
     # Sort anos descending (mais recente primeiro)
     grupos = {
         membro: dict(sorted(anos.items(), reverse=True))
         for membro, anos in grupos_raw.items()
     }
+=======
+    ano_atual = str(date.today().year)
+
+    # converte para lista ordenada; ano mais recente primeiro
+    grupos = []
+    for membro, anos_dict in sorted(grupos_raw.items()):
+        anos = []
+        for ano, bancos_dict in sorted(anos_dict.items(), reverse=True):
+            todos_itens = [i for lst in bancos_dict.values() for i in lst]
+            tem_pendente = any(not i['importado'] for i in todos_itens)
+            bancos = [
+                {'banco': banco, 'itens': lst}
+                for banco, lst in bancos_dict.items()
+            ]
+            anos.append({'ano': ano, 'bancos': bancos, 'tem_pendente': tem_pendente})
+        grupos.append({'membro': membro, 'anos': anos})
+>>>>>>> bug-de-extrato-pendente
 
     pendentes = sum(1 for i in itens if not i['importado'])
 
@@ -151,7 +174,11 @@ def listar_extratos_disco(request):
         'grupos':      grupos,
         'total':       len(itens),
         'pendentes':   pendentes,
+<<<<<<< HEAD
         'ano_atual':   str(date.today().year),
+=======
+        'ano_atual':   ano_atual,
+>>>>>>> bug-de-extrato-pendente
         'raiz_existe': raiz_cc.exists(),
     })
 
