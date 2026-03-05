@@ -195,11 +195,13 @@ def importar_arquivo_pdf_bb(
     linhas = parse_lancamentos(texto, dados)
 
     for l in linhas:
+        valor_db = -l.valor  # convenção: gastos negativos, créditos positivos
+
         existe = Transacao.objects.filter(
             fatura=fatura,
             data=l.data,
             descricao=l.descricao[:255],
-            valor=l.valor,
+            valor=valor_db,
         ).exists()
         if existe:
             result.pulados += 1
@@ -213,7 +215,7 @@ def importar_arquivo_pdf_bb(
                 cidade=l.cidade or "",
                 pais=l.pais or "",
                 secao=l.secao,
-                valor=l.valor,
+                valor=valor_db,
                 parcela_num=l.parcela_num,
                 parcela_total=l.parcela_total,
                 etiqueta_parcela=l.etiqueta_parcela,

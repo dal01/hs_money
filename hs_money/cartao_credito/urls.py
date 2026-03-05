@@ -20,4 +20,9 @@ urlpatterns = [
     path('processar/',  views.processar_faturas,        name='processar_faturas'),
     path('excluir/',    views.excluir_faturas_disco,    name='excluir_faturas'),
     path('normalizar/', views.normalizar_faturas_disco, name='normalizar_faturas'),
+
+    # Transações
+    path('transacoes/',                              views.transacoes_lista,          name='transacoes_lista'),
+    path('transacoes/<int:pk>/ocultar/',             views.transacao_toggle_oculta,   name='transacao_toggle_oculta'),
+    path('transacoes/bulk/',                         views.transacoes_bulk_action,    name='transacoes_bulk_action'),
 ]

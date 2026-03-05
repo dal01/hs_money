@@ -14,6 +14,7 @@ def sort_url(context, field, default_dir='asc'):
     if not request:
         return ''
     params = request.GET.copy()
+    params.pop('tab', None)   # ordenar sempre abre a aba visível
     current_order = params.get('order', '')
     current_dir   = params.get('dir',   '')
     if current_order == field:

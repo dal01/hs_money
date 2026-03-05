@@ -12,10 +12,12 @@ from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 
-from hs_money.cartao_credito.models import Cartao, FaturaCartao
+from django.urls import reverse
+
+from hs_money.cartao_credito.models import Cartao, FaturaCartao, Transacao as TransacaoCartao
 from hs_money.cartao_credito.parsers.bb.dados_fatura import parse_dados_fatura
 from hs_money.cartao_credito.services.importar import importar_arquivo_pdf_bb, hash_pdf
-from hs_money.core.models import Membro, InstituicaoFinanceira
+from hs_money.core.models import Membro, InstituicaoFinanceira, Categoria
 
 
 # ---------------------------------------------------------------------------
@@ -464,4 +466,162 @@ def normalizar_faturas_disco(request):
         messages.error(request, f"{len(erros)} erro(s): " + " | ".join(erros))
 
     return redirect('cartao_credito:listar_faturas')
+
+
+# ---------------------------------------------------------------------------
+# Transações – lista, toggle oculta, bulk action
+# ---------------------------------------------------------------------------
+
+MESES = [
+    (1, 'Jan'), (2, 'Fev'), (3, 'Mar'), (4, 'Abr'),
+    (5, 'Mai'), (6, 'Jun'), (7, 'Jul'), (8, 'Ago'),
+    (9, 'Set'), (10, 'Out'), (11, 'Nov'), (12, 'Dez'),
+]
+
+
+def transacoes_lista(request):
+    ano_sel    = request.GET.get('ano', '')
+    mes_sel    = request.GET.get('mes', '')
+    membro_sel = request.GET.get('membro', '')
+    cartao_sel = request.GET.get('cartao', '')
+    busca      = request.GET.get('q', '')
+    cat_sel    = request.GET.get('categoria', '')
+    atrib_sel  = request.GET.get('atribuicao', '')
+    tab_sel    = request.GET.get('tab', '')
+    order_sel  = request.GET.get('order', 'data')
+    dir_sel    = request.GET.get('dir', 'desc')
+
+    qs = (TransacaoCartao.objects
+          .select_related(
+              'fatura__cartao__membro',
+              'fatura__cartao__instituicao',
+              'categoria',
+          )
+          .prefetch_related('membros'))
+
+    if ano_sel:
+        qs = qs.filter(fatura__competencia__year=ano_sel)
+    if mes_sel:
+        qs = qs.filter(fatura__competencia__month=mes_sel)
+    if membro_sel:
+        qs = qs.filter(fatura__cartao__membro_id=membro_sel)
+    if cartao_sel:
+        qs = qs.filter(fatura__cartao_id=cartao_sel)
+    if busca:
+        qs = qs.filter(descricao__icontains=busca)
+    if cat_sel == '0':
+        qs = qs.filter(categoria__isnull=True)
+    elif cat_sel:
+        try:
+            cat_obj = Categoria.objects.get(pk=cat_sel)
+            ids = [cat_obj.pk] + list(
+                cat_obj.subcategorias.values_list('pk', flat=True)
+            )
+            qs = qs.filter(categoria_id__in=ids)
+        except Categoria.DoesNotExist:
+            pass
+    if atrib_sel == '0':
+        qs = qs.filter(membros__isnull=True)
+
+    order_map = {
+        'data':      'data',
+        'descricao': 'descricao',
+        'cartao':    'fatura__cartao__cartao_final',
+        'valor':     'valor',
+        'categoria': 'categoria__nome',
+    }
+    order_db = order_map.get(order_sel, 'data')
+    qs = qs.order_by(order_db if dir_sel == 'asc' else f'-{order_db}')
+
+    qs_visiveis = qs.filter(oculta=False)
+    qs_ocultas  = qs.filter(oculta=True)
+
+    # Totals – evaluate querysets once
+    lista_vis    = list(qs_visiveis)
+    lista_ocult  = list(qs_ocultas)
+
+    total_credito  = sum(t.valor for t in lista_vis   if t.valor > 0)
+    total_debito   = sum(t.valor for t in lista_vis   if t.valor < 0)
+    total_liquido  = total_credito + total_debito
+    total_credito_ocultas = sum(t.valor for t in lista_ocult if t.valor > 0)
+    total_debito_ocultas  = sum(t.valor for t in lista_ocult if t.valor < 0)
+    total_liquido_ocultas = total_credito_ocultas + total_debito_ocultas
+
+    anos_disponiveis = FaturaCartao.objects.dates('competencia', 'year', order='DESC')
+    membros   = Membro.objects.order_by('ordem', 'nome')
+    cartoes   = Cartao.objects.select_related('membro', 'instituicao').filter(ativo=True)
+    categorias = (Categoria.objects
+                  .filter(nivel=1)
+                  .prefetch_related('subcategorias')
+                  .order_by('nome'))
+
+    context = {
+        'transacoes':             lista_vis,
+        'transacoes_ocultas':     lista_ocult,
+        'total_credito':          total_credito,
+        'total_debito':           total_debito,
+        'total_liquido':          total_liquido,
+        'total_credito_ocultas':  total_credito_ocultas,
+        'total_debito_ocultas':   total_debito_ocultas,
+        'total_liquido_ocultas':  total_liquido_ocultas,
+        'membros':                membros,
+        'cartoes':                cartoes,
+        'categorias':             categorias,
+        'anos_disponiveis':       anos_disponiveis,
+        'meses':                  MESES,
+        'ano_sel':                ano_sel,
+        'mes_sel':                mes_sel,
+        'membro_sel':             membro_sel,
+        'cartao_sel':             cartao_sel,
+        'busca':                  busca,
+        'cat_sel':                cat_sel,
+        'atrib_sel':              atrib_sel,
+        'tab_sel':                tab_sel,
+        'order_sel':              order_sel,
+        'dir_sel':                dir_sel,
+    }
+    return render(request, 'cartao_credito/transacoes/lista.html', context)
+
+
+def transacao_toggle_oculta(request, pk):
+    if request.method != 'POST':
+        return redirect('cartao_credito:transacoes_lista')
+    t = get_object_or_404(TransacaoCartao, pk=pk)
+    t.oculta = not t.oculta
+    t.save(update_fields=['oculta'])
+    voltar = request.POST.get('next', '')
+    return redirect(voltar) if voltar else redirect('cartao_credito:transacoes_lista')
+
+
+def transacoes_bulk_action(request):
+    if request.method != 'POST':
+        return redirect('cartao_credito:transacoes_lista')
+
+    ids    = request.POST.getlist('ids')
+    action = request.POST.get('action', '')
+    voltar = request.POST.get('next', '')
+
+    if ids:
+        qs = TransacaoCartao.objects.filter(pk__in=ids)
+
+        if action == 'ocultar':
+            qs.update(oculta=True)
+        elif action == 'mostrar':
+            qs.update(oculta=False)
+        elif action == 'categorizar':
+            cat_id = request.POST.get('categoria_id', '')
+            if cat_id:
+                try:
+                    cat = Categoria.objects.get(pk=cat_id)
+                    qs.update(categoria=cat)
+                except Categoria.DoesNotExist:
+                    pass
+            else:
+                qs.update(categoria=None)
+        elif action == 'atribuir_membros':
+            membro_ids = request.POST.getlist('membro_ids')
+            for t in qs:
+                t.membros.set(membro_ids)
+
+    return redirect(voltar) if voltar else redirect('cartao_credito:transacoes_lista')
 

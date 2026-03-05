@@ -1,0 +1,564 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Transações Cartão — HS Money{% endblock %}
+
+{% block extra_head %}
+<style>
+  .th-sort { color: inherit; text-decoration: none; white-space: nowrap;
+             display: inline-flex; align-items: center; gap: 4px; }
+  .th-sort:hover { color: #0d6efd; }
+  .th-sort.active { color: #0d6efd; font-weight: 600; }
+  .sort-icon { font-size: .75em; opacity: .8; }
+  th.col-sort { cursor: pointer; user-select: none; }
+  .btn-ocultar { font-size: .7rem; line-height: 1; padding: 2px 6px; }
+  .bulk-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: #fff3cd; border: 1px solid #ffc107;
+    border-radius: 6px; padding: 8px 14px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  .bulk-group { display: flex; align-items: center; gap: 6px; }
+  .nav-link .badge { font-size: .7em; }
+  .badge-membro { font-size: .65rem; padding: .2em .5em; }
+  .cat-cell { line-height: 1.3; }
+  .cat-cell .cat-name {
+    font-size: .75rem; color: #6c757d; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 150px; display: block;
+  }
+  .badge-moeda { font-size: .65rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">💳 Transações — Cartão de Crédito</h4>
+</div>
+
+<!-- Filtros -->
+<form method="get" id="form-filtro" class="row g-2 align-items-end mb-4">
+
+  {% if tab_sel == 'ocultas' %}
+    <input type="hidden" name="tab" value="ocultas">
+  {% endif %}
+
+  <div class="col-auto">
+    <label class="form-label small mb-1">Membro</label>
+    <select name="membro" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for m in membros %}
+        <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>
+          {{ m.nome }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <label class="form-label small mb-1">Cartão</label>
+    <select name="cartao" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:220px">
+      <option value="">Todos</option>
+      {% for c in cartoes %}
+        <option value="{{ c.pk }}" {% if cartao_sel == c.pk|stringformat:'s' %}selected{% endif %}>
+          {{ c }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <label class="form-label small mb-1">Competência (ano)</label>
+    <select name="ano" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for d in anos_disponiveis %}
+        <option value="{{ d.year }}" {% if ano_sel == d.year|stringformat:'s' %}selected{% endif %}>
+          {{ d.year }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <label class="form-label small mb-1">Competência (mês)</label>
+    <select name="mes" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for num, nome in meses %}
+        <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>
+          {{ nome }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col" style="max-width:260px">
+    <label class="form-label small mb-1">Busca</label>
+    <input type="text" name="q" value="{{ busca }}" class="form-control form-control-sm"
+           placeholder="Descrição…">
+  </div>
+
+  <div class="col-auto">
+    <label class="form-label small mb-1">Categoria</label>
+    <select name="categoria" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      <option value="0" {% if cat_sel == '0' %}selected{% endif %}>-- Sem categoria --</option>
+      {% for mac in categorias %}
+        {% if mac.subcategorias.all %}
+          <optgroup label="{{ mac.nome }}">
+            <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
+              {{ mac.nome }} (todas)
+            </option>
+            {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+              <option value="{{ sub.pk }}" {% if cat_sel == sub.pk|stringformat:'s' %}selected{% endif %}>
+                {{ sub.nome }}
+              </option>
+            {% endfor %}
+          </optgroup>
+        {% else %}
+          <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
+            {{ mac.nome }}
+          </option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <label class="form-label small mb-1">Atribuição</label>
+    <select name="atribuicao" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      <option value="0" {% if atrib_sel == '0' %}selected{% endif %}>Sem membro</option>
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button>
+    {% if ano_sel or mes_sel or membro_sel or cartao_sel or busca or cat_sel or atrib_sel %}
+      <a href="{% url 'cartao_credito:transacoes_lista' %}" class="btn btn-sm btn-link text-muted">Limpar</a>
+    {% endif %}
+  </div>
+
+</form>
+
+<!-- Abas -->
+<ul class="nav nav-tabs mb-0" id="tabsTransacoes" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if tab_sel != 'ocultas' %}active{% endif %}"
+            id="tab-vis-btn" data-bs-toggle="tab" data-bs-target="#tab-vis"
+            type="button" role="tab">
+      Transações
+      <span class="badge bg-secondary ms-1">{{ transacoes|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if tab_sel == 'ocultas' %}active{% endif %}"
+            id="tab-ocultas-btn" data-bs-toggle="tab" data-bs-target="#tab-ocultas"
+            type="button" role="tab">
+      🙈 Ocultas
+      {% if transacoes_ocultas %}
+        <span class="badge bg-warning text-dark ms-1">{{ transacoes_ocultas|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content border border-top-0 rounded-bottom">
+
+  <!-- ── Aba: Visíveis ── -->
+  <div class="tab-pane fade {% if tab_sel != 'ocultas' %}show active{% endif %} p-0"
+       id="tab-vis" role="tabpanel">
+
+    <div class="row g-2 m-3 mb-0">
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Créditos</div>
+          <div class="fw-semibold text-success">{{ total_credito|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Débitos</div>
+          <div class="fw-semibold text-danger">{{ total_debito|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Total período</div>
+          <div class="fw-semibold {% if total_liquido >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ total_liquido|brl }}
+          </div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Transações</div>
+          <div class="fw-semibold">{{ transacoes|length }}</div>
+        </div>
+      </div>
+    </div>
+
+    {% if not transacoes %}
+      <div class="alert alert-info m-3">
+        Nenhuma transação encontrada.
+        {% if not ano_sel and not mes_sel and not membro_sel and not cartao_sel and not busca %}
+          Importe faturas pela
+          <a href="{% url 'cartao_credito:listar_faturas' %}">página de faturas no disco</a>.
+        {% endif %}
+      </div>
+    {% else %}
+
+    <form id="form-bulk-vis" method="post"
+          action="{% url 'cartao_credito:transacoes_bulk_action' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+      <div id="bulk-bar-vis" class="bulk-bar d-none mx-3 mt-3">
+        <span id="bulk-count-vis" class="fw-semibold me-2">0 selecionadas</span>
+        <div class="bulk-group">
+          <button type="submit" name="action" value="ocultar"
+                  class="btn btn-sm btn-warning">🙈 Ocultar</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group">
+          <select name="categoria_id" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
+            <option value="">— Remover categoria —</option>
+            {% for mac in categorias %}
+              {% if mac.subcategorias.all %}
+                <optgroup label="{{ mac.nome }}">
+                  {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+                    <option value="{{ sub.pk }}">{{ sub.nome }}</option>
+                  {% endfor %}
+                </optgroup>
+              {% else %}
+                <option value="{{ mac.pk }}">{{ mac.nome }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="categorizar"
+                  class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group">
+          <select name="membro_ids" class="form-select form-select-sm" style="width:160px"
+                  size="{{ membros|length }}"
+                  multiple title="Ctrl+clique para selecionar múltiplos">
+            {% for m in membros %}
+              <option value="{{ m.pk }}">{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="atribuir_membros"
+                  class="btn btn-sm btn-secondary">👥 Atribuir</button>
+        </div>
+        <button type="button" data-deselect="vis"
+                class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
+      </div>
+
+      <table class="table table-hover align-middle mb-0 table-sm">
+        <thead class="table-light">
+          <tr>
+            <th style="width:32px">
+              <input type="checkbox" id="chk-all-vis" class="form-check-input" title="Selecionar todos">
+            </th>
+            {% with f='data' %}
+            <th class="col-sort" style="width:95px">
+              <a href="{% sort_url f 'desc' %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Data{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='descricao' %}
+            <th class="col-sort">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Descrição{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='cartao' %}
+            <th class="col-sort" style="width:160px">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Cartão{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            <th style="width:85px">Competência</th>
+            <th style="width:70px">Parcela</th>
+            {% with f='valor' %}
+            <th class="col-sort text-end" style="width:130px">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Valor{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            {% with f='categoria' %}
+            <th class="col-sort" style="width:160px">
+              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
+                Categoria / Membros{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+              </a>
+            </th>{% endwith %}
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in transacoes %}
+          <tr>
+            <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-vis"></td>
+            <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
+            <td class="small">
+              {{ t.descricao }}
+              {% if t.moeda and t.moeda != 'BRL' %}
+                <span class="badge bg-secondary badge-moeda ms-1" title="{{ t.valor_moeda }} {{ t.moeda }}">
+                  {{ t.moeda }}
+                </span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {{ t.fatura.cartao.instituicao.nome }}
+              <span class="text-secondary">****{{ t.fatura.cartao.cartao_final }}</span>
+              {% if t.fatura.cartao.membro %}
+                <br><span class="text-secondary">{{ t.fatura.cartao.membro.nome }}</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.fatura.competencia %}
+                {{ t.fatura.competencia|date:"m/Y" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.etiqueta_parcela %}
+                {{ t.etiqueta_parcela }}
+              {% elif t.parcela_num and t.parcela_total %}
+                {{ t.parcela_num }}/{{ t.parcela_total }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ t.valor|brl }}
+            </td>
+            <td class="cat-cell">
+              {% if t.categoria %}
+                <span class="cat-name" title="{{ t.categoria }}">{{ t.categoria }}</span>
+              {% endif %}
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                {% for m in t.membros.all %}
+                  <span class="badge rounded-pill bg-primary badge-membro">{{ m.nome }}</span>
+                {% empty %}
+                  {% if not t.categoria %}<span class="text-muted small">—</span>{% endif %}
+                {% endfor %}
+              </div>
+            </td>
+            <td class="text-center">
+              <button type="submit"
+                      formaction="{% url 'cartao_credito:transacao_toggle_oculta' t.pk %}"
+                      class="btn btn-ocultar btn-outline-warning"
+                      title="Ocultar transação">🙈</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+    {% endif %}
+  </div><!-- /tab-vis -->
+
+  <!-- ── Aba: Ocultas ── -->
+  <div class="tab-pane fade {% if tab_sel == 'ocultas' %}show active{% endif %} p-0"
+       id="tab-ocultas" role="tabpanel">
+
+    <div class="row g-2 m-3 mb-0">
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Créditos</div>
+          <div class="fw-semibold text-success">{{ total_credito_ocultas|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Débitos</div>
+          <div class="fw-semibold text-danger">{{ total_debito_ocultas|brl }}</div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Total período</div>
+          <div class="fw-semibold {% if total_liquido_ocultas >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ total_liquido_ocultas|brl }}
+          </div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="card border-0 bg-light text-center px-3 py-2">
+          <div class="small text-muted">Transações</div>
+          <div class="fw-semibold">{{ transacoes_ocultas|length }}</div>
+        </div>
+      </div>
+    </div>
+
+    {% if not transacoes_ocultas %}
+      <div class="alert alert-info m-3">Nenhuma transação oculta com os filtros atuais.</div>
+    {% else %}
+
+    <form id="form-bulk-ocultas" method="post"
+          action="{% url 'cartao_credito:transacoes_bulk_action' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+      <div id="bulk-bar-ocultas" class="bulk-bar d-none mx-3 mt-3">
+        <span id="bulk-count-ocultas" class="fw-semibold me-2">0 selecionadas</span>
+        <div class="bulk-group">
+          <button type="submit" name="action" value="mostrar"
+                  class="btn btn-sm btn-outline-secondary">👁 Mostrar</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group">
+          <select name="categoria_id" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
+            <option value="">— Remover categoria —</option>
+            {% for mac in categorias %}
+              {% if mac.subcategorias.all %}
+                <optgroup label="{{ mac.nome }}">
+                  {% for sub in mac.subcategorias.all|dictsort:"nome" %}
+                    <option value="{{ sub.pk }}">{{ sub.nome }}</option>
+                  {% endfor %}
+                </optgroup>
+              {% else %}
+                <option value="{{ mac.pk }}">{{ mac.nome }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="categorizar"
+                  class="btn btn-sm btn-info">🏷️ Categorizar</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group">
+          <select name="membro_ids" class="form-select form-select-sm" style="width:160px"
+                  size="{{ membros|length }}"
+                  multiple title="Ctrl+clique para selecionar múltiplos">
+            {% for m in membros %}
+              <option value="{{ m.pk }}">{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" name="action" value="atribuir_membros"
+                  class="btn btn-sm btn-secondary">👥 Atribuir</button>
+        </div>
+        <button type="button" data-deselect="ocultas"
+                class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
+      </div>
+
+      <table class="table table-hover align-middle mb-0 table-sm">
+        <thead class="table-light">
+          <tr>
+            <th style="width:32px">
+              <input type="checkbox" id="chk-all-ocultas" class="form-check-input" title="Selecionar todos">
+            </th>
+            <th style="width:95px">Data</th>
+            <th>Descrição</th>
+            <th style="width:160px">Cartão</th>
+            <th style="width:85px">Competência</th>
+            <th style="width:70px">Parcela</th>
+            <th class="text-end" style="width:130px">Valor</th>
+            <th style="width:160px">Categoria / Membros</th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in transacoes_ocultas %}
+          <tr style="opacity:.6">
+            <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-ocultas"></td>
+            <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
+            <td class="small">
+              {{ t.descricao }}
+              {% if t.moeda and t.moeda != 'BRL' %}
+                <span class="badge bg-secondary badge-moeda ms-1">{{ t.moeda }}</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {{ t.fatura.cartao.instituicao.nome }}
+              <span class="text-secondary">****{{ t.fatura.cartao.cartao_final }}</span>
+              {% if t.fatura.cartao.membro %}
+                <br><span class="text-secondary">{{ t.fatura.cartao.membro.nome }}</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.fatura.competencia %}
+                {{ t.fatura.competencia|date:"m/Y" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.etiqueta_parcela %}
+                {{ t.etiqueta_parcela }}
+              {% elif t.parcela_num and t.parcela_total %}
+                {{ t.parcela_num }}/{{ t.parcela_total }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ t.valor|brl }}
+            </td>
+            <td class="cat-cell">
+              {% if t.categoria %}
+                <span class="cat-name" title="{{ t.categoria }}">{{ t.categoria }}</span>
+              {% endif %}
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                {% for m in t.membros.all %}
+                  <span class="badge rounded-pill bg-primary badge-membro">{{ m.nome }}</span>
+                {% empty %}
+                  {% if not t.categoria %}<span class="text-muted small">—</span>{% endif %}
+                {% endfor %}
+              </div>
+            </td>
+            <td class="text-center">
+              <button type="submit"
+                      formaction="{% url 'cartao_credito:transacao_toggle_oculta' t.pk %}"
+                      class="btn btn-ocultar btn-outline-secondary"
+                      title="Mostrar transação">👁</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+    {% endif %}
+  </div><!-- /tab-ocultas -->
+
+</div><!-- /tab-content -->
+
+<script>
+(function () {
+  /* Atualiza URL e campos "next" quando o usuário troca de aba */
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
+    btn.addEventListener('shown.bs.tab', () => {
+      const target  = btn.getAttribute('data-bs-target');
+      const tabName = target === '#tab-ocultas' ? 'ocultas' : 'visiveis';
+      const url     = new URL(window.location.href);
+      if (tabName === 'visiveis') url.searchParams.delete('tab');
+      else url.searchParams.set('tab', tabName);
+      history.replaceState(null, '', url);
+      const nextVal = url.pathname + (url.search || '');
+      document.querySelectorAll('input[name="next"]').forEach(inp => inp.value = nextVal);
+    });
+  });
+
+  /* Select-all / bulk-bar por aba */
+  function setupBulk(suffix) {
+    const chkAll  = document.getElementById(`chk-all-${suffix}`);
+    const bar     = document.getElementById(`bulk-bar-${suffix}`);
+    const countEl = document.getElementById(`bulk-count-${suffix}`);
+    const desel   = document.querySelector(`[data-deselect="${suffix}"]`);
+    if (!chkAll) return;
+
+    const rows = () => Array.from(document.querySelectorAll(`.row-chk-${suffix}`));
+
+    function update() {
+      const checked = rows().filter(c => c.checked);
+      const n = checked.length;
+      bar.classList.toggle('d-none', n === 0);
+      countEl.textContent = n === 1 ? '1 selecionada' : `${n} selecionadas`;
+      chkAll.indeterminate = n > 0 && n < rows().length;
+      chkAll.checked = n > 0 && n === rows().length;
+    }
+
+    chkAll.addEventListener('change', () => { rows().forEach(c => c.checked = chkAll.checked); update(); });
+    document.addEventListener('change', e => { if (e.target.classList.contains(`row-chk-${suffix}`)) update(); });
+    if (desel) desel.addEventListener('click', () => { rows().forEach(c => c.checked = false); chkAll.checked = false; update(); });
+  }
+
+  setupBulk('vis');
+  setupBulk('ocultas');
+})();
+</script>
+
+{% endblock %}

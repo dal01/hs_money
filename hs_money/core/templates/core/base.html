@@ -68,6 +68,10 @@
                href="{% url 'cartao_credito:cartao_lista' %}">Cartões</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'transacoes_lista' and request.resolver_match.app_name == 'cartao_credito' %}active{% endif %}"
+               href="{% url 'cartao_credito:transacoes_lista' %}">📊 Transações</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link py-1 {% if request.resolver_match.url_name == 'upload_fatura' or request.resolver_match.url_name == 'upload_por_cartao' %}active{% endif %}"
                href="{% url 'cartao_credito:upload_fatura' %}">⬆️ Importar fatura</a>
           </li>
