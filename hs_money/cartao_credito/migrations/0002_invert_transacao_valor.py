@@ -8,6 +8,9 @@ from django.db import migrations
 
 
 def inverter_sinal(apps, schema_editor):
+    from django.db import connection
+    if "cartao_credito_transacao" not in connection.introspection.table_names():
+        return  # banco novo / tabela ainda não existe — nada a inverter
     Transacao = apps.get_model("cartao_credito", "Transacao")
     # Faz em batches para não travar o DB em bases grandes
     ids = list(Transacao.objects.values_list("pk", flat=True))
