@@ -1,0 +1,278 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Dashboard — HS Money{% endblock %}
+
+{% block extra_head %}
+<style>
+  .card-kpi { border-radius: 10px; }
+  .kpi-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+  .kpi-val   { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
+  .kpi-sub   { font-size: .8rem; color: #6c757d; }
+  .section-title { font-size: .8rem; font-weight: 600; text-transform: uppercase;
+                   letter-spacing: .06em; color: #6c757d; border-bottom: 1px solid #dee2e6;
+                   padding-bottom: 4px; margin-bottom: 12px; }
+  .bar-wrap  { background: #f0f0f0; border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 4px; transition: width .4s; }
+  tr.total-row td { font-weight: 600; border-top: 2px solid #dee2e6; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">📈 Dashboard Consolidado</h4>
+</div>
+
+<!-- ── Filtros ── -->
+<form method="get" class="row g-2 align-items-end mb-4">
+  <div class="col-auto">
+    <label class="form-label small mb-1">Ano</label>
+    <select name="ano" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      {% for a in anos_disponiveis %}
+        <option value="{{ a }}" {% if ano_sel == a|stringformat:'s' %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1">Mês</label>
+    <select name="mes" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for num, nome in meses %}
+        <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>{{ nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1">Membro</label>
+    <select name="membro" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for m in membros %}
+        <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button>
+  </div>
+  <div class="col-auto align-self-end">
+    <span class="text-muted small">
+      {{ qtd_cc }} transação(ões) CC &nbsp;·&nbsp; {{ qtd_cartao }} transação(ões) Cartão
+    </span>
+  </div>
+</form>
+
+<!-- ── KPIs ── -->
+<div class="row g-3 mb-4">
+
+  <!-- Conta Corrente -->
+  <div class="col-12 col-md-4">
+    <div class="card card-kpi h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-title mb-3">🏦 Conta Corrente</div>
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="kpi-label">Entradas</div>
+            <div class="kpi-val text-success">{{ cc_creditos|brl }}</div>
+          </div>
+          <div class="col-6">
+            <div class="kpi-label">Saídas</div>
+            <div class="kpi-val text-danger">{{ cc_debitos|brl }}</div>
+          </div>
+          <div class="col-12 mt-2">
+            <div class="kpi-label">Saldo</div>
+            <div class="kpi-val {% if cc_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ cc_saldo|brl }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cartão de Crédito -->
+  <div class="col-12 col-md-4">
+    <div class="card card-kpi h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-title mb-3">💳 Cartão de Crédito</div>
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="kpi-label">Créditos</div>
+            <div class="kpi-val text-success">{{ ca_creditos|brl }}</div>
+          </div>
+          <div class="col-6">
+            <div class="kpi-label">Gastos</div>
+            <div class="kpi-val text-danger">{{ ca_debitos|brl }}</div>
+          </div>
+          <div class="col-12 mt-2">
+            <div class="kpi-label">Saldo Fatura</div>
+            <div class="kpi-val {% if ca_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ ca_saldo|brl }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Consolidado -->
+  <div class="col-12 col-md-4">
+    <div class="card card-kpi h-100 border-0 shadow-sm bg-light">
+      <div class="card-body">
+        <div class="section-title mb-3">📊 Consolidado</div>
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="kpi-label">Total Entradas</div>
+            <div class="kpi-val text-success">{{ total_creditos|brl }}</div>
+          </div>
+          <div class="col-6">
+            <div class="kpi-label">Total Saídas</div>
+            <div class="kpi-val text-danger">{{ total_debitos|brl }}</div>
+          </div>
+          <div class="col-12 mt-2">
+            <div class="kpi-label">Saldo Total</div>
+            <div class="kpi-val {% if total_saldo >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:1.7rem">
+              {{ total_saldo|brl }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Por Mês ── -->
+  {% if por_mes %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-title">📅 Evolução mensal — {{ ano_sel }}</div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Mês</th>
+                <th class="text-end">Entradas CC</th>
+                <th class="text-end">Saídas CC</th>
+                <th class="text-end">Saldo CC</th>
+                <th class="text-end">Gastos Cartão</th>
+                <th class="text-end">Créd. Cartão</th>
+                <th class="text-end">Saldo Cartão</th>
+                <th class="text-end fw-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in por_mes %}
+              <tr>
+                <td class="fw-semibold">{{ r.mes_nome }}</td>
+                <td class="text-end text-success small">{{ r.cc_creditos|brl }}</td>
+                <td class="text-end text-danger small">{{ r.cc_debitos|brl }}</td>
+                <td class="text-end small {% if r.cc_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ r.cc_saldo|brl }}
+                </td>
+                <td class="text-end text-danger small">{{ r.ca_gastos|brl }}</td>
+                <td class="text-end text-success small">{{ r.ca_creditos|brl }}</td>
+                <td class="text-end small {% if r.ca_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ r.ca_saldo|brl }}
+                </td>
+                <td class="text-end fw-semibold {% if r.total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ r.total|brl }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Por Categoria ── -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="section-title">🏷️ Gastos por categoria (top 20)</div>
+        {% if por_categoria %}
+          {% with max_abs=por_categoria.0.total %}
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Categoria</th>
+                <th class="text-end" style="width:110px">CC</th>
+                <th class="text-end" style="width:110px">Cartão</th>
+                <th class="text-end" style="width:110px">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in por_categoria %}
+              <tr>
+                <td class="small">
+                  {{ r.nome }}
+                  {% if max_abs %}
+                    <div class="bar-wrap mt-1">
+                      <div class="bar-fill bg-danger"
+                           style="width:{% widthratio r.total max_abs 100 %}%"></div>
+                    </div>
+                  {% endif %}
+                </td>
+                <td class="text-end small text-danger">{{ r.cc|brl }}</td>
+                <td class="text-end small text-danger">{{ r.cartao|brl }}</td>
+                <td class="text-end small fw-semibold text-danger">{{ r.total|brl }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% endwith %}
+        {% else %}
+          <p class="text-muted small mt-2">Nenhuma despesa no período.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Por Membro ── -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="section-title">👤 Por membro</div>
+        {% if por_membro %}
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Membro</th>
+              <th class="text-end" style="width:110px">CC</th>
+              <th class="text-end" style="width:110px">Cartão</th>
+              <th class="text-end" style="width:110px">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in por_membro %}
+            <tr>
+              <td class="fw-semibold small">{{ r.nome }}</td>
+              <td class="text-end small {% if r.cc >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ r.cc|brl }}
+              </td>
+              <td class="text-end small {% if r.cartao >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ r.cartao|brl }}
+              </td>
+              <td class="text-end fw-semibold {% if r.total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ r.total|brl }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <p class="text-muted small mt-2">Sem dados no período.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

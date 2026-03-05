@@ -81,6 +81,10 @@
           </li>
         </ul>
       </li>
+      <li class="nav-item mt-2">
+        <a class="nav-link {% if request.resolver_match.app_name == 'relatorios' %}active{% endif %}"
+           href="{% url 'relatorios:dashboard' %}">📈 Relatórios</a>
+      </li>
     </ul>
   </nav>
 
