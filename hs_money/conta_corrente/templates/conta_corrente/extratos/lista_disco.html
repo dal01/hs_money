@@ -50,43 +50,63 @@
 <form method="post" action="{% url 'conta_corrente:processar_extratos' %}" id="form-processar">
   {% csrf_token %}
 
-  {% for membro, anos in grupos.items %}
+  {% for grupo in grupos %}
   <div class="mb-4">
-    <h6 class="fw-bold text-secondary mb-2">👤 {{ membro }}</h6>
+    <h6 class="fw-bold text-secondary mb-2">👤 {{ grupo.membro }}</h6>
 
-    {% for ano, bancos in anos.items %}
-    <div class="ms-2 mb-3">
-      <p class="text-muted small mb-1 fw-semibold">{{ ano }}</p>
-
-      {% for banco, itens in bancos.items %}
-      <div class="ms-2 mb-2">
-        <p class="text-muted small mb-1">🏦 {{ banco }}</p>
-        <div class="ms-3">
-          {% for item in itens %}
-          <div class="form-check arquivo-row {% if item.importado %}importado{% else %}pendente{% endif %}" style="margin-bottom:.3rem">
-            <input class="form-check-input arquivo-check"
-                   type="checkbox"
-                   name="caminhos"
-                   id="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
-                   value="{{ item.caminho }}"
-                   {% if not item.importado %}checked{% endif %}>
-            <label class="form-check-label small {% if item.importado %}text-muted{% endif %}"
-                   for="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
-              {{ item.nome }}
-              <span class="text-muted">({{ item.tamanho_kb }} KB)</span>
-              {% if item.importado %}
-                <span class="badge bg-success ms-1">importado</span>
-              {% else %}
-                <span class="badge bg-warning text-dark ms-1">pendente</span>
-              {% endif %}
-            </label>
+    <div class="accordion ms-2" id="acc-{{ forloop.counter }}">
+      {% for ano_obj in grupo.anos %}
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button {% if not ano_obj.tem_pendente and ano_obj.ano != ano_atual %}collapsed{% endif %} py-2"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#col-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                  aria-expanded="{% if ano_obj.tem_pendente or ano_obj.ano == ano_atual %}true{% else %}false{% endif %}">
+            {{ ano_obj.ano }}
+            {% if ano_obj.tem_pendente %}
+              <span class="badge bg-warning text-dark ms-2">pendente(s)</span>
+            {% else %}
+              <span class="badge bg-success ms-2">tudo importado</span>
+            {% endif %}
+          </button>
+        </h2>
+        <div id="col-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+             class="accordion-collapse collapse {% if ano_obj.tem_pendente or ano_obj.ano == ano_atual %}show{% endif %}"
+             data-bs-parent="">
+          <div class="accordion-body py-2">
+            {% for banco_obj in ano_obj.bancos %}
+            <div class="mb-2">
+              <p class="text-muted small mb-1">🏦 {{ banco_obj.banco }}</p>
+              <div class="ms-3">
+                {% for item in banco_obj.itens %}
+                <div class="form-check arquivo-row {% if item.importado %}importado{% else %}pendente{% endif %}" style="margin-bottom:.3rem">
+                  <input class="form-check-input arquivo-check"
+                         type="checkbox"
+                         name="caminhos"
+                         id="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                         value="{{ item.caminho }}"
+                         {% if not item.importado %}checked{% endif %}>
+                  <label class="form-check-label small {% if item.importado %}text-muted{% endif %}"
+                         for="arq-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                    {{ item.nome }}
+                    <span class="text-muted">({{ item.tamanho_kb }} KB)</span>
+                    {% if item.importado %}
+                      <span class="badge bg-success ms-1">importado</span>
+                    {% else %}
+                      <span class="badge bg-warning text-dark ms-1">pendente</span>
+                    {% endif %}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
           </div>
-          {% endfor %}
         </div>
       </div>
       {% endfor %}
     </div>
-    {% endfor %}
   </div>
   {% endfor %}
 
