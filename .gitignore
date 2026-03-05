@@ -23,6 +23,9 @@ env/
 /media/
 local_settings.py
 
+# Data files (faturas, extratos)
+/data/
+
 # Environment variables
 .env
 .env.*
