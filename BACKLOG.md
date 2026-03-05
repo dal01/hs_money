@@ -1,7 +1,4 @@
 ## 
-Fazer um app por vez
-Acho que tudo funciona melhor se buscar pelo Django, em vez de usar o Pandas
-Talvez criar funcoes que faca as buscas no Django facilite 
 
 ## Core
 
