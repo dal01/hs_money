@@ -252,10 +252,29 @@ def listar_faturas_disco(request):
     Varre DADOS_DIR/cartao_credito/**/*.pdf e mostra quais já foram
     importados (via FaturaCartao.arquivo_hash) e quais estão pendentes.
     """
+    import re as _re
     dados_dir = getattr(settings, 'DADOS_DIR', Path(settings.BASE_DIR) / 'data')
     raiz_cc   = dados_dir / 'cartao_credito'
 
     hashes_importados = set(FaturaCartao.objects.values_list('arquivo_hash', flat=True))
+
+    # índice (cartao_final, competencia_date) → fatura, para detectar arquivos
+    # renomeados cujo hash ainda não foi sincronizado no banco
+    _faturas_por_cartao_comp: dict = {}
+    for f in FaturaCartao.objects.select_related('cartao'):
+        _faturas_por_cartao_comp[(f.cartao.cartao_final, f.competencia)] = f
+
+    _NOME_PADRAO = _re.compile(r'^(\d+)-(\d{4})-(\d{2})(?:_\d+)?\.pdf$', _re.I)
+
+    def _inferir_fatura_por_nome(nome: str):
+        """Retorna FaturaCartao se o nome bate com padrão cartao_final-YYYY-MM.pdf."""
+        m = _NOME_PADRAO.match(nome)
+        if not m:
+            return None
+        cartao_final, ano, mes = m.group(1), int(m.group(2)), int(m.group(3))
+        from datetime import date as _date
+        comp = _date(ano, mes, 1)
+        return _faturas_por_cartao_comp.get((cartao_final, comp))
 
     arquivos = sorted(raiz_cc.rglob('*.pdf')) if raiz_cc.exists() else []
 
@@ -272,12 +291,37 @@ def listar_faturas_disco(request):
         ano         = partes[1] if len(partes) > 2 else '—'
         caminho_rel = str(arq.relative_to(dados_dir))
 
+        importado = sha in hashes_importados
+
+        if not importado and sha:
+            # Arquivo renomeado: hash não bate mas existe fatura com mesmo cartão/mês
+            fatura_match = _inferir_fatura_por_nome(arq.name)
+            if fatura_match:
+                # Sincroniza o hash no banco silenciosamente
+                fatura_match.arquivo_hash = sha
+                fatura_match.fonte_arquivo = str(arq)
+                fatura_match.save(update_fields=['arquivo_hash', 'fonte_arquivo'])
+                hashes_importados.add(sha)
+                importado = True
+            else:
+                # Arquivo original não normalizado: verifica se há duplicata com
+                # mesmo conteúdo (mesmo hash) no mesmo diretório já importada
+                for irmao in arq.parent.iterdir():
+                    if irmao == arq or irmao.suffix.lower() != '.pdf':
+                        continue
+                    try:
+                        if hash_pdf(irmao.read_bytes()) == sha:
+                            importado = True
+                            break
+                    except OSError:
+                        pass
+
         itens.append({
             'caminho':    caminho_rel,
             'nome':       arq.name,
             'membro':     membro_slug.replace('-', ' ').replace('_', ' ').title(),
             'ano':        ano,
-            'importado':  sha in hashes_importados,
+            'importado':  importado,
             'tamanho_kb': round(len(raw) / 1024, 1) if raw else 0,
         })
 
