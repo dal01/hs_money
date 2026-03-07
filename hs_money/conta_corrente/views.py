@@ -757,6 +757,32 @@ def transacoes_lista(request):
 
     anos_disponiveis = Transacao.objects.dates('data', 'year', order='DESC')
 
+    # Sugestão de anotação para bulk-bar
+    def normalize_descricao(descricao: str) -> str:
+        import re
+        return re.sub(r'[^a-zA-Z\s]', '', descricao).strip().lower()
+
+    anotacao_sugerida_bulk = None
+    categoria_sugerida_bulk = None
+    membros_sugeridos_bulk = None
+    # Obtém transações selecionadas (visíveis)
+    transacoes_selecionadas = list(qs_visiveis)
+    if transacoes_selecionadas:
+        # Sugestão de anotação: maioria
+        from collections import Counter
+        anotacoes = [t.anotacao for t in transacoes_selecionadas if t.anotacao]
+        if anotacoes:
+            anotacao_sugerida_bulk = Counter(anotacoes).most_common(1)[0][0]
+        # Sugestão de categoria: maioria
+        categorias = [t.categoria for t in transacoes_selecionadas if t.categoria]
+        if categorias:
+            categoria_sugerida_bulk = Counter(categorias).most_common(1)[0][0]
+        # Sugestão de membros: maioria
+        membros_list = [tuple(sorted([m.pk for m in t.membros.all()])) for t in transacoes_selecionadas if t.membros.exists()]
+        if membros_list:
+            membros_majority = Counter(membros_list).most_common(1)[0][0]
+            from .models import Membro
+            membros_sugeridos_bulk = Membro.objects.filter(pk__in=membros_majority)
     return render(request, 'conta_corrente/transacoes/lista.html', {
         'transacoes':          qs_visiveis,
         'transacoes_ocultas':  qs_ocultas,
@@ -785,6 +811,9 @@ def transacoes_lista(request):
             (1,'Jan'),(2,'Fev'),(3,'Mar'),(4,'Abr'),(5,'Mai'),(6,'Jun'),
             (7,'Jul'),(8,'Ago'),(9,'Set'),(10,'Out'),(11,'Nov'),(12,'Dez'),
         ],
+        'anotacao_sugerida_bulk': anotacao_sugerida_bulk,
+        'categoria_sugerida_bulk': categoria_sugerida_bulk,
+        'membros_sugeridos_bulk': membros_sugeridos_bulk,
     })
 
 
