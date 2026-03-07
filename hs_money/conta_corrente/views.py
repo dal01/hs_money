@@ -1,4 +1,57 @@
+# ---------------------------------------------------------------------------
+# Edição de transação manual
+# ---------------------------------------------------------------------------
 from __future__ import annotations
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
+from .forms import TransacaoManualForm
+from .models import Transacao
+from django.contrib import messages
+
+
+def transacao_editar(request, pk):
+    """Edita uma transação manualmente (categoria, membros, anotação)."""
+    transacao = get_object_or_404(Transacao, pk=pk)
+    form = TransacaoManualForm(request.POST or None, instance=transacao)
+    if form.is_valid():
+        t = form.save(commit=False)
+        # Normaliza anotacao
+        if t.anotacao:
+            t.anotacao = t.anotacao[0].upper() + t.anotacao[1:] if len(t.anotacao) > 1 else t.anotacao.upper()
+        t.save()
+        form.save_m2m()
+        messages.success(request, f'Transação "{t.descricao}" editada com sucesso.')
+        voltar = request.POST.get('next') or reverse('conta_corrente:transacoes_lista')
+        return redirect(voltar)
+    return render(request, 'conta_corrente/transacoes/form.html', {
+        'form':  form,
+        'titulo': 'Editar Transação',
+        'next':  request.GET.get('next', ''),
+    })
+# ---------------------------------------------------------------------------
+# Edição inline de anotação
+# ---------------------------------------------------------------------------
+
+from django.views.decorators.http import require_POST
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+@require_POST
+def transacao_anotacao(request, pk):
+    """Edita a anotação de uma transação (inline)."""
+    anotacao = request.POST.get('anotacao', '').strip()
+    if anotacao:
+        anotacao = anotacao[0].upper() + anotacao[1:] if len(anotacao) > 1 else anotacao.upper()
+    transacao = get_object_or_404(Transacao, pk=pk)
+    transacao.anotacao = anotacao
+    transacao.save()
+    # Redireciona para a mesma página (mantém filtros)
+    next_url = request.POST.get('next') or reverse('conta_corrente:transacoes_lista')
+    return HttpResponseRedirect(next_url)
+
+# ---------------------------------------------------------------------------
+# Edição inline de anotação
+# ---------------------------------------------------------------------------
 
 import re
 import hashlib
@@ -71,6 +124,11 @@ class TransacaoManualForm(forms.Form):
         queryset=Membro.objects.order_by('nome'),
         required=False, label='Membros',
         widget=forms.CheckboxSelectMultiple(),
+    )
+    anotacao = forms.CharField(
+        label='Anotação', max_length=255, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Comentário ou identificação manual'}),
+        help_text='Comentário ou identificação manual da transação.'
     )
 
 
@@ -591,21 +649,19 @@ def transacoes_bulk_action(request):
     voltar = request.POST.get('next', reverse('conta_corrente:transacoes_lista'))
     if ids and action in ('ocultar', 'mostrar'):
         Transacao.objects.filter(pk__in=ids).update(oculta=(action == 'ocultar'))
-    elif ids and action == 'categorizar':
+    elif ids and action == 'editar_tudo':
         categoria_id = request.POST.get('categoria_id', '').strip()
-        if categoria_id:
-            cat = Categoria.objects.filter(pk=categoria_id).first()
-            if cat:
-                Transacao.objects.filter(pk__in=ids).update(categoria=cat)
-        else:
-            Transacao.objects.filter(pk__in=ids).update(categoria=None)
-    elif ids and action == 'atribuir_membros':
         membro_ids = request.POST.getlist('membro_ids')
+        anotacao = request.POST.get('anotacao', '').strip()
+        cat = Categoria.objects.filter(pk=categoria_id).first() if categoria_id else None
         for t in Transacao.objects.filter(pk__in=ids):
+            t.categoria = cat if cat else None
             if membro_ids:
                 t.membros.set(membro_ids)
             else:
                 t.membros.clear()
+            t.anotacao = anotacao[0].upper() + anotacao[1:] if anotacao and len(anotacao) > 1 else (anotacao.upper() if anotacao else None)
+            t.save()
     return redirect(voltar)
 
 
@@ -783,6 +839,7 @@ def transacao_criar(request):
             categoria=cd['categoria'],
             hash_linha=hash_linha,
             hash_ordem=hash_ordem,
+            anotacao=(cd.get('anotacao', None)[0].upper() + cd.get('anotacao', None)[1:] if cd.get('anotacao', None) and len(cd.get('anotacao', None)) > 1 else cd.get('anotacao', None).upper()) if cd.get('anotacao', None) else None,
         )
         if cd['membros']:
             t.membros.set(cd['membros'])

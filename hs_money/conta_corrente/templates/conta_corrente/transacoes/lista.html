@@ -242,8 +242,6 @@
               {% endif %}
             {% endfor %}
           </select>
-          <button type="submit" name="action" value="categorizar"
-                  class="btn btn-sm btn-info">🏷️ Categorizar</button>
         </div>
         <div class="vr mx-1"></div>
         <div class="bulk-group">
@@ -254,8 +252,13 @@
               <option value="{{ m.pk }}">{{ m.nome }}</option>
             {% endfor %}
           </select>
-          <button type="submit" name="action" value="atribuir_membros"
-                  class="btn btn-sm btn-secondary">👥 Atribuir</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group">
+          <input type="text" name="anotacao" class="form-control form-control-sm" style="width:180px" placeholder="Anotação em massa">
+        </div>
+        <div class="bulk-group">
+          <button type="submit" name="action" value="editar_tudo" class="btn btn-sm btn-success">💾 Salvar</button>
         </div>
         <button type="button" data-deselect="vis"
                 class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
@@ -279,12 +282,7 @@
                 Descrição{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
               </a>
             </th>{% endwith %}
-            {% with f='conta' %}
-            <th class="col-sort">
-              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-                Conta{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-              </a>
-            </th>{% endwith %}
+            <!-- coluna Conta removida -->
             {% with f='valor' %}
             <th class="col-sort text-end" style="width:130px">
               <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
@@ -305,12 +303,12 @@
           <tr>
             <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-vis"></td>
             <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
-            <td class="small">{{ t.descricao }}</td>
-            <td class="small text-muted">
-              {{ t.extrato.conta.instituicao.nome }}
-              {% if t.extrato.conta.membro %}
-                <span class="text-secondary">/ {{ t.extrato.conta.membro.nome }}</span>
+            <td class="small">
+              {{ t.descricao }}
+              {% if t.anotacao %}
+                <span title="Anotação" class="ms-2 text-info">📝 {{ t.anotacao }}</span>
               {% endif %}
+            </td>
             </td>
             <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
               {{ t.valor|brl }}

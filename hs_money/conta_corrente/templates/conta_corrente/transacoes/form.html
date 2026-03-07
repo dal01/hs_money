@@ -41,6 +41,17 @@
             <div class="text-danger small">{{ form.tipo.errors }}</div>
           {% endif %}
         </div>
+      
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Anotação</label>
+            {{ form.anotacao }}
+            {% if form.anotacao.help_text %}
+              <div class="form-text">{{ form.anotacao.help_text }}</div>
+            {% endif %}
+            {% if form.anotacao.errors %}
+              <div class="text-danger small">{{ form.anotacao.errors }}</div>
+            {% endif %}
+          </div>
       </div>
 
       <div class="mb-3">
