@@ -38,67 +38,54 @@
 </div>
 
 <!-- Filtros -->
-<form method="get" id="form-filtro" class="row g-2 align-items-end mb-4">
+<form method="get" id="form-filtro" class="row gx-3 gy-2 align-items-end mb-4">
 
   {% if tab_sel == 'ocultas' %}
     <input type="hidden" name="tab" value="ocultas">
   {% endif %}
 
-  <div class="col-auto">
+
+  <div class="col-12 col-md-6 col-lg-3">
     <label class="form-label small mb-1">Membro</label>
     <select name="membro" class="form-select form-select-sm" onchange="this.form.submit()">
       <option value="">Todos</option>
       {% for m in membros %}
-        <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>
-          {{ m.nome }}
-        </option>
+        <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.nome }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col-auto">
+  <div class="col-12 col-md-6 col-lg-3">
     <label class="form-label small mb-1">Cartão</label>
     <select name="cartao" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:220px">
       <option value="">Todos</option>
       {% for c in cartoes %}
-        <option value="{{ c.pk }}" {% if cartao_sel == c.pk|stringformat:'s' %}selected{% endif %}>
-          {{ c }}
-        </option>
+        <option value="{{ c.pk }}" {% if cartao_sel == c.pk|stringformat:'s' %}selected{% endif %}>{{ c }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col-auto">
+  <div class="col-6 col-md-3 col-lg-2">
     <label class="form-label small mb-1">Competência (ano)</label>
     <select name="ano" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
       <option value="">Todos</option>
       {% for d in anos_disponiveis %}
-        <option value="{{ d.year }}" {% if ano_sel == d.year|stringformat:'s' %}selected{% endif %}>
-          {{ d.year }}
-        </option>
+        <option value="{{ d.year }}" {% if ano_sel == d.year|stringformat:'s' %}selected{% endif %}>{{ d.year }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col-auto">
+  <div class="col-6 col-md-3 col-lg-2">
     <label class="form-label small mb-1">Competência (mês)</label>
     <select name="mes" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
       <option value="">Todos</option>
       {% for num, nome in meses %}
-        <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>
-          {{ nome }}
-        </option>
+        <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>{{ nome }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col" style="max-width:260px">
-    <label class="form-label small mb-1">Busca</label>
-    <input type="text" name="q" value="{{ busca }}" class="form-control form-control-sm"
-           placeholder="Descrição…">
-  </div>
-
-  <div class="col-auto">
+  <div class="col-12 col-md-6 col-lg-3">
     <label class="form-label small mb-1">Categoria</label>
     <select name="categoria" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
       <option value="">Todas</option>
@@ -106,25 +93,19 @@
       {% for mac in categorias %}
         {% if mac.subcategorias.all %}
           <optgroup label="{{ mac.nome }}">
-            <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
-              {{ mac.nome }} (todas)
-            </option>
+            <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>{{ mac.nome }} (todas)</option>
             {% for sub in mac.subcategorias.all|dictsort:"nome" %}
-              <option value="{{ sub.pk }}" {% if cat_sel == sub.pk|stringformat:'s' %}selected{% endif %}>
-                {{ sub.nome }}
-              </option>
+              <option value="{{ sub.pk }}" {% if cat_sel == sub.pk|stringformat:'s' %}selected{% endif %}>{{ sub.nome }}</option>
             {% endfor %}
           </optgroup>
         {% else %}
-          <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
-            {{ mac.nome }}
-          </option>
+          <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>{{ mac.nome }}</option>
         {% endif %}
       {% endfor %}
     </select>
   </div>
 
-  <div class="col-auto">
+  <div class="col-12 col-md-6 col-lg-2">
     <label class="form-label small mb-1">Atribuição</label>
     <select name="atribuicao" class="form-select form-select-sm" onchange="this.form.submit()">
       <option value="">Todas</option>
@@ -132,8 +113,13 @@
     </select>
   </div>
 
-  <div class="col-auto">
-    <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button>
+  <div class="col-12 col-md-6 col-lg-3">
+    <label class="form-label small mb-1">Busca</label>
+    <input type="text" name="q" value="{{ busca }}" class="form-control form-control-sm" placeholder="Descrição…">
+  </div>
+
+  <div class="col-12 col-md-6 col-lg-2 d-flex align-items-end">
+    <button type="submit" class="btn btn-sm btn-outline-secondary me-2">Filtrar</button>
     {% if ano_sel or mes_sel or membro_sel or cartao_sel or busca or cat_sel or atrib_sel %}
       <a href="{% url 'cartao_credito:transacoes_lista' %}" class="btn btn-sm btn-link text-muted">Limpar</a>
     {% endif %}
@@ -253,6 +239,13 @@
         <div class="bulk-group">
           <button type="submit" name="action" value="editar_tudo" class="btn btn-sm btn-success">💾 Salvar tudo</button>
         </div>
+        <div class="bulk-group ms-3" id="bulk-suggestions-vis" style="display:none">
+          <span class="fw-semibold me-2">Sugestões:</span>
+          <span class="me-3" id="bulk-sug-cat-vis"></span>
+          <span class="me-3" id="bulk-sug-mem-vis"></span>
+          <span class="me-3" id="bulk-sug-ano-vis"></span>
+          <button type="button" class="btn btn-outline-primary btn-sm ms-2" id="bulk-accept-sug-vis">Aceitar sugestões</button>
+        </div>
         <button type="button" data-deselect="vis"
                 class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
       </div>
@@ -275,12 +268,7 @@
                 Descrição{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
               </a>
             </th>{% endwith %}
-            {% with f='cartao' %}
-            <th class="col-sort" style="width:160px">
-              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-                Cartão{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-              </a>
-            </th>{% endwith %}
+            <!-- coluna removida: Cartão -->
             <th style="width:85px">Competência</th>
             <th style="width:70px">Parcela</th>
             {% with f='valor' %}
@@ -538,9 +526,34 @@
     const bar     = document.getElementById(`bulk-bar-${suffix}`);
     const countEl = document.getElementById(`bulk-count-${suffix}`);
     const desel   = document.querySelector(`[data-deselect="${suffix}"]`);
+    const sugBar  = document.getElementById(`bulk-suggestions-${suffix}`);
+    const sugCat  = document.getElementById(`bulk-sug-cat-${suffix}`);
+    const sugMem  = document.getElementById(`bulk-sug-mem-${suffix}`);
+    const sugAno  = document.getElementById(`bulk-sug-ano-${suffix}`);
+    const sugAccept = document.getElementById(`bulk-accept-sug-${suffix}`);
     if (!chkAll) return;
 
+    // Collect transaction data from table rows
     const rows = () => Array.from(document.querySelectorAll(`.row-chk-${suffix}`));
+    const transRows = () => Array.from(document.querySelectorAll(`.row-chk-${suffix}`)).map(chk => {
+      const tr = chk.closest('tr');
+      return {
+        checked: chk.checked,
+        pk: chk.value,
+        descricao: tr.querySelector('.small').textContent.trim(),
+        anotacao: tr.querySelector('.text-info') ? tr.querySelector('.text-info').textContent.replace('📝','').trim() : '',
+        categoria: tr.querySelector('.cat-name') ? tr.querySelector('.cat-name').textContent.trim() : '',
+        membros: Array.from(tr.querySelectorAll('.badge-membro')).map(b => b.textContent.trim()),
+      };
+    });
+
+    function majority(arr) {
+      if (!arr.length) return null;
+      const count = {};
+      arr.forEach(v => { count[v] = (count[v]||0)+1; });
+      const sorted = Object.entries(count).sort((a,b) => b[1]-a[1]);
+      return sorted[0][0];
+    }
 
     function update() {
       const checked = rows().filter(c => c.checked);
@@ -549,11 +562,109 @@
       countEl.textContent = n === 1 ? '1 selecionada' : `${n} selecionadas`;
       chkAll.indeterminate = n > 0 && n < rows().length;
       chkAll.checked = n > 0 && n === rows().length;
+
+      // Sugestão dinâmica
+      if (sugBar && sugCat && sugMem && sugAno) {
+        if (n > 0) {
+          sugBar.style.display = '';
+          const selected = transRows().filter(r => r.checked);
+          // Categoria
+          const cats = selected.map(r => r.categoria).filter(Boolean);
+          sugCat.textContent = cats.length ? `Categoria: ${majority(cats)}` : '';
+          // Membros
+          const mems = selected.map(r => r.membros.join(',')).filter(Boolean);
+          sugMem.textContent = mems.length ? `Membros: ${majority(mems)}` : '';
+          // Anotação
+          const anos = selected.map(r => r.anotacao).filter(Boolean);
+          sugAno.textContent = anos.length ? `Anotação: ${majority(anos)}` : '';
+
+          // Preencher automaticamente se apenas uma transação
+          if (n === 1) {
+            // Categoria
+            if (cats.length) {
+              const sel = document.querySelector('select[name="categoria_id"]');
+              if (sel) {
+                for (let i=0;i<sel.options.length;i++) {
+                  let optionText = sel.options[i].text.trim();
+                  let parentText = sel.options[i].parentNode && sel.options[i].parentNode.label ? sel.options[i].parentNode.label.trim() : '';
+                  let fullText = parentText ? parentText + ' > ' + optionText : optionText;
+                  if (fullText === cats[0] || optionText === cats[0]) {
+                    sel.selectedIndex = i;
+                    break;
+                  }
+                }
+              }
+            }
+            // Membros
+            if (mems.length) {
+              const memNames = mems[0].split(',').map(s=>s.trim());
+              const sel = document.querySelector('select[name="membro_ids"]');
+              if (sel) {
+                for (let i=0;i<sel.options.length;i++) {
+                  sel.options[i].selected = memNames.includes(sel.options[i].text);
+                }
+              }
+            }
+            // Anotação
+            if (anos.length) {
+              const inp = document.querySelector('input[name="anotacao_bulk"]');
+              if (inp) inp.value = anos[0];
+            }
+          }
+        } else {
+          sugBar.style.display = 'none';
+          sugCat.textContent = '';
+          sugMem.textContent = '';
+          sugAno.textContent = '';
+        }
+      }
     }
 
     chkAll.addEventListener('change', () => { rows().forEach(c => c.checked = chkAll.checked); update(); });
     document.addEventListener('change', e => { if (e.target.classList.contains(`row-chk-${suffix}`)) update(); });
     if (desel) desel.addEventListener('click', () => { rows().forEach(c => c.checked = false); chkAll.checked = false; update(); });
+
+    // Aceitar sugestões
+    if (sugAccept) {
+      sugAccept.addEventListener('click', function() {
+        // Categoria
+        if (sugCat && sugCat.textContent) {
+          const catName = sugCat.textContent.replace('Categoria: ', '');
+          const sel = document.querySelector('select[name="categoria_id"]');
+          if (sel) {
+            let found = false;
+            for (let i=0;i<sel.options.length;i++) {
+              let optionText = sel.options[i].text.trim();
+              let parentText = sel.options[i].parentNode && sel.options[i].parentNode.label ? sel.options[i].parentNode.label.trim() : '';
+              let fullText = parentText ? parentText + ' > ' + optionText : optionText;
+              if (fullText === catName || optionText === catName) {
+                sel.selectedIndex = i;
+                found = true;
+                break;
+              }
+            }
+            if (!found) sel.selectedIndex = 0;
+          }
+        }
+        // Membros
+        if (sugMem && sugMem.textContent) {
+          const memNames = sugMem.textContent.replace('Membros: ','').split(',').map(s=>s.trim());
+          const sel = document.querySelector('select[name="membro_ids"]');
+          if (sel) {
+            for (let i=0;i<sel.options.length;i++) {
+              sel.options[i].selected = memNames.includes(sel.options[i].text);
+            }
+          }
+        }
+        // Anotação
+        if (sugAno && sugAno.textContent) {
+          const anoVal = sugAno.textContent.replace('Anotação: ','');
+          const inp = document.querySelector('input[name="anotacao_bulk"]');
+          if (inp) inp.value = anoVal;
+        }
+      });
+    }
+    update();
   }
 
   setupBulk('vis');
