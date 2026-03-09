@@ -110,6 +110,7 @@ class Transacao(models.Model):
     oculta = models.BooleanField(default=False, db_index=True)
     oculta_manual = models.BooleanField(default=False, db_index=True)
     categoria = models.ForeignKey(Categoria, null=True, blank=True, on_delete=models.SET_NULL, related_name="transacoes")
+    anotacao = models.CharField(max_length=255, blank=True, null=True, help_text="Comentário ou identificação manual da transação.")
 
     # Valor final em BRL
     valor = models.DecimalField(max_digits=12, decimal_places=2)

@@ -235,8 +235,6 @@
               {% endif %}
             {% endfor %}
           </select>
-          <button type="submit" name="action" value="categorizar"
-                  class="btn btn-sm btn-info">🏷️ Categorizar</button>
         </div>
         <div class="vr mx-1"></div>
         <div class="bulk-group">
@@ -247,8 +245,13 @@
               <option value="{{ m.pk }}">{{ m.nome }}</option>
             {% endfor %}
           </select>
-          <button type="submit" name="action" value="atribuir_membros"
-                  class="btn btn-sm btn-secondary">👥 Atribuir</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group d-flex align-items-center">
+          <input type="text" name="anotacao_bulk" class="form-control form-control-sm" style="width:140px" placeholder="Anotação em lote">
+        </div>
+        <div class="bulk-group">
+          <button type="submit" name="action" value="editar_tudo" class="btn btn-sm btn-success">💾 Salvar tudo</button>
         </div>
         <button type="button" data-deselect="vis"
                 class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
@@ -302,6 +305,9 @@
             <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
             <td class="small">
               {{ t.descricao }}
+              {% if t.anotacao %}
+                <span title="Anotação" class="ms-2 text-info">📝 {{ t.anotacao }}</span>
+              {% endif %}
               {% if t.moeda and t.moeda != 'BRL' %}
                 <span class="badge bg-secondary badge-moeda ms-1" title="{{ t.valor_moeda }} {{ t.moeda }}">
                   {{ t.moeda }}

@@ -1,4 +1,19 @@
 from __future__ import annotations
+from django.views.decorators.http import require_POST
+from django.http import HttpResponseRedirect
+# Inline annotation editing for credit card transaction
+@require_POST
+def transacao_anotacao(request, pk):
+    """Edita a anotação de uma transação de cartão (inline)."""
+    anotacao = request.POST.get('anotacao', '').strip()
+    if anotacao:
+        anotacao = anotacao[0].upper() + anotacao[1:] if len(anotacao) > 1 else anotacao.upper()
+    transacao = get_object_or_404(TransacaoCartao, pk=pk)
+    transacao.anotacao = anotacao
+    transacao.save(update_fields=['anotacao'])
+    next_url = request.POST.get('next') or reverse('cartao_credito:transacoes_lista')
+    return HttpResponseRedirect(next_url)
+
 
 import hashlib
 import re
@@ -652,6 +667,28 @@ def transacoes_bulk_action(request):
             qs.update(oculta=True)
         elif action == 'mostrar':
             qs.update(oculta=False)
+        elif action == 'editar_tudo':
+            cat_id = request.POST.get('categoria_id', '')
+            membro_ids = request.POST.getlist('membro_ids')
+            anotacao = request.POST.get('anotacao_bulk', '').strip()
+            if anotacao:
+                anotacao = anotacao[0].upper() + anotacao[1:] if len(anotacao) > 1 else anotacao.upper()
+            for t in qs:
+                # Categoria
+                if cat_id:
+                    try:
+                        cat = Categoria.objects.get(pk=cat_id)
+                        t.categoria = cat
+                    except Categoria.DoesNotExist:
+                        t.categoria = None
+                elif cat_id == '':
+                    t.categoria = None
+                # Membros
+                if membro_ids:
+                    t.membros.set(membro_ids)
+                # Anotacao
+                t.anotacao = anotacao
+                t.save()
         elif action == 'categorizar':
             cat_id = request.POST.get('categoria_id', '')
             if cat_id:
@@ -666,6 +703,13 @@ def transacoes_bulk_action(request):
             membro_ids = request.POST.getlist('membro_ids')
             for t in qs:
                 t.membros.set(membro_ids)
+        elif action == 'anotacao_bulk':
+            anotacao = request.POST.get('anotacao_bulk', '').strip()
+            if anotacao:
+                anotacao = anotacao[0].upper() + anotacao[1:] if len(anotacao) > 1 else anotacao.upper()
+            for t in qs:
+                t.anotacao = anotacao
+                t.save(update_fields=['anotacao'])
 
     return redirect(voltar) if voltar else redirect('cartao_credito:transacoes_lista')
 

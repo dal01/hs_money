@@ -781,7 +781,6 @@ def transacoes_lista(request):
         membros_list = [tuple(sorted([m.pk for m in t.membros.all()])) for t in transacoes_selecionadas if t.membros.exists()]
         if membros_list:
             membros_majority = Counter(membros_list).most_common(1)[0][0]
-            from .models import Membro
             membros_sugeridos_bulk = Membro.objects.filter(pk__in=membros_majority)
     return render(request, 'conta_corrente/transacoes/lista.html', {
         'transacoes':          qs_visiveis,
