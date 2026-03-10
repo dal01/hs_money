@@ -251,7 +251,7 @@
   <div class="col-12 col-lg-6">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
-        <div class="section-title">👤 Por membro</div>
+        <div class="section-title">👤 Gastos por membro</div>
         {% if por_membro %}
         <table class="table table-sm align-middle mb-0">
           <thead class="table-light">
@@ -266,10 +266,20 @@
             {% for r in por_membro %}
             <tr>
               <td class="fw-semibold small">{{ r.nome }}</td>
-              <td class="text-end small {% if r.cc >= 0 %}text-success{% else %}text-danger{% endif %}">
+              <td class="text-end small detalhe-membro {% if r.cc >= 0 %}text-success{% else %}text-danger{% endif %}"
+                  style="cursor:pointer; text-decoration:underline dotted"
+                  data-membro-id="{{ r.pk|default:'' }}"
+                  data-membro-nome="{{ r.nome }}"
+                  data-fonte="cc"
+                  title="Ver lançamentos">
                 {{ r.cc|brl }}
               </td>
-              <td class="text-end small {% if r.cartao >= 0 %}text-success{% else %}text-danger{% endif %}">
+              <td class="text-end small detalhe-membro {% if r.cartao >= 0 %}text-success{% else %}text-danger{% endif %}"
+                  style="cursor:pointer; text-decoration:underline dotted"
+                  data-membro-id="{{ r.pk|default:'' }}"
+                  data-membro-nome="{{ r.nome }}"
+                  data-fonte="cartao"
+                  title="Ver lançamentos">
                 {{ r.cartao|brl }}
               </td>
               <td class="text-end fw-semibold {% if r.total >= 0 %}text-success{% else %}text-danger{% endif %}">
@@ -288,4 +298,84 @@
 
 </div>
 
+<!-- Modal Lançamentos por Membro -->
+<div class="modal fade" id="modalMembro" tabindex="-1" aria-labelledby="modalMembroLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title fw-semibold" id="modalMembroLabel"></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3" id="modalMembroBody">
+        <p class="text-center text-muted py-3">Carregando...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const ANO = "{{ ano_sel }}";
+  const MES = "{{ mes_sel }}";
+  const URL_BASE = "{% url 'relatorios:membro_transacoes_json' %}";
+
+  document.querySelectorAll('.detalhe-membro').forEach(function (cel) {
+    cel.addEventListener('click', function () {
+      const membroId   = this.dataset.membroId;
+      const fonte      = this.dataset.fonte;
+      const membroNome = this.dataset.membroNome;
+      const fonteLabel = fonte === 'cc' ? 'Conta Corrente' : 'Cartão de Crédito';
+
+      document.getElementById('modalMembroLabel').textContent = membroNome + ' — ' + fonteLabel;
+      document.getElementById('modalMembroBody').innerHTML =
+        '<p class="text-center text-muted py-3">Carregando...</p>';
+
+      const modal = new bootstrap.Modal(document.getElementById('modalMembro'));
+      modal.show();
+
+      const params = new URLSearchParams({ membro_id: membroId, fonte: fonte, ano: ANO, mes: MES });
+      fetch(URL_BASE + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.transacoes.length) {
+            document.getElementById('modalMembroBody').innerHTML =
+              '<p class="text-muted small">Nenhuma transação encontrada.</p>';
+            return;
+          }
+          var html = '<div class="table-responsive">';
+          html += '<table class="table table-sm table-hover align-middle mb-0">';
+          html += '<thead class="table-light"><tr>';
+          html += '<th style="width:95px">Data</th>';
+          html += '<th>Descrição</th>';
+          html += '<th style="width:160px">Categoria</th>';
+          html += '<th class="text-center" style="width:60px">Membros</th>';
+          html += '<th class="text-end" style="width:120px">Valor</th>';
+          html += '</tr></thead><tbody>';
+          data.transacoes.forEach(function (t) {
+            html += '<tr>';
+            html += '<td class="small text-nowrap">' + t.data + '</td>';
+            html += '<td class="small">' + t.descricao + '</td>';
+            html += '<td class="small text-muted">' + t.categoria + '</td>';
+            html += '<td class="text-center small text-secondary">' + (t.divisao || '') + '</td>';
+            html += '<td class="text-end small text-danger">' + t.valor_fmt + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody>';
+          html += '<tfoot><tr class="table-light fw-semibold">';
+          html += '<td colspan="4">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
+          html += '</tr></tfoot></table></div>';
+          document.getElementById('modalMembroBody').innerHTML = html;
+        })
+        .catch(function () {
+          document.getElementById('modalMembroBody').innerHTML =
+            '<p class="text-danger small">Erro ao carregar transações.</p>';
+        });
+    });
+  });
+}());
+</script>
 {% endblock %}

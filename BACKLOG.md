@@ -26,6 +26,7 @@ Lançar o quanto tenho de cada ativo para controlar o caixa
 ## Obs
 Transferencias entre Dalton e Andrea devem ser ocultas, elas não são receitas nem despesas
   Isso vai dar diferença apenas quando analisar saldos individuais
+Transacoes extornadas, devem ser ignoradas
 
 Best food - costela ouro vermelho
 

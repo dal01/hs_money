@@ -157,11 +157,13 @@ def _por_membro(lista_cc, lista_cartao, membros):
     Se uma transação tem N membros, divide o valor igualmente entre eles.
     Transações sem nenhum membro vão para 'Sem membro'.
     """
-    membro_map = {m.pk: {'nome': m.nome, 'cc': ZERO, 'cartao': ZERO}
+    membro_map = {m.pk: {'pk': m.pk, 'nome': m.nome, 'cc': ZERO, 'cartao': ZERO}
                   for m in membros}
-    sem = {'nome': '— Sem membro —', 'cc': ZERO, 'cartao': ZERO}
+    sem = {'pk': None, 'nome': '— Sem membro —', 'cc': ZERO, 'cartao': ZERO}
 
     for t in lista_cc:
+        if t.valor >= ZERO:
+            continue
         ms = list(t.membros.all())
         if ms:
             parte = t.valor / len(ms)
@@ -173,6 +175,8 @@ def _por_membro(lista_cc, lista_cartao, membros):
             sem['cc'] += t.valor
 
     for t in lista_cartao:
+        if t.valor >= ZERO:
+            continue
         ms = list(t.membros.all())
         if ms:
             parte = t.valor / len(ms)
@@ -259,3 +263,81 @@ def dashboard(request):
         'cat_nivel':       cat_nivel,
     }
     return render(request, 'relatorios/dashboard.html', context)
+
+
+def membro_transacoes_json(request):
+    """Retorna JSON com lançamentos de gastos de um membro (CC ou Cartão) para a modal."""
+    from django.http import JsonResponse
+    from hs_money.core.models import Categoria as _Cat
+
+    membro_id = request.GET.get('membro_id', '')
+    fonte     = request.GET.get('fonte', 'cc')
+    ano       = request.GET.get('ano', '')
+    mes       = request.GET.get('mes', '')
+
+    def _fmt_brl(v):
+        abs_v = abs(v)
+        s = f"{abs_v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        return f"R$ {'-' if v < 0 else ''}{s}"
+
+    rows = []
+    total = ZERO
+
+    if fonte == 'cc':
+        ids_fatura = list(
+            _Cat.objects.filter(nome__icontains='fatura do cart')
+            .values_list('pk', flat=True)
+        )
+        qs = (TransacaoCC.objects
+              .filter(oculta=False, valor__lt=0)
+              .exclude(categoria_id__in=ids_fatura)
+              .select_related('categoria')
+              .prefetch_related('membros'))
+        if ano:
+            qs = qs.filter(data__year=ano)
+        if mes:
+            qs = qs.filter(data__month=mes)
+        if membro_id:
+            qs = qs.filter(membros__pk=membro_id)
+        else:
+            qs = qs.filter(membros__isnull=True)
+        for t in qs.order_by('data'):
+            num_membros = t.membros.count() or 1
+            valor_parte = t.valor / num_membros
+            total += valor_parte
+            rows.append({
+                'data': t.data.strftime('%d/%m/%Y'),
+                'descricao': t.descricao,
+                'categoria': t.categoria.nome if t.categoria else '—',
+                'valor_fmt': _fmt_brl(valor_parte),
+                'divisao': f'÷{num_membros}' if num_membros > 1 else '',
+            })
+    else:
+        qs = (TransacaoCartao.objects
+              .filter(oculta=False, valor__lt=0)
+              .select_related('categoria')
+              .prefetch_related('membros'))
+        if ano:
+            qs = qs.filter(fatura__competencia__year=ano)
+        if mes:
+            qs = qs.filter(fatura__competencia__month=mes)
+        if membro_id:
+            qs = qs.filter(membros__pk=membro_id)
+        else:
+            qs = qs.filter(membros__isnull=True)
+        for t in qs.order_by('data'):
+            num_membros = t.membros.count() or 1
+            valor_parte = t.valor / num_membros
+            total += valor_parte
+            rows.append({
+                'data': t.data.strftime('%d/%m/%Y'),
+                'descricao': t.descricao,
+                'categoria': t.categoria.nome if t.categoria else '—',
+                'valor_fmt': _fmt_brl(valor_parte),
+                'divisao': f'÷{num_membros}' if num_membros > 1 else '',
+            })
+
+    return JsonResponse({
+        'transacoes': rows,
+        'total_fmt': _fmt_brl(total),
+    })
