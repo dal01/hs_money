@@ -66,77 +66,125 @@
 <!-- ── KPIs ── -->
 <div class="row g-3 mb-4">
 
-  <!-- Conta Corrente -->
+  <!-- Entradas -->
   <div class="col-12 col-md-4">
     <div class="card card-kpi h-100 border-0 shadow-sm">
       <div class="card-body">
-        <div class="section-title mb-3">🏦 Conta Corrente</div>
-        <div class="row g-2">
-          <div class="col-6">
-            <div class="kpi-label">Entradas</div>
-            <div class="kpi-val text-success">{{ cc_creditos|brl }}</div>
-          </div>
-          <div class="col-6">
-            <div class="kpi-label">Saídas</div>
-            <div class="kpi-val text-danger">{{ cc_debitos|brl }}</div>
-          </div>
-          <div class="col-12 mt-2">
-            <div class="kpi-label">Saldo</div>
-            <div class="kpi-val {% if cc_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
-              {{ cc_saldo|brl }}
-            </div>
-          </div>
-        </div>
+        <div class="kpi-label mb-1">↑ Total Entradas</div>
+        <div class="kpi-val text-success mb-2">{{ total_creditos|brl }}</div>
+        {% if kpi_membros_cred %}
+        <table class="table table-sm mb-0" style="font-size:.78rem">
+          <thead class="table-light">
+            <tr>
+              <th>Membro</th>
+              <th class="text-end">CC</th>
+              <th class="text-end">Cartão</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in kpi_membros_cred %}
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td class="text-end text-success">{{ m.cc_cred|brl }}</td>
+              <td class="text-end text-muted">—</td>
+              <td class="text-end text-success fw-semibold">{{ m.total_cred|brl }}</td>
+              <td class="text-end text-muted">{% if m.pct_cred %}{{ m.pct_cred }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light fw-bold">
+            <tr>
+              <td>Total</td>
+              <td class="text-end text-success">{{ cc_creditos|brl }}</td>
+              <td class="text-end text-success">{{ ca_creditos|brl }}</td>
+              <td class="text-end text-success">{{ total_creditos|brl }}</td>
+              <td class="text-end">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Cartão de Crédito -->
+  <!-- Saídas -->
   <div class="col-12 col-md-4">
     <div class="card card-kpi h-100 border-0 shadow-sm">
       <div class="card-body">
-        <div class="section-title mb-3">💳 Cartão de Crédito</div>
-        <div class="row g-2">
-          <div class="col-6">
-            <div class="kpi-label">Créditos</div>
-            <div class="kpi-val text-success">{{ ca_creditos|brl }}</div>
-          </div>
-          <div class="col-6">
-            <div class="kpi-label">Gastos</div>
-            <div class="kpi-val text-danger">{{ ca_debitos|brl }}</div>
-          </div>
-          <div class="col-12 mt-2">
-            <div class="kpi-label">Saldo Fatura</div>
-            <div class="kpi-val {% if ca_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
-              {{ ca_saldo|brl }}
-            </div>
-          </div>
-        </div>
+        <div class="kpi-label mb-1">↓ Total Saídas</div>
+        <div class="kpi-val text-danger mb-2">{{ total_debitos|brl }}</div>
+        {% if kpi_membros_deb %}
+        <table class="table table-sm mb-0" style="font-size:.78rem">
+          <thead class="table-light">
+            <tr>
+              <th>Membro</th>
+              <th class="text-end">CC</th>
+              <th class="text-end">Cartão</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in kpi_membros_deb %}
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td class="text-end {% if m.cc_deb %}text-danger{% else %}text-muted{% endif %}">{% if m.cc_deb %}{{ m.cc_deb|brl }}{% else %}—{% endif %}</td>
+              <td class="text-end {% if m.ca_deb %}text-danger{% else %}text-muted{% endif %}">{% if m.ca_deb %}{{ m.ca_deb|brl }}{% else %}—{% endif %}</td>
+              <td class="text-end text-danger fw-semibold">{{ m.total_deb|brl }}</td>
+              <td class="text-end text-muted">{% if m.pct_deb %}{{ m.pct_deb }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light fw-bold">
+            <tr>
+              <td>Total</td>
+              <td class="text-end text-danger">{{ cc_debitos|brl }}</td>
+              <td class="text-end text-danger">{{ ca_debitos|brl }}</td>
+              <td class="text-end text-danger">{{ total_debitos|brl }}</td>
+              <td class="text-end">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Total Consolidado -->
+  <!-- Saldo Total -->
   <div class="col-12 col-md-4">
-    <div class="card card-kpi h-100 border-0 shadow-sm bg-light">
+    <div class="card card-kpi h-100 border-0 shadow-sm {% if total_saldo >= 0 %}border-success{% else %}border-danger{% endif %}" style="border-left: 4px solid !important">
       <div class="card-body">
-        <div class="section-title mb-3">📊 Consolidado</div>
-        <div class="row g-2">
-          <div class="col-6">
-            <div class="kpi-label">Total Entradas</div>
-            <div class="kpi-val text-success">{{ total_creditos|brl }}</div>
-          </div>
-          <div class="col-6">
-            <div class="kpi-label">Total Saídas</div>
-            <div class="kpi-val text-danger">{{ total_debitos|brl }}</div>
-          </div>
-          <div class="col-12 mt-2">
-            <div class="kpi-label">Saldo Total</div>
-            <div class="kpi-val {% if total_saldo >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:1.7rem">
-              {{ total_saldo|brl }}
-            </div>
-          </div>
+        <div class="kpi-label mb-1">⚖️ Saldo Total</div>
+        <div class="kpi-val {% if total_saldo >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:1.9rem">
+          {{ total_saldo|brl }}
         </div>
+        {% if kpi_membros %}
+        <hr class="my-2">
+        <table class="table table-sm mb-0" style="font-size:.78rem">
+          <thead class="table-light">
+            <tr>
+              <th>Membro</th>
+              <th class="text-end">Entradas</th>
+              <th class="text-end">Saídas</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in kpi_membros %}
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td class="text-end text-success">{% if m.total_cred %}{{ m.total_cred|brl }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td class="text-end text-danger">{% if m.total_deb %}{{ m.total_deb|brl }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td class="text-end {% if m.pct %}{% if m.pct > 100 %}text-danger{% else %}text-success{% endif %} fw-semibold{% else %}text-muted{% endif %}">
+                {% if m.pct %}{{ m.pct|floatformat:0 }}%{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
       </div>
     </div>
   </div>

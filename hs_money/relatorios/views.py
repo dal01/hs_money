@@ -198,6 +198,62 @@ def _por_membro(lista_cc, lista_cartao, membros):
     return rows
 
 
+def _kpi_membros(lista_cc, lista_cartao, membros):
+    """Totais de entradas e saídas (CC e Cartão separados) por membro para os KPI cards."""
+    def _bucket():
+        return {'cc_cred': ZERO, 'cc_deb': ZERO, 'ca_deb': ZERO}
+
+    membro_map = {m.pk: dict(nome=m.nome, **_bucket()) for m in membros}
+    sem = dict(nome='— Sem membro —', **_bucket())
+
+    for t in lista_cc:
+        ms = list(t.membros.all())
+        n = len(ms) or 1
+        if t.valor > ZERO:
+            if ms:
+                parte = t.valor / n
+                for m in ms:
+                    if m.pk in membro_map:
+                        membro_map[m.pk]['cc_cred'] += parte
+            else:
+                sem['cc_cred'] += t.valor
+        elif t.valor < ZERO:
+            if ms:
+                parte = t.valor / n
+                for m in ms:
+                    if m.pk in membro_map:
+                        membro_map[m.pk]['cc_deb'] += parte
+            else:
+                sem['cc_deb'] += t.valor
+
+    for t in lista_cartao:
+        if t.valor >= ZERO:
+            continue
+        ms = list(t.membros.all())
+        n = len(ms) or 1
+        if ms:
+            parte = t.valor / n
+            for m in ms:
+                if m.pk in membro_map:
+                    membro_map[m.pk]['ca_deb'] += parte
+        else:
+            sem['ca_deb'] += t.valor
+
+    rows = list(membro_map.values())
+    if any(sem[k] for k in ('cc_cred', 'cc_deb', 'ca_deb')):
+        rows.append(sem)
+
+    for r in rows:
+        r['total_cred'] = r['cc_cred']
+        r['total_deb']  = r['cc_deb'] + r['ca_deb']
+        if r['total_cred']:
+            r['pct'] = abs(r['total_deb']) / r['total_cred'] * 100
+        else:
+            r['pct'] = None
+
+    return rows
+
+
 # ---------------------------------------------------------------------------
 # View
 # ---------------------------------------------------------------------------
@@ -237,6 +293,13 @@ def dashboard(request):
     por_mes       = _por_mes(lista_cc, lista_cartao) if not mes_sel else []
     por_categoria = _por_categoria(lista_cc, lista_cartao, agrupar=cat_nivel)
     por_membro    = _por_membro(lista_cc, lista_cartao, membros)
+    _km           = _kpi_membros(lista_cc, lista_cartao, membros)
+    for r in _km:
+        r['pct_cred'] = round(r['total_cred'] / total_creditos * 100, 1) if total_creditos else None
+        r['pct_deb']  = round(abs(r['total_deb']) / abs(total_debitos) * 100, 1) if total_debitos else None
+    kpi_membros_cred = [r for r in _km if r['cc_cred']]
+    kpi_membros_deb  = [r for r in _km if r['cc_deb'] or r['ca_deb']]
+    kpi_membros      = [r for r in _km if r['total_cred'] or r['total_deb']]
 
     context = {
         'ano_sel':         ano_sel,
@@ -261,6 +324,9 @@ def dashboard(request):
         'por_mes':         por_mes,
         'por_categoria':   por_categoria,
         'por_membro':      por_membro,
+        'kpi_membros_cred': kpi_membros_cred,
+        'kpi_membros_deb':  kpi_membros_deb,
+        'kpi_membros':      kpi_membros,
         'cat_nivel':       cat_nivel,
     }
     return render(request, 'relatorios/dashboard.html', context)
