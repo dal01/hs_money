@@ -25,42 +25,78 @@
 </div>
 
 <!-- ── Filtros ── -->
-<form method="get" class="row g-2 align-items-end mb-4">
+<form method="get" class="mb-4">
   <input type="hidden" name="cat_nivel" value="{{ cat_nivel }}">
-  <div class="col-auto">
-    <label class="form-label small mb-1">Ano</label>
-    <select name="ano" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
-      {% for a in anos_disponiveis %}
-        <option value="{{ a }}" {% if ano_sel == a|stringformat:'s' %}selected{% endif %}>{{ a }}</option>
+
+  <!-- Linha 1: selects -->
+  <div class="row g-2 align-items-end mb-2">
+    <div class="col-auto">
+      <label class="form-label small mb-1">Ano</label>
+      <select name="ano" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+        {% for a in anos_disponiveis %}
+          <option value="{{ a }}" {% if ano_sel == a|stringformat:'s' %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-1">Mês</label>
+      <select name="mes" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for num, nome in meses %}
+          <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-1">Membro</label>
+      <select name="membro" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for m in membros %}
+          <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto align-self-end">
+      <span class="text-muted small">
+        {{ qtd_cc }} transação(ões) CC &nbsp;·&nbsp; {{ qtd_cartao }} transação(ões) Cartão
+      </span>
+    </div>
+  </div>
+
+  <!-- Linha 2: excluir categorias -->
+  <div class="border rounded p-2 bg-light">
+    <div class="small text-muted fw-semibold mb-2">
+      Excluir categorias
+      {% if excluir_cats %}<span class="badge bg-warning text-dark ms-1">{{ excluir_cats|length }} ativa(s)</span>{% endif %}
+    </div>
+    <div class="d-flex flex-wrap gap-4">
+      {% for mac in macros_cats %}
+      <div>
+        <label class="d-flex align-items-center gap-1 fw-semibold small mb-1">
+          <input type="checkbox" name="excluir_cat" value="{{ mac.pk }}"
+                 class="form-check-input mt-0"
+                 {% if mac.pk in excluir_cats %}checked{% endif %}>
+          {{ mac.nome }}
+        </label>
+        {% for sub in mac.subcategorias.all %}
+        <label class="d-flex align-items-center gap-1 small ms-3 mb-0 text-muted">
+          <input type="checkbox" name="excluir_cat" value="{{ sub.pk }}"
+                 class="form-check-input mt-0"
+                 {% if sub.pk in excluir_cats %}checked{% endif %}>
+          {{ sub.nome }}
+        </label>
+        {% endfor %}
+      </div>
       {% endfor %}
-    </select>
+    </div>
   </div>
-  <div class="col-auto">
-    <label class="form-label small mb-1">Mês</label>
-    <select name="mes" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
-      <option value="">Todos</option>
-      {% for num, nome in meses %}
-        <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>{{ nome }}</option>
-      {% endfor %}
-    </select>
+
+  <!-- Linha 3: botão -->
+  <div class="mt-2">
+    <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+    {% if excluir_cats %}<a href="?ano={{ ano_sel }}&mes={{ mes_sel }}&membro={{ membro_sel }}&cat_nivel={{ cat_nivel }}" class="btn btn-sm btn-outline-secondary ms-1">Limpar exclusões</a>{% endif %}
   </div>
-  <div class="col-auto">
-    <label class="form-label small mb-1">Membro</label>
-    <select name="membro" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">Todos</option>
-      {% for m in membros %}
-        <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.nome }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-auto">
-    <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button>
-  </div>
-  <div class="col-auto align-self-end">
-    <span class="text-muted small">
-      {{ qtd_cc }} transação(ões) CC &nbsp;·&nbsp; {{ qtd_cartao }} transação(ões) Cartão
-    </span>
-  </div>
+
 </form>
 
 <!-- ── KPIs ── -->

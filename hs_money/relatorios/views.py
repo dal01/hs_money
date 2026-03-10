@@ -26,8 +26,9 @@ MESES_NOME = {n: label for n, label in MESES}
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _cc_qs(ano, mes, membro_id):
+def _cc_qs(ano, mes, membro_id, excluir_cats=None):
     # Exclui pagamentos de fatura de cartão (já contabilizados no app cartão de crédito)
+    from django.db.models import Q
     from hs_money.core.models import Categoria as _Cat
     ids_fatura = list(
         _Cat.objects.filter(nome__icontains='fatura do cart')
@@ -38,6 +39,11 @@ def _cc_qs(ano, mes, membro_id):
           .exclude(categoria_id__in=ids_fatura)
           .select_related('extrato__conta__membro', 'categoria', 'categoria__categoria_pai')
           .prefetch_related('membros'))
+    if excluir_cats:
+        qs = qs.exclude(
+            Q(categoria_id__in=excluir_cats) |
+            Q(categoria__categoria_pai_id__in=excluir_cats)
+        )
     if ano:
         qs = qs.filter(data__year=ano)
     if mes:
@@ -47,11 +53,17 @@ def _cc_qs(ano, mes, membro_id):
     return qs
 
 
-def _cartao_qs(ano, mes, membro_id):
+def _cartao_qs(ano, mes, membro_id, excluir_cats=None):
+    from django.db.models import Q
     qs = (TransacaoCartao.objects
           .filter(oculta=False)
           .select_related('fatura__cartao__membro', 'categoria', 'categoria__categoria_pai')
           .prefetch_related('membros'))
+    if excluir_cats:
+        qs = qs.exclude(
+            Q(categoria_id__in=excluir_cats) |
+            Q(categoria__categoria_pai_id__in=excluir_cats)
+        )
     if ano:
         qs = qs.filter(fatura__competencia__year=ano)
     if mes:
@@ -270,17 +282,20 @@ def dashboard(request):
     mes_sel    = request.GET.get('mes',       '')
     membro_sel = request.GET.get('membro',    '')
     cat_nivel  = request.GET.get('cat_nivel', 'sub')   # 'sub' ou 'mac'
+    excluir_cats = {int(x) for x in request.GET.getlist('excluir_cat') if x.isdigit()}
 
     # anos disponíveis (união de CC e cartão)
     anos_cc     = set(d.year for d in _TCC.objects.dates('data', 'year'))
     anos_cartao = set(d.year for d in FaturaCartao.objects.dates('competencia', 'year'))
     anos_disponiveis = sorted(anos_cc | anos_cartao, reverse=True)
 
+    from hs_money.core.models import Categoria as _Cat
     membros = Membro.objects.order_by('ordem', 'nome')
+    macros_cats = list(_Cat.objects.filter(nivel=1).prefetch_related('subcategorias').order_by('nome'))
 
     # --- querysets ---
-    lista_cc     = list(_cc_qs(ano_sel, mes_sel, membro_sel))
-    lista_cartao = list(_cartao_qs(ano_sel, mes_sel, membro_sel))
+    lista_cc     = list(_cc_qs(ano_sel, mes_sel, membro_sel, excluir_cats))
+    lista_cartao = list(_cartao_qs(ano_sel, mes_sel, membro_sel, excluir_cats))
 
     # --- totais ---
     cc_cred,  cc_deb,  cc_saldo  = _totais(lista_cc)
@@ -327,7 +342,9 @@ def dashboard(request):
         'kpi_membros_cred': kpi_membros_cred,
         'kpi_membros_deb':  kpi_membros_deb,
         'kpi_membros':      kpi_membros,
-        'cat_nivel':       cat_nivel,
+        'cat_nivel':        cat_nivel,
+        'macros_cats':      macros_cats,
+        'excluir_cats':     excluir_cats,
     }
     return render(request, 'relatorios/dashboard.html', context)
 
