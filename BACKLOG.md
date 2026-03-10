@@ -4,12 +4,10 @@
 
 
 ## Conta corrente
-pix de mim para mim ou da Andrea para mim, ignora
 
 ## Cartao de credito
 
 ## Relatorios
-Colocar filtros para excluir categorias/subcategorias
 Precisa achar solucao pra pagamentos que fazemos para os amigos. Ex: paguei Xique xique para todos e depois dividimos
 Hoje só aparece a despesa completa, deveria descontar o pagamento dos amigos
 Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi uma renda extra
