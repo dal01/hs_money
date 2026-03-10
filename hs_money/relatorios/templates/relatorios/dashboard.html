@@ -166,8 +166,14 @@
             {% for m in kpi_membros_deb %}
             <tr>
               <td>{{ m.nome }}</td>
-              <td class="text-end {% if m.cc_deb %}text-danger{% else %}text-muted{% endif %}">{% if m.cc_deb %}{{ m.cc_deb|brl }}{% else %}—{% endif %}</td>
-              <td class="text-end {% if m.ca_deb %}text-danger{% else %}text-muted{% endif %}">{% if m.ca_deb %}{{ m.ca_deb|brl }}{% else %}—{% endif %}</td>
+              <td class="text-end {% if m.cc_deb %}text-danger detalhe-membro{% else %}text-muted{% endif %}"
+                  {% if m.cc_deb %}style="cursor:pointer;text-decoration:underline dotted" data-membro-id="{{ m.pk|default:'' }}" data-membro-nome="{{ m.nome }}" data-fonte="cc" title="Ver lançamentos"{% endif %}>
+                {% if m.cc_deb %}{{ m.cc_deb|brl }}{% else %}—{% endif %}
+              </td>
+              <td class="text-end {% if m.ca_deb %}text-danger detalhe-membro{% else %}text-muted{% endif %}"
+                  {% if m.ca_deb %}style="cursor:pointer;text-decoration:underline dotted" data-membro-id="{{ m.pk|default:'' }}" data-membro-nome="{{ m.nome }}" data-fonte="cartao" title="Ver lançamentos"{% endif %}>
+                {% if m.ca_deb %}{{ m.ca_deb|brl }}{% else %}—{% endif %}
+              </td>
               <td class="text-end text-danger fw-semibold">{{ m.total_deb|brl }}</td>
               <td class="text-end text-muted">{% if m.pct_deb %}{{ m.pct_deb }}%{% else %}—{% endif %}</td>
             </tr>
@@ -355,54 +361,6 @@
     </div>
   </div>
 
-  <!-- ── Por Membro ── -->
-  <div class="col-12 col-lg-6">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body">
-        <div class="section-title">👤 Gastos por membro</div>
-        {% if por_membro %}
-        <table class="table table-sm align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Membro</th>
-              <th class="text-end" style="width:110px">CC</th>
-              <th class="text-end" style="width:110px">Cartão</th>
-              <th class="text-end" style="width:110px">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in por_membro %}
-            <tr>
-              <td class="fw-semibold small">{{ r.nome }}</td>
-              <td class="text-end small detalhe-membro {% if r.cc >= 0 %}text-success{% else %}text-danger{% endif %}"
-                  style="cursor:pointer; text-decoration:underline dotted"
-                  data-membro-id="{{ r.pk|default:'' }}"
-                  data-membro-nome="{{ r.nome }}"
-                  data-fonte="cc"
-                  title="Ver lançamentos">
-                {{ r.cc|brl }}
-              </td>
-              <td class="text-end small detalhe-membro {% if r.cartao >= 0 %}text-success{% else %}text-danger{% endif %}"
-                  style="cursor:pointer; text-decoration:underline dotted"
-                  data-membro-id="{{ r.pk|default:'' }}"
-                  data-membro-nome="{{ r.nome }}"
-                  data-fonte="cartao"
-                  title="Ver lançamentos">
-                {{ r.cartao|brl }}
-              </td>
-              <td class="text-end fw-semibold {% if r.total >= 0 %}text-success{% else %}text-danger{% endif %}">
-                {{ r.total|brl }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-          <p class="text-muted small mt-2">Sem dados no período.</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
 
 </div>
 
@@ -425,6 +383,39 @@
 
 {% block extra_scripts %}
 <script>
+  function _sortTable(th) {
+    var table = th.closest('table');
+    var tbody = table.querySelector('tbody');
+    var rows  = Array.from(tbody.querySelectorAll('tr'));
+    var col   = th.cellIndex;
+    var asc   = th.dataset.sortDir !== 'asc';
+    th.dataset.sortDir = asc ? 'asc' : 'desc';
+
+    // reset indicators on siblings, then set on clicked th
+    var cleanText = th.textContent.replace(/ [▲▼]$/, '');
+    th.closest('tr').querySelectorAll('th').forEach(function (t) {
+      t.textContent = t.textContent.replace(/ [▲▼]$/, '');
+    });
+    th.textContent = cleanText + (asc ? ' ▲' : ' ▼');
+
+    function _val(row) {
+      var txt = (row.cells[col] ? row.cells[col].textContent : '').trim();
+      // BRL numeric: "1.234,56" or "-1.234,56"
+      var norm = txt.replace(/\./g, '').replace(',', '.');
+      var num  = parseFloat(norm);
+      if (!isNaN(num) && norm !== '') return num;
+      return txt.toLowerCase();
+    }
+
+    rows.sort(function (a, b) {
+      var va = _val(a), vb = _val(b);
+      if (va < vb) return asc ? -1 : 1;
+      if (va > vb) return asc ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(function (r) { tbody.appendChild(r); });
+  }
+
 (function () {
   const ANO    = "{{ ano_sel }}";
   const MES    = "{{ mes_sel }}";
@@ -473,10 +464,10 @@
           var html = '<div class="table-responsive">';
           html += '<table class="table table-sm table-hover align-middle mb-0">';
           html += '<thead class="table-light"><tr>';
-          html += '<th style="width:95px">Data</th>';
-          html += '<th>Descrição</th>';
-          html += '<th style="width:160px">Categoria</th>';
-          html += '<th class="text-end" style="width:120px">Valor</th>';
+          html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
+          html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Categoria</th>';
+          html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
           html += '</tr></thead><tbody>';
           data.transacoes.forEach(function (t) {
             html += '<tr>';
@@ -522,11 +513,11 @@
           var html = '<div class="table-responsive">';
           html += '<table class="table table-sm table-hover align-middle mb-0">';
           html += '<thead class="table-light"><tr>';
-          html += '<th style="width:95px">Data</th>';
-          html += '<th>Descrição</th>';
-          html += '<th style="width:160px">Categoria</th>';
-          html += '<th class="text-center" style="width:60px">Membros</th>';
-          html += '<th class="text-end" style="width:120px">Valor</th>';
+          html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
+          html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Categoria</th>';
+          html += '<th class="text-center" onclick="_sortTable(this)" style="width:60px;cursor:pointer;user-select:none">Membros</th>';
+          html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
           html += '</tr></thead><tbody>';
           data.transacoes.forEach(function (t) {
             html += '<tr>';
@@ -575,11 +566,11 @@
           var html = '<div class="table-responsive">';
           html += '<table class="table table-sm table-hover align-middle mb-0">';
           html += '<thead class="table-light"><tr>';
-          html += '<th style="width:95px">Data</th>';
-          if (mostrarFonte) html += '<th style="width:70px">Fonte</th>';
-          html += '<th>Descrição</th>';
-          html += '<th style="width:160px">Membros</th>';
-          html += '<th class="text-end" style="width:120px">Valor</th>';
+          html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
+          if (mostrarFonte) html += '<th onclick="_sortTable(this)" style="width:70px;cursor:pointer;user-select:none">Fonte</th>';
+          html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Membros</th>';
+          html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
           html += '</tr></thead><tbody>';
           data.transacoes.forEach(function (t) {
             html += '<tr>';

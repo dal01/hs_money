@@ -215,8 +215,8 @@ def _kpi_membros(lista_cc, lista_cartao, membros):
     def _bucket():
         return {'cc_cred': ZERO, 'cc_deb': ZERO, 'ca_deb': ZERO}
 
-    membro_map = {m.pk: dict(nome=m.nome, **_bucket()) for m in membros}
-    sem = dict(nome='— Sem membro —', **_bucket())
+    membro_map = {m.pk: dict(pk=m.pk, nome=m.nome, **_bucket()) for m in membros}
+    sem = dict(pk=None, nome='— Sem membro —', **_bucket())
 
     for t in lista_cc:
         ms = list(t.membros.all())
