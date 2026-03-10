@@ -274,11 +274,14 @@ def importar_arquivo_ofx(
                     f"Removidos {len(ids_excluir)} registro(s) duplicado(s) de Extrato para o período {result.periodo}."
                 )
 
+            # Não gravamos o hash ainda — só ao final, após todas as transações
+            # serem processadas. Isso garante que uma importação interrompida a
+            # meio-caminho não deixe o extrato marcado como "concluído".
             extrato, extrato_criado = Extrato.objects.get_or_create(
                 conta=conta,
                 data_inicio=dt_inicio,
                 data_fim=dt_fim,
-                defaults={"arquivo_hash": arquivo_hash, "fonte_arquivo": str(caminho_ofx)},
+                defaults={"arquivo_hash": None, "fonte_arquivo": str(caminho_ofx)},
             )
             if not extrato_criado:
                 if extrato.arquivo_hash == arquivo_hash:
@@ -287,14 +290,18 @@ def importar_arquivo_ofx(
                         f"Extrato {result.periodo} já importado com hash igual — pulado."
                     )
                     continue
-                # Arquivo diferente para o mesmo período: atualiza o hash para que
-                # listar_extratos_disco marque o arquivo como "importado".
-                extrato.arquivo_hash  = arquivo_hash
+                # Hash diferente (ou None = importação anterior interrompida):
+                # reimporta; transações já existentes serão puladas pelo FITID.
                 extrato.fonte_arquivo = str(caminho_ofx)
-                extrato.save(update_fields=["arquivo_hash", "fonte_arquivo"])
+                extrato.save(update_fields=["fonte_arquivo"])
                 result.avisos.append(
                     f"Extrato {result.periodo} já existe mas hash diferente — reimportando transações novas."
                 )
+
+        # Rastreia FITIDs gerados neste arquivo para lidar com reutilização de
+        # FITID pelo banco dentro do mesmo extrato. Cada ocorrência extra recebe
+        # sufixo _2, _3, … garantindo unicidade.
+        fitids_neste_arquivo: dict[str, int] = {}
 
         # transações
         for tx in txs:
@@ -337,6 +344,13 @@ def importar_arquivo_ofx(
             else:
                 fitid = _fitid_with_suffix("NOFITID", data, valor)
 
+            # Garante unicidade dentro do arquivo: o banco pode reutilizar o
+            # mesmo FITID para transações distintas no mesmo extrato.
+            ocorrencia = fitids_neste_arquivo.get(fitid, 0) + 1
+            fitids_neste_arquivo[fitid] = ocorrencia
+            if ocorrencia > 1:
+                fitid = f"{fitid}_{ocorrencia}"
+
             if dry_run:
                 result.novos += 1
                 continue
@@ -358,6 +372,14 @@ def importar_arquivo_ofx(
                     is_duplicado = False,
                 )
             result.novos += 1
+
+        # Só grava o hash do arquivo após todas as transações serem importadas.
+        # Se o processo for interrompido antes deste ponto, o hash fica None /
+        # diferente, e a próxima importação retomará de onde parou.
+        if not dry_run and extrato is not None:
+            extrato.arquivo_hash  = arquivo_hash
+            extrato.fonte_arquivo = str(caminho_ofx)
+            extrato.save(update_fields=["arquivo_hash", "fonte_arquivo"])
 
     return result
 

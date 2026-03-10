@@ -139,9 +139,10 @@ def _por_categoria(lista_cc, lista_cartao, agrupar='sub'):
         cat_map[key]['cartao'] += t.valor
 
     rows = []
-    for data in cat_map.values():
+    for key, data in cat_map.items():
         total = data['cc'] + data['cartao']
         rows.append({
+            'pk':     key,
             'nome':   data['nome'],
             'cc':     data['cc'],
             'cartao': data['cartao'],
@@ -335,6 +336,171 @@ def membro_transacoes_json(request):
                 'categoria': t.categoria.nome if t.categoria else '—',
                 'valor_fmt': _fmt_brl(valor_parte),
                 'divisao': f'÷{num_membros}' if num_membros > 1 else '',
+            })
+
+    return JsonResponse({
+        'transacoes': rows,
+        'total_fmt': _fmt_brl(total),
+    })
+
+
+def categoria_transacoes_json(request):
+    """Retorna JSON com lançamentos de gastos de uma categoria para a modal."""
+    from django.http import JsonResponse
+    from django.db.models import Q
+    from hs_money.core.models import Categoria as _Cat
+
+    cat_pk    = request.GET.get('cat_pk', '0')
+    cat_nivel = request.GET.get('cat_nivel', 'sub')
+    fonte     = request.GET.get('fonte', 'total')
+    ano       = request.GET.get('ano', '')
+    mes       = request.GET.get('mes', '')
+    membro_id = request.GET.get('membro_id', '')
+
+    try:
+        cat_pk = int(cat_pk)
+    except (ValueError, TypeError):
+        cat_pk = 0
+
+    def _fmt_brl(v):
+        abs_v = abs(v)
+        s = f"{abs_v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        return f"R$ {'-' if v < 0 else ''}{s}"
+
+    def _filter_cat(qs):
+        if cat_pk == 0:
+            return qs.filter(categoria__isnull=True)
+        if cat_nivel == 'mac':
+            return qs.filter(Q(categoria_id=cat_pk) | Q(categoria__categoria_pai_id=cat_pk))
+        return qs.filter(categoria_id=cat_pk)
+
+    rows = []
+    total = ZERO
+
+    if fonte in ('cc', 'total'):
+        ids_fatura = list(
+            _Cat.objects.filter(nome__icontains='fatura do cart')
+            .values_list('pk', flat=True)
+        )
+        qs_cc = (TransacaoCC.objects
+                 .filter(oculta=False, valor__lt=0)
+                 .exclude(categoria_id__in=ids_fatura)
+                 .select_related('categoria')
+                 .prefetch_related('membros'))
+        if ano:
+            qs_cc = qs_cc.filter(data__year=ano)
+        if mes:
+            qs_cc = qs_cc.filter(data__month=mes)
+        if membro_id:
+            qs_cc = qs_cc.filter(extrato__conta__membro_id=membro_id)
+        qs_cc = _filter_cat(qs_cc)
+        for t in qs_cc.order_by('data'):
+            total += t.valor
+            membros_nomes = ', '.join(m.nome for m in t.membros.all()) or '—'
+            rows.append({
+                'data':      t.data.strftime('%d/%m/%Y'),
+                'descricao': t.descricao,
+                'membros':   membros_nomes,
+                'valor_fmt': _fmt_brl(t.valor),
+                'fonte':     'CC',
+            })
+
+    if fonte in ('cartao', 'total'):
+        qs_ca = (TransacaoCartao.objects
+                 .filter(oculta=False, valor__lt=0)
+                 .select_related('categoria')
+                 .prefetch_related('membros'))
+        if ano:
+            qs_ca = qs_ca.filter(fatura__competencia__year=ano)
+        if mes:
+            qs_ca = qs_ca.filter(fatura__competencia__month=mes)
+        if membro_id:
+            qs_ca = qs_ca.filter(fatura__cartao__membro_id=membro_id)
+        qs_ca = _filter_cat(qs_ca)
+        for t in qs_ca.order_by('data'):
+            total += t.valor
+            membros_nomes = ', '.join(m.nome for m in t.membros.all()) or '—'
+            rows.append({
+                'data':      t.data.strftime('%d/%m/%Y'),
+                'descricao': t.descricao,
+                'membros':   membros_nomes,
+                'valor_fmt': _fmt_brl(t.valor),
+                'fonte':     'Cartão',
+            })
+
+    rows.sort(key=lambda r: r['data'])
+    return JsonResponse({
+        'transacoes': rows,
+        'total_fmt': _fmt_brl(total),
+    })
+
+
+def mes_transacoes_json(request):
+    """Retorna JSON com lançamentos de um mês específico para a modal de evolução mensal."""
+    from django.http import JsonResponse
+    from hs_money.core.models import Categoria as _Cat
+
+    ano       = request.GET.get('ano', '')
+    mes       = request.GET.get('mes', '')
+    fonte     = request.GET.get('fonte', 'cc')   # cc_creditos|cc_debitos|ca_creditos|ca_gastos
+    membro_id = request.GET.get('membro_id', '')
+
+    def _fmt_brl(v):
+        abs_v = abs(v)
+        s = f"{abs_v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        return f"R$ {'-' if v < 0 else ''}{s}"
+
+    rows = []
+    total = ZERO
+
+    if fonte in ('cc_creditos', 'cc_debitos'):
+        ids_fatura = list(
+            _Cat.objects.filter(nome__icontains='fatura do cart')
+            .values_list('pk', flat=True)
+        )
+        qs = (TransacaoCC.objects
+              .filter(oculta=False)
+              .exclude(categoria_id__in=ids_fatura)
+              .select_related('categoria'))
+        if ano:
+            qs = qs.filter(data__year=ano)
+        if mes:
+            qs = qs.filter(data__month=mes)
+        if membro_id:
+            qs = qs.filter(extrato__conta__membro_id=membro_id)
+        if fonte == 'cc_creditos':
+            qs = qs.filter(valor__gt=0)
+        else:
+            qs = qs.filter(valor__lt=0)
+        for t in qs.order_by('data'):
+            total += t.valor
+            rows.append({
+                'data':      t.data.strftime('%d/%m/%Y'),
+                'descricao': t.descricao,
+                'categoria': t.categoria.nome if t.categoria else '—',
+                'valor_fmt': _fmt_brl(t.valor),
+            })
+    else:  # ca_creditos | ca_gastos
+        qs = (TransacaoCartao.objects
+              .filter(oculta=False)
+              .select_related('categoria'))
+        if ano:
+            qs = qs.filter(fatura__competencia__year=ano)
+        if mes:
+            qs = qs.filter(fatura__competencia__month=mes)
+        if membro_id:
+            qs = qs.filter(fatura__cartao__membro_id=membro_id)
+        if fonte == 'ca_creditos':
+            qs = qs.filter(valor__gt=0)
+        else:
+            qs = qs.filter(valor__lt=0)
+        for t in qs.order_by('data'):
+            total += t.valor
+            rows.append({
+                'data':      t.data.strftime('%d/%m/%Y'),
+                'descricao': t.descricao,
+                'categoria': t.categoria.nome if t.categoria else '—',
+                'valor_fmt': _fmt_brl(t.valor),
             })
 
     return JsonResponse({

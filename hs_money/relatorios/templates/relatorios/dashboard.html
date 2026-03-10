@@ -169,13 +169,25 @@
               {% for r in por_mes %}
               <tr>
                 <td class="fw-semibold">{{ r.mes_nome }}</td>
-                <td class="text-end text-success small">{{ r.cc_creditos|brl }}</td>
-                <td class="text-end text-danger small">{{ r.cc_debitos|brl }}</td>
+                <td class="text-end text-success small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="cc_creditos"
+                    title="Ver lançamentos">{{ r.cc_creditos|brl }}</td>
+                <td class="text-end text-danger small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="cc_debitos"
+                    title="Ver lançamentos">{{ r.cc_debitos|brl }}</td>
                 <td class="text-end small {% if r.cc_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
                   {{ r.cc_saldo|brl }}
                 </td>
-                <td class="text-end text-danger small">{{ r.ca_gastos|brl }}</td>
-                <td class="text-end text-success small">{{ r.ca_creditos|brl }}</td>
+                <td class="text-end text-danger small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="ca_gastos"
+                    title="Ver lançamentos">{{ r.ca_gastos|brl }}</td>
+                <td class="text-end text-success small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="ca_creditos"
+                    title="Ver lançamentos">{{ r.ca_creditos|brl }}</td>
                 <td class="text-end small {% if r.ca_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
                   {{ r.ca_saldo|brl }}
                 </td>
@@ -232,9 +244,21 @@
                     </div>
                   {% endif %}
                 </td>
-                <td class="text-end small text-danger">{{ r.cc|brl }}</td>
-                <td class="text-end small text-danger">{{ r.cartao|brl }}</td>
-                <td class="text-end small fw-semibold text-danger">{{ r.total|brl }}</td>
+                <td class="text-end small text-danger detalhe-cat"
+                    style="cursor:pointer; text-decoration:underline dotted"
+                    data-cat-pk="{{ r.pk }}" data-cat-nome="{{ r.nome }}"
+                    data-cat-nivel="{{ cat_nivel }}" data-fonte="cc"
+                    title="Ver lançamentos CC">{{ r.cc|brl }}</td>
+                <td class="text-end small text-danger detalhe-cat"
+                    style="cursor:pointer; text-decoration:underline dotted"
+                    data-cat-pk="{{ r.pk }}" data-cat-nome="{{ r.nome }}"
+                    data-cat-nivel="{{ cat_nivel }}" data-fonte="cartao"
+                    title="Ver lançamentos Cartão">{{ r.cartao|brl }}</td>
+                <td class="text-end small fw-semibold text-danger detalhe-cat"
+                    style="cursor:pointer; text-decoration:underline dotted"
+                    data-cat-pk="{{ r.pk }}" data-cat-nome="{{ r.nome }}"
+                    data-cat-nivel="{{ cat_nivel }}" data-fonte="total"
+                    title="Ver todos os lançamentos">{{ r.total|brl }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -298,15 +322,15 @@
 
 </div>
 
-<!-- Modal Lançamentos por Membro -->
-<div class="modal fade" id="modalMembro" tabindex="-1" aria-labelledby="modalMembroLabel" aria-hidden="true">
+<!-- Modal Lançamentos -->
+<div class="modal fade" id="modalDetalhe" tabindex="-1" aria-labelledby="modalDetalheLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header py-2">
-        <h6 class="modal-title fw-semibold" id="modalMembroLabel"></h6>
+        <h6 class="modal-title fw-semibold" id="modalDetalheLabel"></h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-3" id="modalMembroBody">
+      <div class="modal-body p-3" id="modalDetalheBody">
         <p class="text-center text-muted py-3">Carregando...</p>
       </div>
     </div>
@@ -318,31 +342,97 @@
 {% block extra_scripts %}
 <script>
 (function () {
-  const ANO = "{{ ano_sel }}";
-  const MES = "{{ mes_sel }}";
-  const URL_BASE = "{% url 'relatorios:membro_transacoes_json' %}";
+  const ANO    = "{{ ano_sel }}";
+  const MES    = "{{ mes_sel }}";
+  const MEMBRO = "{{ membro_sel }}";
+  const URL_MEMBRO = "{% url 'relatorios:membro_transacoes_json' %}";
+  const URL_CAT    = "{% url 'relatorios:categoria_transacoes_json' %}";
+  const URL_MES    = "{% url 'relatorios:mes_transacoes_json' %}";
 
+  function _setModal(titulo, html) {
+    document.getElementById('modalDetalheLabel').textContent = titulo;
+    document.getElementById('modalDetalheBody').innerHTML = html;
+  }
+
+  function _abrirModal() {
+    new bootstrap.Modal(document.getElementById('modalDetalhe')).show();
+  }
+
+  // ── Evolução Mensal ──
+  var MESES_NOME = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'};
+  var FONTE_LABEL = {
+    'cc_creditos': 'Entradas CC',
+    'cc_debitos':  'Saídas CC',
+    'ca_gastos':   'Gastos Cartão',
+    'ca_creditos': 'Créditos Cartão',
+  };
+
+  document.querySelectorAll('.detalhe-mes').forEach(function (cel) {
+    cel.addEventListener('click', function () {
+      var mes    = this.dataset.mes;
+      var fonte  = this.dataset.fonte;
+      var titulo = (MESES_NOME[parseInt(mes)] || mes) + '/' + ANO + ' — ' + (FONTE_LABEL[fonte] || fonte);
+
+      _setModal(titulo, '<p class="text-center text-muted py-3">Carregando...</p>');
+      _abrirModal();
+
+      var params = new URLSearchParams({ ano: ANO, mes: mes, fonte: fonte, membro_id: MEMBRO });
+      fetch(URL_MES + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.transacoes.length) {
+            _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
+            return;
+          }
+          var isCred = (fonte === 'cc_creditos' || fonte === 'ca_creditos');
+          var valClass = isCred ? 'text-success' : 'text-danger';
+          var html = '<div class="table-responsive">';
+          html += '<table class="table table-sm table-hover align-middle mb-0">';
+          html += '<thead class="table-light"><tr>';
+          html += '<th style="width:95px">Data</th>';
+          html += '<th>Descrição</th>';
+          html += '<th style="width:160px">Categoria</th>';
+          html += '<th class="text-end" style="width:120px">Valor</th>';
+          html += '</tr></thead><tbody>';
+          data.transacoes.forEach(function (t) {
+            html += '<tr>';
+            html += '<td class="small text-nowrap">' + t.data + '</td>';
+            html += '<td class="small">' + t.descricao + '</td>';
+            html += '<td class="small text-muted">' + t.categoria + '</td>';
+            html += '<td class="text-end small ' + valClass + '">' + t.valor_fmt + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody>';
+          html += '<tfoot><tr class="table-light fw-semibold">';
+          html += '<td colspan="3">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html += '<td class="text-end ' + valClass + '">' + data.total_fmt + '</td>';
+          html += '</tr></tfoot></table></div>';
+          _setModal(titulo, html);
+        })
+        .catch(function () {
+          _setModal(titulo, '<p class="text-danger small">Erro ao carregar transações.</p>');
+        });
+    });
+  });
+
+  // ── Gastos por Membro ──
   document.querySelectorAll('.detalhe-membro').forEach(function (cel) {
     cel.addEventListener('click', function () {
       const membroId   = this.dataset.membroId;
       const fonte      = this.dataset.fonte;
       const membroNome = this.dataset.membroNome;
       const fonteLabel = fonte === 'cc' ? 'Conta Corrente' : 'Cartão de Crédito';
+      const titulo     = membroNome + ' — ' + fonteLabel;
 
-      document.getElementById('modalMembroLabel').textContent = membroNome + ' — ' + fonteLabel;
-      document.getElementById('modalMembroBody').innerHTML =
-        '<p class="text-center text-muted py-3">Carregando...</p>';
-
-      const modal = new bootstrap.Modal(document.getElementById('modalMembro'));
-      modal.show();
+      _setModal(titulo, '<p class="text-center text-muted py-3">Carregando...</p>');
+      _abrirModal();
 
       const params = new URLSearchParams({ membro_id: membroId, fonte: fonte, ano: ANO, mes: MES });
-      fetch(URL_BASE + '?' + params.toString())
+      fetch(URL_MEMBRO + '?' + params.toString())
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (!data.transacoes.length) {
-            document.getElementById('modalMembroBody').innerHTML =
-              '<p class="text-muted small">Nenhuma transação encontrada.</p>';
+            _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
             return;
           }
           var html = '<div class="table-responsive">';
@@ -368,11 +458,64 @@
           html += '<td colspan="4">Total (' + data.transacoes.length + ' lançamentos)</td>';
           html += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
           html += '</tr></tfoot></table></div>';
-          document.getElementById('modalMembroBody').innerHTML = html;
+          _setModal(titulo, html);
         })
         .catch(function () {
-          document.getElementById('modalMembroBody').innerHTML =
-            '<p class="text-danger small">Erro ao carregar transações.</p>';
+          _setModal(titulo, '<p class="text-danger small">Erro ao carregar transações.</p>');
+        });
+    });
+  });
+
+  // ── Gastos por Categoria ──
+  document.querySelectorAll('.detalhe-cat').forEach(function (cel) {
+    cel.addEventListener('click', function () {
+      const catPk    = this.dataset.catPk;
+      const catNome  = this.dataset.catNome;
+      const catNivel = this.dataset.catNivel;
+      const fonte    = this.dataset.fonte;
+      const fonteLabel = fonte === 'cc' ? 'Conta Corrente' : fonte === 'cartao' ? 'Cartão' : 'Total';
+      const titulo   = catNome + ' — ' + fonteLabel;
+
+      _setModal(titulo, '<p class="text-center text-muted py-3">Carregando...</p>');
+      _abrirModal();
+
+      const params = new URLSearchParams({ cat_pk: catPk, cat_nivel: catNivel, fonte: fonte, ano: ANO, mes: MES, membro_id: MEMBRO });
+      fetch(URL_CAT + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.transacoes.length) {
+            _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
+            return;
+          }
+          var mostrarFonte = (fonte === 'total');
+          var html = '<div class="table-responsive">';
+          html += '<table class="table table-sm table-hover align-middle mb-0">';
+          html += '<thead class="table-light"><tr>';
+          html += '<th style="width:95px">Data</th>';
+          if (mostrarFonte) html += '<th style="width:70px">Fonte</th>';
+          html += '<th>Descrição</th>';
+          html += '<th style="width:160px">Membros</th>';
+          html += '<th class="text-end" style="width:120px">Valor</th>';
+          html += '</tr></thead><tbody>';
+          data.transacoes.forEach(function (t) {
+            html += '<tr>';
+            html += '<td class="small text-nowrap">' + t.data + '</td>';
+            if (mostrarFonte) html += '<td class="small text-muted">' + t.fonte + '</td>';
+            html += '<td class="small">' + t.descricao + '</td>';
+            html += '<td class="small text-muted">' + t.membros + '</td>';
+            html += '<td class="text-end small text-danger">' + t.valor_fmt + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody>';
+          var colspan = mostrarFonte ? 4 : 3;
+          html += '<tfoot><tr class="table-light fw-semibold">';
+          html += '<td colspan="' + colspan + '">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
+          html += '</tr></tfoot></table></div>';
+          _setModal(titulo, html);
+        })
+        .catch(function () {
+          _setModal(titulo, '<p class="text-danger small">Erro ao carregar transações.</p>');
         });
     });
   });
