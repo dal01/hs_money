@@ -21,6 +21,8 @@ from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
+from hs_money.core.utils import limpar_prefixo_descricao
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -180,7 +182,7 @@ def parse_extrato_pdf(caminho_pdf) -> ResultadoParsePDF:
             saldo = -saldo
 
         doc = m.group("doc").strip()
-        descricao = hist
+        descricao = limpar_prefixo_descricao(hist)
 
         # hash de deduplicação
         chave = f"{data:%Y%m%d}|{doc}|{descricao}|{valor}"

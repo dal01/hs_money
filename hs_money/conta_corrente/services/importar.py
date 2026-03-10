@@ -21,6 +21,7 @@ from ofxparse import OfxParser
 from unidecode import unidecode
 
 from hs_money.core.models import InstituicaoFinanceira, Membro
+from hs_money.core.utils import limpar_prefixo_descricao
 from hs_money.conta_corrente.models import ContaCorrente, Extrato, Transacao
 
 
@@ -97,6 +98,7 @@ def _extract_tipo_descricao(tx) -> tuple[str, str]:
     tipo = (getattr(tx, "payee", None) or "").strip()   # <NAME> → tx.payee
     memo = (getattr(tx, "memo",  None) or "").strip()   # <MEMO> → tx.memo
     descricao = memo or tipo
+    descricao = limpar_prefixo_descricao(descricao)
     return tipo, descricao
 
 
