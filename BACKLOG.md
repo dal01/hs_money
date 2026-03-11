@@ -24,6 +24,7 @@ Transferencias entre Dalton e Andrea devem ser ocultas, elas não são receitas 
 Transacoes estornadas, devem ser ignoradas
 
 
+Preciso de uma maneira de colocar os passivos (emprestimo Kimie)
 
 venv/Scripts/activate
 python manage.py runserver
