@@ -10,10 +10,16 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
+import environ
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carrega variáveis de ambiente
+env = environ.Env()
+environ.Env.read_env(str(BASE_DIR / '.env'))
 
 # Pasta raiz dos dados brutos (OFX, PDFs, etc.)
 DADOS_DIR = BASE_DIR / "data"
@@ -83,7 +89,7 @@ WSGI_APPLICATION = 'hs_money.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / env('DB_NAME', default='db.sqlite3'),
     }
 }
 
@@ -134,3 +140,7 @@ from django.contrib.messages import constants as message_constants
 MESSAGE_TAGS = {
     message_constants.ERROR: 'danger',
 }
+
+# Carrega variáveis de ambiente
+env = environ.Env()
+environ.Env.read_env(str(BASE_DIR / '.env'))
