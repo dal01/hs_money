@@ -1,0 +1,52 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ titulo }} — HS Money{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'investimentos:index' %}" class="text-decoration-none text-muted">← Investimentos</a>
+  <h1 class="h3 mt-1">{{ titulo }}</h1>
+</div>
+
+<div class="card" style="max-width: 560px;">
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Nome</label>
+        {{ form.nome }}
+        {% if form.nome.errors %}<div class="text-danger small">{{ form.nome.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Tipo</label>
+        {{ form.tipo }}
+        {% if form.tipo.errors %}<div class="text-danger small">{{ form.tipo.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Instituição Financeira</label>
+        {{ form.instituicao }}
+        {% if form.instituicao.errors %}<div class="text-danger small">{{ form.instituicao.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Titular</label>
+        {{ form.membro }}
+        {% if form.membro.errors %}<div class="text-danger small">{{ form.membro.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-4 form-check">
+        {{ form.ativo }}
+        <label class="form-check-label">Ativo</label>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'investimentos:index' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

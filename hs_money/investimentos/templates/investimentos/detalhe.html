@@ -1,0 +1,199 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}{{ investimento.nome }} — Investimentos{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  .saldo-table { font-size: .78rem; }
+  .saldo-table th, .saldo-table td { text-align: right; }
+  .saldo-table th:first-child, .saldo-table td:first-child { text-align: left; }
+  .saldo-table td.empty { color: #ccc; }
+  .saldo-clicavel { cursor: pointer; }
+  .saldo-clicavel:hover { color: #0d6efd; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <a href="{% url 'investimentos:index' %}" class="text-decoration-none text-muted">← Investimentos</a>
+    <h1 class="h3 mt-1">{{ investimento.nome }}</h1>
+    <span class="badge bg-secondary me-1">{{ investimento.get_tipo_display }}</span>
+    <span class="text-muted">{{ investimento.instituicao }}</span>
+    {% if investimento.membro %} · <span class="text-muted">{{ investimento.membro }}</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2 flex-wrap justify-content-end">
+    <a href="{% url 'investimentos:investimento_editar' investimento.pk %}" class="btn btn-outline-secondary btn-sm">✏️ Editar</a>
+    <a href="{% url 'investimentos:saldo_registrar' investimento.pk %}" class="btn btn-primary btn-sm">📌 Registrar Saldo</a>
+  </div>
+</div>
+
+{% if saldos %}
+
+  <!-- Gráfico -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <canvas id="graficoSaldo" height="90"></canvas>
+    </div>
+  </div>
+
+  <!-- Tabela mensal -->
+  <div class="card">
+    <div class="card-header fw-semibold">Saldos por mês</div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered saldo-table mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>Ano</th>
+            <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th>
+            <th>Mai</th><th>Jun</th><th>Jul</th><th>Ago</th>
+            <th>Set</th><th>Out</th><th>Nov</th><th>Dez</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ano in anos %}
+          <tr>
+            <td class="fw-semibold">{{ ano }}</td>
+            {% for mes in meses %}
+              {% with ano_data=tabela|dict_get:ano %}
+              {% with val=ano_data|dict_get:mes %}
+              {% if val is not None %}
+                <td>
+                  <span class="saldo-clicavel"
+                    data-pk="{{ val.pk }}"
+                    data-saldo="{{ val.saldo }}"
+                    data-label="{{ mes }}/{{ ano }}"
+                    data-date="{{ val.data }}"
+                    data-edit-url="{% url 'investimentos:saldo_editar' investimento.pk val.pk %}"
+                    data-delete-url="{% url 'investimentos:saldo_excluir' investimento.pk val.pk %}">{{ val.saldo|brl }}</span>
+                </td>
+              {% else %}
+                <td class="empty">—</td>
+              {% endif %}
+              {% endwith %}
+              {% endwith %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% else %}
+  <div class="alert alert-info mt-3">
+    Nenhum saldo registrado ainda.
+    <a href="{% url 'investimentos:saldo_registrar' investimento.pk %}">Registrar primeiro saldo</a>.
+  </div>
+{% endif %}
+
+<!-- Modal editar/excluir saldo -->
+<div class="modal fade" id="modalSaldo" tabindex="-1" aria-labelledby="modalSaldoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h5 class="modal-title fs-6" id="modalSaldoLabel">Saldo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formEditarSaldo" method="post">
+        {% csrf_token %}
+        <div class="modal-body py-2">
+          <div class="mb-2">
+            <label class="form-label fw-semibold mb-1">Data</label>
+            <input type="date" name="data" id="modalData" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold mb-1">Valor</label>
+            <input type="number" step="0.01" name="saldo" id="modalSaldoValor" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer py-2 justify-content-between">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btnExcluirSaldo"
+                  onclick="excluirSaldo()">🗑️ Excluir</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Form oculto para excluir (fora do modal para evitar form aninhado) -->
+<form id="formExcluirSaldo" method="post" style="display:none">
+  {% csrf_token %}
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+{% if saldos %}
+<script>
+// Modal saldo
+document.querySelectorAll('.saldo-clicavel').forEach(el => {
+  el.addEventListener('click', () => {
+    document.getElementById('modalSaldoLabel').textContent = el.dataset.label;
+    document.getElementById('modalSaldoValor').value = el.dataset.saldo;
+    document.getElementById('formEditarSaldo').action = el.dataset.editUrl;
+    document.getElementById('formExcluirSaldo').action = el.dataset.deleteUrl;
+    document.getElementById('modalData').value = el.dataset.date;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSaldo')).show();
+  });
+});
+
+function excluirSaldo() {
+  if (confirm('Excluir este saldo?')) {
+    document.getElementById('formExcluirSaldo').submit();
+  }
+}
+
+// Chart
+const ctx = document.getElementById('graficoSaldo').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: {{ chart_labels|safe }},
+    datasets: [{
+      label: '{{ investimento.nome }}',
+      data: {{ chart_data|safe }},
+      borderColor: 'rgb(59, 130, 246)',
+      backgroundColor: 'rgba(59, 130, 246, 0.08)',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      fill: true,
+      tension: 0.3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => {
+            const v = ctx.parsed.y;
+            return ' ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        grid: {
+          color: (context) => context.tick.value === 0 ? 'rgba(239, 68, 68, 0.9)' : 'rgba(0,0,0,0.08)',
+          lineWidth: (context) => context.tick.value === 0 ? 3 : 1,
+        },
+        ticks: {
+          callback: (v) => v.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 0})
+        }
+      }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends "core/base.html" %}
+
+{% block title %}Faturas no Disco — HS Money{% endblock %}
+
+{% block content %}
+{% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endif %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">💳 Faturas Cartão de Crédito</h4>
+    <p class="text-muted small mb-0 mt-1">
+      {{ total }} arquivo(s) encontrado(s) —
+      <strong class="text-{% if pendentes > 0 %}warning{% else %}success{% endif %}">
+        {{ pendentes }} pendente(s)
+      </strong> de importação
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'cartao_credito:upload_fatura' %}" class="btn btn-primary btn-sm">
+      ⬆️ Importar fatura
+    </a>
+    <a href="{% url 'cartao_credito:cartao_lista' %}" class="btn btn-outline-secondary btn-sm">
+      ← Cartões
+    </a>
+  </div>
+</div>
+
+{% if not raiz_existe %}
+  <div class="alert alert-info">
+    Pasta <code>data/cartao_credito/</code> ainda não existe.
+  </div>
+{% elif not total %}
+  <div class="alert alert-info">
+    Nenhum arquivo <code>.pdf</code> encontrado em <code>data/cartao_credito/</code>.
+  </div>
+{% else %}
+
+<!-- Controles -->
+<div class="mb-3 d-flex align-items-center gap-3 flex-wrap">
+  <div class="form-check form-switch mb-0">
+    <input class="form-check-input" type="checkbox" id="show-imported" checked>
+    <label class="form-check-label text-muted small" for="show-imported">
+      Mostrar já importados
+    </label>
+  </div>
+  <button type="button" class="btn btn-outline-secondary btn-sm" id="select-pending">
+    Selecionar pendentes
+  </button>
+  <button type="button" class="btn btn-outline-secondary btn-sm" id="deselect-all">
+    Desmarcar todos
+  </button>
+  <span class="text-muted small ms-auto">
+    <span id="n-selecionados">0</span> selecionado(s)
+  </span>
+</div>
+
+<form method="post" action="{% url 'cartao_credito:processar_faturas' %}" id="form-processar">
+  {% csrf_token %}
+
+  {% for grupo in grupos %}
+  <div class="mb-4">
+    <h6 class="fw-bold text-secondary mb-2">👤 {{ grupo.membro }}</h6>
+
+    <div class="accordion ms-2" id="acc-{{ forloop.counter }}">
+      {% for ano_obj in grupo.anos %}
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button {% if not ano_obj.tem_pendente and ano_obj.ano != ano_atual %}collapsed{% endif %} py-2"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#col-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                  aria-expanded="{% if ano_obj.tem_pendente or ano_obj.ano == ano_atual %}true{% else %}false{% endif %}">
+            {{ ano_obj.ano }}
+            {% if ano_obj.tem_pendente %}
+              <span class="badge bg-warning text-dark ms-2">pendente(s)</span>
+            {% else %}
+              <span class="badge bg-success ms-2">tudo importado</span>
+            {% endif %}
+          </button>
+        </h2>
+        <div id="col-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+             class="accordion-collapse collapse {% if ano_obj.tem_pendente or ano_obj.ano == ano_atual %}show{% endif %}"
+             data-bs-parent="">
+          <div class="accordion-body py-2">
+            {% for item in ano_obj.itens %}
+            <div class="form-check arquivo-row {% if item.importado %}importado{% else %}pendente{% endif %}" style="margin-bottom:.3rem">
+              <input class="form-check-input arquivo-check"
+                     type="checkbox"
+                     name="caminhos"
+                     id="arq-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"
+                     value="{{ item.caminho }}"
+                     {% if not item.importado %}checked{% endif %}>
+              <label class="form-check-label small {% if item.importado %}text-muted{% endif %}"
+                     for="arq-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                {{ item.nome }}
+                <span class="text-muted">({{ item.tamanho_kb }} KB)</span>
+                {% if item.importado %}
+                  <span class="badge bg-success ms-1">importado</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark ms-1">pendente</span>
+                {% endif %}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Rodapé -->
+  <div class="d-flex align-items-center gap-3 mt-4 flex-wrap">
+    <button type="submit" name="action" value="processar" class="btn btn-success" id="btn-processar" disabled>
+      📥 Processar <span id="count-badge">0</span> fatura(s)
+    </button>
+    <label class="form-check mb-0 d-flex align-items-center gap-1">
+      <input type="checkbox" name="dry_run" value="1" class="form-check-input">
+      <span class="small text-muted">Simulação (sem gravar)</span>
+    </label>
+    <div class="vr"></div>
+    <button type="button" class="btn btn-outline-info btn-sm" id="btn-normalizar" disabled
+            data-bs-toggle="modal" data-bs-target="#modal-normalizar">
+      🔤 Normalizar nomes (<span id="count-badge-norm">0</span>)
+    </button>
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btn-excluir" disabled
+            data-bs-toggle="modal" data-bs-target="#modal-excluir">
+      🗑️ Excluir <span id="count-badge-del">0</span> selecionado(s)
+    </button>
+  </div>
+</form>
+
+<!-- Modal: confirmar normalização -->
+<div class="modal fade" id="modal-normalizar" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">🔤 Normalizar nomes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Você vai tentar renomear <strong id="modal-count-norm">0</strong> arquivo(s) para o formato padrão <code>{finalCartão}-{AAAA}-{MM}.pdf</code>.</p>
+        <p class="text-muted small mb-0">Arquivos que já estejam no formato correto serão ignorados. Esta operação <strong>não</strong> apaga dados do banco.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post" action="{% url 'cartao_credito:normalizar_faturas' %}" id="form-normalizar">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-info">🔤 Renomear</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: confirmar exclusão -->
+<div class="modal fade" id="modal-excluir" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header border-danger">
+        <h5 class="modal-title text-danger">🗑️ Confirmar exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Você vai excluir <strong id="modal-count">0</strong> arquivo(s) do disco.</p>
+        <p class="text-danger small mb-0">Esta ação também remove o registro de importação no banco, permitindo reimportá-los depois. Os dados de transações <strong>não são apagados</strong>.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post" action="{% url 'cartao_credito:excluir_faturas' %}" id="form-excluir">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">🗑️ Sim, excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay de loading -->
+<div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999;
+     align-items:center; justify-content:center; flex-direction:column; gap:1rem;">
+  <div class="spinner-border text-light" style="width:3rem;height:3rem;" role="status"></div>
+  <div class="text-white fw-semibold fs-5">Processando faturas…</div>
+  <div class="text-white-50 small">Aguarde enquanto os arquivos são importados.</div>
+  <button class="btn btn-outline-light btn-sm mt-2" id="btn-cancelar-overlay" style="display:none">
+    ✕ Fechar overlay
+  </button>
+</div>
+{% endif %}
+
+<script>
+(function() {
+  const checks       = Array.from(document.querySelectorAll('.arquivo-check'));
+  const countEl      = document.getElementById('count-badge');
+  const countDelEl   = document.getElementById('count-badge-del');
+  const countNormEl  = document.getElementById('count-badge-norm');
+  const modalCount   = document.getElementById('modal-count');
+  const modalCountN  = document.getElementById('modal-count-norm');
+  const nsEl         = document.getElementById('n-selecionados');
+  const btnProc      = document.getElementById('btn-processar');
+  const btnExcluir   = document.getElementById('btn-excluir');
+  const btnNorm      = document.getElementById('btn-normalizar');
+  const rows         = Array.from(document.querySelectorAll('.arquivo-row'));
+  const form         = document.getElementById('form-processar');
+  const formExcl     = document.getElementById('form-excluir');
+  const formNorm     = document.getElementById('form-normalizar');
+  const overlay      = document.getElementById('loading-overlay');
+
+  function atualizar() {
+    const n = checks.filter(c => c.checked).length;
+    if (countEl)     countEl.textContent     = n;
+    if (countDelEl)  countDelEl.textContent  = n;
+    if (countNormEl) countNormEl.textContent = n;
+    if (modalCount)  modalCount.textContent  = n;
+    if (modalCountN) modalCountN.textContent = n;
+    if (nsEl)        nsEl.textContent        = n;
+    if (btnProc)     btnProc.disabled        = n === 0;
+    if (btnExcluir)  btnExcluir.disabled     = n === 0;
+    if (btnNorm)     btnNorm.disabled        = n === 0;
+  }
+
+  checks.forEach(c => c.addEventListener('change', atualizar));
+
+  // Injeta caminhos selecionados no form de exclusão antes de abrir o modal
+  document.getElementById('btn-excluir')?.addEventListener('click', () => {
+    if (!formExcl) return;
+    formExcl.querySelectorAll('input[name="caminhos"]').forEach(el => el.remove());
+    checks.filter(c => c.checked).forEach(c => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = 'caminhos'; inp.value = c.value;
+      formExcl.appendChild(inp);
+    });
+  });
+
+  // Injeta caminhos selecionados no form de normalização antes de abrir o modal
+  document.getElementById('btn-normalizar')?.addEventListener('click', () => {
+    if (!formNorm) return;
+    formNorm.querySelectorAll('input[name="caminhos"]').forEach(el => el.remove());
+    checks.filter(c => c.checked).forEach(c => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = 'caminhos'; inp.value = c.value;
+      formNorm.appendChild(inp);
+    });
+  });
+
+  function fecharOverlay() {
+    if (overlay) overlay.style.display = 'none';
+    if (btnProc) { btnProc.disabled = false; btnProc.textContent = '📥 Processar ' + (countEl ? countEl.textContent : '?') + ' fatura(s)'; }
+  }
+
+  if (form) {
+    form.addEventListener('submit', () => {
+      if (overlay) { overlay.style.display = 'flex'; }
+      if (btnProc) { btnProc.disabled = true; btnProc.textContent = 'Processando…'; }
+      setTimeout(() => {
+        const btnCancel = document.getElementById('btn-cancelar-overlay');
+        if (btnCancel && overlay && overlay.style.display === 'flex') {
+          btnCancel.style.display = '';
+        }
+      }, 15000);
+    });
+  }
+
+  document.getElementById('btn-cancelar-overlay')?.addEventListener('click', fecharOverlay);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharOverlay(); });
+
+  document.getElementById('show-imported')?.addEventListener('change', function() {
+    rows.forEach(r => {
+      if (r.classList.contains('importado')) r.style.display = this.checked ? '' : 'none';
+    });
+  });
+
+  document.getElementById('select-pending')?.addEventListener('click', () => {
+    checks.forEach(c => {
+      if (c.closest('.arquivo-row')?.classList.contains('pendente')) c.checked = true;
+    });
+    atualizar();
+  });
+
+  document.getElementById('deselect-all')?.addEventListener('click', () => {
+    checks.forEach(c => c.checked = false);
+    atualizar();
+  });
+
+  atualizar();
+})();
+</script>
+{% endblock %}

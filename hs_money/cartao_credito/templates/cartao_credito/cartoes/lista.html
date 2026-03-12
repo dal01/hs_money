@@ -1,0 +1,72 @@
+{% extends "core/base.html" %}
+
+{% block title %}Cartões de Crédito — HS Money{% endblock %}
+
+{% block content %}
+{% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">💳 Cartões de Crédito</h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'cartao_credito:listar_faturas' %}" class="btn btn-outline-success btn-sm">
+      📂 Faturas no disco
+    </a>
+    <a href="{% url 'cartao_credito:upload_fatura' %}" class="btn btn-outline-primary btn-sm">
+      ⬆️ Importar fatura
+    </a>
+    <a href="{% url 'cartao_credito:cartao_criar' %}" class="btn btn-primary btn-sm">
+      + Novo Cartão
+    </a>
+  </div>
+</div>
+
+{% if not grupos %}
+  <div class="alert alert-info">Nenhum cartão cadastrado ainda.</div>
+{% endif %}
+
+{% for grupo in grupos %}
+<div class="mb-4">
+  <h5 class="text-muted mb-2">
+    👤 {{ grupo.membro }}
+  </h5>
+
+  <div class="row g-3">
+    {% for cartao in grupo.cartoes %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100 {% if not cartao.ativo %}border-secondary opacity-50{% endif %}">
+        <div class="card-body">
+          <h6 class="card-title mb-1">
+            {{ cartao.instituicao.nome }}
+            {% if not cartao.ativo %}
+              <span class="badge bg-secondary ms-1">Inativo</span>
+            {% endif %}
+          </h6>
+          <p class="card-text text-muted small mb-1">
+            {% if cartao.bandeira %}{{ cartao.bandeira }} /{% endif %}
+            ****{{ cartao.cartao_final }}
+          </p>
+        </div>
+        <div class="card-footer d-flex gap-2">
+          <a href="{% url 'cartao_credito:upload_por_cartao' cartao.pk %}"
+             class="btn btn-sm btn-success flex-fill">
+            ⬆ Importar fatura
+          </a>
+          <a href="{% url 'cartao_credito:cartao_editar' cartao.pk %}"
+             class="btn btn-sm btn-outline-secondary">
+            ✏
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

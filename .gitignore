@@ -3,15 +3,27 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+
+*.sqlite3
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
 *.pyc
 *.pdb
 *.egg
-*.eggs
-*.whl
-*.env
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
 venv/
+.venv/
 ENV/
 env/
+.env/
 
 # Django
 *.log
@@ -19,6 +31,9 @@ env/
 *.pyc
 *.sqlite3
 *.db
+/staticfiles/
+/media/
+local_settings.py
 
 # VS Code
 .vscode/
@@ -43,12 +58,12 @@ out.txt
 
 # Ignore data folders
 /data/
-
-# Ignore old folders
 /data/old/
 
 # Ignore environment files
 .env
+.env.*
+!.env.example
 
 # Ignore merge conflict files
 *.orig
@@ -83,3 +98,16 @@ pipfile.lock
 *.~
 *.swp
 *.swo
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+out.txt
+
+# Coverage / tests
+.coverage
+htmlcov/
+.pytest_cache/

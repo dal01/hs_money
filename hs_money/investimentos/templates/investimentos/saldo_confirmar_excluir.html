@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}
+
+{% block title %}Excluir Saldo — {{ investimento.nome }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card border-danger">
+      <div class="card-header bg-danger text-white fw-semibold">Confirmar Exclusão</div>
+      <div class="card-body">
+        <p>Deseja excluir o saldo de <strong>{{ saldo.data|date:"m/Y" }}</strong> do investimento <strong>{{ investimento.nome }}</strong>?</p>
+        <p class="fw-semibold text-danger">{% load hs_filters %}{{ saldo.saldo|brl }}</p>
+        <div class="d-flex gap-2">
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Excluir</button>
+          </form>
+          <a href="{% url 'investimentos:detalhe' investimento.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

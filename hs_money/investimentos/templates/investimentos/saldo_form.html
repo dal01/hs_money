@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ titulo }} — HS Money{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'investimentos:detalhe' investimento.pk %}" class="text-decoration-none text-muted">← {{ investimento.nome }}</a>
+  <h1 class="h3 mt-1">{{ titulo }}</h1>
+</div>
+
+<div class="card" style="max-width: 400px;">
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Data de referência</label>
+        {{ form.data }}
+        {% if form.data.errors %}<div class="text-danger small">{{ form.data.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Saldo (R$)</label>
+        {{ form.saldo }}
+        {% if form.saldo.errors %}<div class="text-danger small">{{ form.saldo.errors }}</div>{% endif %}
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'investimentos:detalhe' investimento.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

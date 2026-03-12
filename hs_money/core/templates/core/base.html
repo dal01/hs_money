@@ -44,7 +44,6 @@
       <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.app_name == 'conta_corrente' %}active{% endif %}"
            href="{% url 'conta_corrente:conta_lista' %}">🏦 Conta Corrente</a>
-        {% if request.resolver_match.app_name == 'conta_corrente' %}
         <ul class="nav flex-column ms-3 mt-1">
           <li class="nav-item">
             <a class="nav-link py-1 {% if request.resolver_match.url_name in 'conta_lista,conta_criar,conta_editar' %}active{% endif %}"
@@ -59,11 +58,36 @@
                href="{% url 'conta_corrente:listar_extratos' %}">📂 Extratos no disco</a>
           </li>
         </ul>
-        {% endif %}
       </li>
       <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.app_name == 'cartao_credito' %}active{% endif %}"
-           href="{% url 'cartao_credito:index' %}">💳 Cartão de Crédito</a>
+           href="{% url 'cartao_credito:cartao_lista' %}">💳 Cartão de Crédito</a>
+        <ul class="nav flex-column ms-3 mt-1">
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name in 'cartao_lista,cartao_criar,cartao_editar' %}active{% endif %}"
+               href="{% url 'cartao_credito:cartao_lista' %}">Cartões</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'transacoes_lista' and request.resolver_match.app_name == 'cartao_credito' %}active{% endif %}"
+               href="{% url 'cartao_credito:transacoes_lista' %}">📊 Transações</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'upload_fatura' or request.resolver_match.url_name == 'upload_por_cartao' %}active{% endif %}"
+               href="{% url 'cartao_credito:upload_fatura' %}">⬆️ Importar fatura</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'listar_faturas' %}active{% endif %}"
+               href="{% url 'cartao_credito:listar_faturas' %}">📂 Faturas no disco</a>
+          </li>
+        </ul>
+      </li>
+      <li class="nav-item mt-2">
+        <a class="nav-link {% if request.resolver_match.app_name == 'relatorios' %}active{% endif %}"
+           href="{% url 'relatorios:dashboard' %}">📈 Relatórios</a>
+      </li>
+      <li class="nav-item mt-2">
+        <a class="nav-link {% if request.resolver_match.app_name == 'investimentos' %}active{% endif %}"
+           href="{% url 'investimentos:index' %}">💹 Investimentos</a>
       </li>
     </ul>
   </nav>

@@ -1,0 +1,599 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Dashboard — HS Money{% endblock %}
+
+{% block extra_head %}
+<style>
+  .card-kpi { border-radius: 10px; }
+  .kpi-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+  .kpi-val   { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
+  .kpi-sub   { font-size: .8rem; color: #6c757d; }
+  .section-title { font-size: .8rem; font-weight: 600; text-transform: uppercase;
+                   letter-spacing: .06em; color: #6c757d; border-bottom: 1px solid #dee2e6;
+                   padding-bottom: 4px; margin-bottom: 12px; }
+  .bar-wrap  { background: #f0f0f0; border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 4px; transition: width .4s; }
+  tr.total-row td { font-weight: 600; border-top: 2px solid #dee2e6; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">📈 Dashboard Consolidado</h4>
+</div>
+
+<!-- ── Filtros ── -->
+<form method="get" class="mb-4">
+  <input type="hidden" name="cat_nivel" value="{{ cat_nivel }}">
+
+  <!-- Linha 1: selects -->
+  <div class="row g-2 align-items-end mb-2">
+    <div class="col-auto">
+      <label class="form-label small mb-1">Ano</label>
+      <select name="ano" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+        {% for a in anos_disponiveis %}
+          <option value="{{ a }}" {% if ano_sel == a|stringformat:'s' %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-1">Mês</label>
+      <select name="mes" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for num, nome in meses %}
+          <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-1">Membro</label>
+      <select name="membro" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for m in membros %}
+          <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto align-self-end">
+      <span class="text-muted small">
+        {{ qtd_cc }} transação(ões) CC &nbsp;·&nbsp; {{ qtd_cartao }} transação(ões) Cartão
+      </span>
+    </div>
+  </div>
+
+  <!-- Linha 2: excluir categorias -->
+  <div class="border rounded p-2 bg-light">
+    <div class="small text-muted fw-semibold mb-2">
+      Excluir categorias
+      {% if excluir_cats %}<span class="badge bg-warning text-dark ms-1">{{ excluir_cats|length }} ativa(s)</span>{% endif %}
+    </div>
+    <div class="d-flex flex-wrap gap-4">
+      {% for mac in macros_cats %}
+      <div>
+        <label class="d-flex align-items-center gap-1 fw-semibold small mb-1">
+          <input type="checkbox" name="excluir_cat" value="{{ mac.pk }}"
+                 class="form-check-input mt-0"
+                 {% if mac.pk in excluir_cats %}checked{% endif %}>
+          {{ mac.nome }}
+        </label>
+        {% for sub in mac.subcategorias.all %}
+        <label class="d-flex align-items-center gap-1 small ms-3 mb-0 text-muted">
+          <input type="checkbox" name="excluir_cat" value="{{ sub.pk }}"
+                 class="form-check-input mt-0"
+                 {% if sub.pk in excluir_cats %}checked{% endif %}>
+          {{ sub.nome }}
+        </label>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Linha 3: botão -->
+  <div class="mt-2">
+    <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+    {% if excluir_cats %}<a href="?ano={{ ano_sel }}&mes={{ mes_sel }}&membro={{ membro_sel }}&cat_nivel={{ cat_nivel }}" class="btn btn-sm btn-outline-secondary ms-1">Limpar exclusões</a>{% endif %}
+  </div>
+
+</form>
+
+<!-- ── KPIs ── -->
+<div class="row g-3 mb-4">
+
+  <!-- Entradas -->
+  <div class="col-12 col-md-4">
+    <div class="card card-kpi h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="kpi-label mb-1">↑ Total Entradas</div>
+        <div class="kpi-val text-success mb-2">{{ total_creditos|brl }}</div>
+        {% if kpi_membros_cred %}
+        <table class="table table-sm mb-0" style="font-size:.78rem">
+          <thead class="table-light">
+            <tr>
+              <th>Membro</th>
+              <th class="text-end">CC</th>
+              <th class="text-end">Cartão</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in kpi_membros_cred %}
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td class="text-end text-success">{{ m.cc_cred|brl }}</td>
+              <td class="text-end text-muted">—</td>
+              <td class="text-end text-success fw-semibold">{{ m.total_cred|brl }}</td>
+              <td class="text-end text-muted">{% if m.pct_cred %}{{ m.pct_cred }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light fw-bold">
+            <tr>
+              <td>Total</td>
+              <td class="text-end text-success">{{ cc_creditos|brl }}</td>
+              <td class="text-end text-success">{{ ca_creditos|brl }}</td>
+              <td class="text-end text-success">{{ total_creditos|brl }}</td>
+              <td class="text-end">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Saídas -->
+  <div class="col-12 col-md-4">
+    <div class="card card-kpi h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="kpi-label mb-1">↓ Total Saídas</div>
+        <div class="kpi-val text-danger mb-2">{{ total_debitos|brl }}</div>
+        {% if kpi_membros_deb %}
+        <table class="table table-sm mb-0" style="font-size:.78rem">
+          <thead class="table-light">
+            <tr>
+              <th>Membro</th>
+              <th class="text-end">CC</th>
+              <th class="text-end">Cartão</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in kpi_membros_deb %}
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td class="text-end {% if m.cc_deb %}text-danger detalhe-membro{% else %}text-muted{% endif %}"
+                  {% if m.cc_deb %}style="cursor:pointer;text-decoration:underline dotted" data-membro-id="{{ m.pk|default:'' }}" data-membro-nome="{{ m.nome }}" data-fonte="cc" title="Ver lançamentos"{% endif %}>
+                {% if m.cc_deb %}{{ m.cc_deb|brl }}{% else %}—{% endif %}
+              </td>
+              <td class="text-end {% if m.ca_deb %}text-danger detalhe-membro{% else %}text-muted{% endif %}"
+                  {% if m.ca_deb %}style="cursor:pointer;text-decoration:underline dotted" data-membro-id="{{ m.pk|default:'' }}" data-membro-nome="{{ m.nome }}" data-fonte="cartao" title="Ver lançamentos"{% endif %}>
+                {% if m.ca_deb %}{{ m.ca_deb|brl }}{% else %}—{% endif %}
+              </td>
+              <td class="text-end text-danger fw-semibold">{{ m.total_deb|brl }}</td>
+              <td class="text-end text-muted">{% if m.pct_deb %}{{ m.pct_deb }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light fw-bold">
+            <tr>
+              <td>Total</td>
+              <td class="text-end text-danger">{{ cc_debitos|brl }}</td>
+              <td class="text-end text-danger">{{ ca_debitos|brl }}</td>
+              <td class="text-end text-danger">{{ total_debitos|brl }}</td>
+              <td class="text-end">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Saldo Total -->
+  <div class="col-12 col-md-4">
+    <div class="card card-kpi h-100 border-0 shadow-sm {% if total_saldo >= 0 %}border-success{% else %}border-danger{% endif %}" style="border-left: 4px solid !important">
+      <div class="card-body">
+        <div class="kpi-label mb-1">⚖️ Saldo Total</div>
+        <div class="kpi-val {% if total_saldo >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:1.9rem">
+          {{ total_saldo|brl }}
+        </div>
+        {% if kpi_membros %}
+        <hr class="my-2">
+        <table class="table table-sm mb-0" style="font-size:.78rem">
+          <thead class="table-light">
+            <tr>
+              <th>Membro</th>
+              <th class="text-end">Entradas</th>
+              <th class="text-end">Saídas</th>
+              <th class="text-end">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in kpi_membros %}
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td class="text-end text-success">{% if m.total_cred %}{{ m.total_cred|brl }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td class="text-end text-danger">{% if m.total_deb %}{{ m.total_deb|brl }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td class="text-end {% if m.pct %}{% if m.pct > 100 %}text-danger{% else %}text-success{% endif %} fw-semibold{% else %}text-muted{% endif %}">
+                {% if m.pct %}{{ m.pct|floatformat:0 }}%{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Por Mês ── -->
+  {% if por_mes %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-title">📅 Evolução mensal — {{ ano_sel }}</div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Mês</th>
+                <th class="text-end">Entradas CC</th>
+                <th class="text-end">Saídas CC</th>
+                <th class="text-end">Saldo CC</th>
+                <th class="text-end">Gastos Cartão</th>
+                <th class="text-end">Créd. Cartão</th>
+                <th class="text-end">Saldo Cartão</th>
+                <th class="text-end fw-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in por_mes %}
+              <tr>
+                <td class="fw-semibold">{{ r.mes_nome }}</td>
+                <td class="text-end text-success small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="cc_creditos"
+                    title="Ver lançamentos">{{ r.cc_creditos|brl }}</td>
+                <td class="text-end text-danger small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="cc_debitos"
+                    title="Ver lançamentos">{{ r.cc_debitos|brl }}</td>
+                <td class="text-end small {% if r.cc_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ r.cc_saldo|brl }}
+                </td>
+                <td class="text-end text-danger small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="ca_gastos"
+                    title="Ver lançamentos">{{ r.ca_gastos|brl }}</td>
+                <td class="text-end text-success small detalhe-mes"
+                    style="cursor:pointer;text-decoration:underline dotted"
+                    data-mes="{{ r.mes }}" data-fonte="ca_creditos"
+                    title="Ver lançamentos">{{ r.ca_creditos|brl }}</td>
+                <td class="text-end small {% if r.ca_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ r.ca_saldo|brl }}
+                </td>
+                <td class="text-end fw-semibold {% if r.total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ r.total|brl }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Por Categoria ── -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0">🏷️ Gastos por categoria (top 20)</div>
+          <div class="btn-group btn-group-sm" role="group">
+            <a href="?ano={{ ano_sel }}&mes={{ mes_sel }}&membro={{ membro_sel }}&cat_nivel=sub"
+               class="btn btn-outline-secondary {% if cat_nivel == 'sub' %}active{% endif %}">
+              Subcategoria
+            </a>
+            <a href="?ano={{ ano_sel }}&mes={{ mes_sel }}&membro={{ membro_sel }}&cat_nivel=mac"
+               class="btn btn-outline-secondary {% if cat_nivel == 'mac' %}active{% endif %}">
+              Categoria
+            </a>
+          </div>
+        </div>
+        {% if por_categoria %}
+          {% with max_abs=por_categoria.0.total %}
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Categoria</th>
+                <th class="text-end" style="width:110px">CC</th>
+                <th class="text-end" style="width:110px">Cartão</th>
+                <th class="text-end" style="width:110px">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in por_categoria %}
+              <tr>
+                <td class="small">
+                  {{ r.nome }}
+                  {% if max_abs %}
+                    <div class="bar-wrap mt-1">
+                      <div class="bar-fill bg-danger"
+                           style="width:{% widthratio r.total max_abs 100 %}%"></div>
+                    </div>
+                  {% endif %}
+                </td>
+                <td class="text-end small text-danger detalhe-cat"
+                    style="cursor:pointer; text-decoration:underline dotted"
+                    data-cat-pk="{{ r.pk }}" data-cat-nome="{{ r.nome }}"
+                    data-cat-nivel="{{ cat_nivel }}" data-fonte="cc"
+                    title="Ver lançamentos CC">{{ r.cc|brl }}</td>
+                <td class="text-end small text-danger detalhe-cat"
+                    style="cursor:pointer; text-decoration:underline dotted"
+                    data-cat-pk="{{ r.pk }}" data-cat-nome="{{ r.nome }}"
+                    data-cat-nivel="{{ cat_nivel }}" data-fonte="cartao"
+                    title="Ver lançamentos Cartão">{{ r.cartao|brl }}</td>
+                <td class="text-end small fw-semibold text-danger detalhe-cat"
+                    style="cursor:pointer; text-decoration:underline dotted"
+                    data-cat-pk="{{ r.pk }}" data-cat-nome="{{ r.nome }}"
+                    data-cat-nivel="{{ cat_nivel }}" data-fonte="total"
+                    title="Ver todos os lançamentos">{{ r.total|brl }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% endwith %}
+        {% else %}
+          <p class="text-muted small mt-2">Nenhuma despesa no período.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- Modal Lançamentos -->
+<div class="modal fade" id="modalDetalhe" tabindex="-1" aria-labelledby="modalDetalheLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title fw-semibold" id="modalDetalheLabel"></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3" id="modalDetalheBody">
+        <p class="text-center text-muted py-3">Carregando...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function _sortTable(th) {
+    var table = th.closest('table');
+    var tbody = table.querySelector('tbody');
+    var rows  = Array.from(tbody.querySelectorAll('tr'));
+    var col   = th.cellIndex;
+    var asc   = th.dataset.sortDir !== 'asc';
+    th.dataset.sortDir = asc ? 'asc' : 'desc';
+
+    // reset indicators on siblings, then set on clicked th
+    var cleanText = th.textContent.replace(/ [▲▼]$/, '');
+    th.closest('tr').querySelectorAll('th').forEach(function (t) {
+      t.textContent = t.textContent.replace(/ [▲▼]$/, '');
+    });
+    th.textContent = cleanText + (asc ? ' ▲' : ' ▼');
+
+    function _val(row) {
+      var txt = (row.cells[col] ? row.cells[col].textContent : '').trim();
+      // BRL numeric: "1.234,56" or "-1.234,56"
+      var norm = txt.replace(/\./g, '').replace(',', '.');
+      var num  = parseFloat(norm);
+      if (!isNaN(num) && norm !== '') return num;
+      return txt.toLowerCase();
+    }
+
+    rows.sort(function (a, b) {
+      var va = _val(a), vb = _val(b);
+      if (va < vb) return asc ? -1 : 1;
+      if (va > vb) return asc ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(function (r) { tbody.appendChild(r); });
+  }
+
+(function () {
+  const ANO    = "{{ ano_sel }}";
+  const MES    = "{{ mes_sel }}";
+  const MEMBRO = "{{ membro_sel }}";
+  const URL_MEMBRO = "{% url 'relatorios:membro_transacoes_json' %}";
+  const URL_CAT    = "{% url 'relatorios:categoria_transacoes_json' %}";
+  const URL_MES    = "{% url 'relatorios:mes_transacoes_json' %}";
+
+  function _setModal(titulo, html) {
+    document.getElementById('modalDetalheLabel').textContent = titulo;
+    document.getElementById('modalDetalheBody').innerHTML = html;
+  }
+
+  function _abrirModal() {
+    new bootstrap.Modal(document.getElementById('modalDetalhe')).show();
+  }
+
+  // ── Evolução Mensal ──
+  var MESES_NOME = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'};
+  var FONTE_LABEL = {
+    'cc_creditos': 'Entradas CC',
+    'cc_debitos':  'Saídas CC',
+    'ca_gastos':   'Gastos Cartão',
+    'ca_creditos': 'Créditos Cartão',
+  };
+
+  document.querySelectorAll('.detalhe-mes').forEach(function (cel) {
+    cel.addEventListener('click', function () {
+      var mes    = this.dataset.mes;
+      var fonte  = this.dataset.fonte;
+      var titulo = (MESES_NOME[parseInt(mes)] || mes) + '/' + ANO + ' — ' + (FONTE_LABEL[fonte] || fonte);
+
+      _setModal(titulo, '<p class="text-center text-muted py-3">Carregando...</p>');
+      _abrirModal();
+
+      var params = new URLSearchParams({ ano: ANO, mes: mes, fonte: fonte, membro_id: MEMBRO });
+      fetch(URL_MES + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.transacoes.length) {
+            _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
+            return;
+          }
+          var isCred = (fonte === 'cc_creditos' || fonte === 'ca_creditos');
+          var valClass = isCred ? 'text-success' : 'text-danger';
+          var html = '<div class="table-responsive">';
+          html += '<table class="table table-sm table-hover align-middle mb-0">';
+          html += '<thead class="table-light"><tr>';
+          html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
+          html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Categoria</th>';
+          html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
+          html += '</tr></thead><tbody>';
+          data.transacoes.forEach(function (t) {
+            html += '<tr>';
+            html += '<td class="small text-nowrap">' + t.data + '</td>';
+            html += '<td class="small">' + t.descricao + '</td>';
+            html += '<td class="small text-muted">' + t.categoria + '</td>';
+            html += '<td class="text-end small ' + valClass + '">' + t.valor_fmt + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody>';
+          html += '<tfoot><tr class="table-light fw-semibold">';
+          html += '<td colspan="3">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html += '<td class="text-end ' + valClass + '">' + data.total_fmt + '</td>';
+          html += '</tr></tfoot></table></div>';
+          _setModal(titulo, html);
+        })
+        .catch(function () {
+          _setModal(titulo, '<p class="text-danger small">Erro ao carregar transações.</p>');
+        });
+    });
+  });
+
+  // ── Gastos por Membro ──
+  document.querySelectorAll('.detalhe-membro').forEach(function (cel) {
+    cel.addEventListener('click', function () {
+      const membroId   = this.dataset.membroId;
+      const fonte      = this.dataset.fonte;
+      const membroNome = this.dataset.membroNome;
+      const fonteLabel = fonte === 'cc' ? 'Conta Corrente' : 'Cartão de Crédito';
+      const titulo     = membroNome + ' — ' + fonteLabel;
+
+      _setModal(titulo, '<p class="text-center text-muted py-3">Carregando...</p>');
+      _abrirModal();
+
+      const params = new URLSearchParams({ membro_id: membroId, fonte: fonte, ano: ANO, mes: MES });
+      fetch(URL_MEMBRO + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.transacoes.length) {
+            _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
+            return;
+          }
+          var html = '<div class="table-responsive">';
+          html += '<table class="table table-sm table-hover align-middle mb-0">';
+          html += '<thead class="table-light"><tr>';
+          html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
+          html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Categoria</th>';
+          html += '<th class="text-center" onclick="_sortTable(this)" style="width:60px;cursor:pointer;user-select:none">Membros</th>';
+          html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
+          html += '</tr></thead><tbody>';
+          data.transacoes.forEach(function (t) {
+            html += '<tr>';
+            html += '<td class="small text-nowrap">' + t.data + '</td>';
+            html += '<td class="small">' + t.descricao + '</td>';
+            html += '<td class="small text-muted">' + t.categoria + '</td>';
+            html += '<td class="text-center small text-secondary">' + (t.divisao || '') + '</td>';
+            html += '<td class="text-end small text-danger">' + t.valor_fmt + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody>';
+          html += '<tfoot><tr class="table-light fw-semibold">';
+          html += '<td colspan="4">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
+          html += '</tr></tfoot></table></div>';
+          _setModal(titulo, html);
+        })
+        .catch(function () {
+          _setModal(titulo, '<p class="text-danger small">Erro ao carregar transações.</p>');
+        });
+    });
+  });
+
+  // ── Gastos por Categoria ──
+  document.querySelectorAll('.detalhe-cat').forEach(function (cel) {
+    cel.addEventListener('click', function () {
+      const catPk    = this.dataset.catPk;
+      const catNome  = this.dataset.catNome;
+      const catNivel = this.dataset.catNivel;
+      const fonte    = this.dataset.fonte;
+      const fonteLabel = fonte === 'cc' ? 'Conta Corrente' : fonte === 'cartao' ? 'Cartão' : 'Total';
+      const titulo   = catNome + ' — ' + fonteLabel;
+
+      _setModal(titulo, '<p class="text-center text-muted py-3">Carregando...</p>');
+      _abrirModal();
+
+      const params = new URLSearchParams({ cat_pk: catPk, cat_nivel: catNivel, fonte: fonte, ano: ANO, mes: MES, membro_id: MEMBRO });
+      fetch(URL_CAT + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.transacoes.length) {
+            _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
+            return;
+          }
+          var mostrarFonte = (fonte === 'total');
+          var html = '<div class="table-responsive">';
+          html += '<table class="table table-sm table-hover align-middle mb-0">';
+          html += '<thead class="table-light"><tr>';
+          html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
+          if (mostrarFonte) html += '<th onclick="_sortTable(this)" style="width:70px;cursor:pointer;user-select:none">Fonte</th>';
+          html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Membros</th>';
+          html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
+          html += '</tr></thead><tbody>';
+          data.transacoes.forEach(function (t) {
+            html += '<tr>';
+            html += '<td class="small text-nowrap">' + t.data + '</td>';
+            if (mostrarFonte) html += '<td class="small text-muted">' + t.fonte + '</td>';
+            html += '<td class="small">' + t.descricao + '</td>';
+            html += '<td class="small text-muted">' + t.membros + '</td>';
+            html += '<td class="text-end small text-danger">' + t.valor_fmt + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody>';
+          var colspan = mostrarFonte ? 4 : 3;
+          html += '<tfoot><tr class="table-light fw-semibold">';
+          html += '<td colspan="' + colspan + '">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
+          html += '</tr></tfoot></table></div>';
+          _setModal(titulo, html);
+        })
+        .catch(function () {
+          _setModal(titulo, '<p class="text-danger small">Erro ao carregar transações.</p>');
+        });
+    });
+  });
+}());
+</script>
+{% endblock %}

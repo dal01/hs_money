@@ -14,6 +14,7 @@ def sort_url(context, field, default_dir='asc'):
     if not request:
         return ''
     params = request.GET.copy()
+    params.pop('tab', None)   # ordenar sempre abre a aba visível
     current_order = params.get('order', '')
     current_dir   = params.get('dir',   '')
     if current_order == field:
@@ -41,3 +42,11 @@ def brl(value):
     formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")  # 1.234,56
 
     return f"-{formatted}" if neg else formatted
+
+
+@register.filter
+def dict_get(d, key):
+    """Acessa d[key] em templates. Retorna None se não encontrar."""
+    if d is None:
+        return None
+    return d.get(key)

@@ -1,9 +1,7 @@
 {% extends "core/base.html" %}
 {% load hs_filters %}
 
-{% comment %}Macro para ícone de ordenação{% endcomment %}
-
-{% block title %}Transações CC — HS Money{% endblock %}
+{% block title %}Transações Cartão — HS Money{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -30,80 +28,64 @@
     font-size: .75rem; color: #6c757d; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; max-width: 150px; display: block;
   }
+  .badge-moeda { font-size: .65rem; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h4 class="mb-0">📊 Transações — Conta Corrente</h4>
-  <a href="{% url 'conta_corrente:transacao_criar' %}" class="btn btn-sm btn-success">
-    + Nova transação
-  </a>
+  <h4 class="mb-0">💳 Transações — Cartão de Crédito</h4>
 </div>
 
 <!-- Filtros -->
-<form method="get" id="form-filtro" class="row g-2 align-items-end mb-4">
+<form method="get" id="form-filtro" class="row gx-3 gy-2 align-items-end mb-4">
 
-  {# preserva a aba ativa ao filtrar #}
   {% if tab_sel == 'ocultas' %}
     <input type="hidden" name="tab" value="ocultas">
   {% endif %}
 
-  <div class="col-auto">
+
+  <div class="col-12 col-md-6 col-lg-3">
     <label class="form-label small mb-1">Membro</label>
     <select name="membro" class="form-select form-select-sm" onchange="this.form.submit()">
       <option value="">Todos</option>
       {% for m in membros %}
-        <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>
-          {{ m.nome }}
-        </option>
+        <option value="{{ m.pk }}" {% if membro_sel == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.nome }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col-auto">
-    <label class="form-label small mb-1">Instituição</label>
-    <select name="instituicao" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">Todas</option>
-      {% for inst in instituicoes %}
-        <option value="{{ inst.pk }}" {% if inst_sel == inst.pk|stringformat:'s' %}selected{% endif %}>
-          {{ inst.nome }}
-        </option>
+  <div class="col-12 col-md-6 col-lg-3">
+    <label class="form-label small mb-1">Cartão</label>
+    <select name="cartao" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:220px">
+      <option value="">Todos</option>
+      {% for c in cartoes %}
+        <option value="{{ c.pk }}" {% if cartao_sel == c.pk|stringformat:'s' %}selected{% endif %}>{{ c }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col-auto">
-    <label class="form-label small mb-1">Ano</label>
+  <div class="col-6 col-md-3 col-lg-2">
+    <label class="form-label small mb-1">Competência (ano)</label>
     <select name="ano" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
       <option value="">Todos</option>
       {% for d in anos_disponiveis %}
-        <option value="{{ d.year }}" {% if ano_sel == d.year|stringformat:'s' %}selected{% endif %}>
-          {{ d.year }}
-        </option>
+        <option value="{{ d.year }}" {% if ano_sel == d.year|stringformat:'s' %}selected{% endif %}>{{ d.year }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col-auto">
-    <label class="form-label small mb-1">Mês</label>
+  <div class="col-6 col-md-3 col-lg-2">
+    <label class="form-label small mb-1">Competência (mês)</label>
     <select name="mes" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
       <option value="">Todos</option>
       {% for num, nome in meses %}
-        <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>
-          {{ nome }}
-        </option>
+        <option value="{{ num }}" {% if mes_sel == num|stringformat:'s' %}selected{% endif %}>{{ nome }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div class="col" style="max-width:260px">
-    <label class="form-label small mb-1">Busca</label>
-    <input type="text" name="q" value="{{ busca }}" class="form-control form-control-sm"
-           placeholder="Descrição…">
-  </div>
-
-  <div class="col-auto">
+  <div class="col-12 col-md-6 col-lg-3">
     <label class="form-label small mb-1">Categoria</label>
     <select name="categoria" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
       <option value="">Todas</option>
@@ -111,38 +93,35 @@
       {% for mac in categorias %}
         {% if mac.subcategorias.all %}
           <optgroup label="{{ mac.nome }}">
-            <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
-              {{ mac.nome }} (todas)
-            </option>
+            <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>{{ mac.nome }} (todas)</option>
             {% for sub in mac.subcategorias.all|dictsort:"nome" %}
-              <option value="{{ sub.pk }}" {% if cat_sel == sub.pk|stringformat:'s' %}selected{% endif %}>
-                  {{ sub.nome }}
-              </option>
+              <option value="{{ sub.pk }}" {% if cat_sel == sub.pk|stringformat:'s' %}selected{% endif %}>{{ sub.nome }}</option>
             {% endfor %}
           </optgroup>
         {% else %}
-          <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>
-            {{ mac.nome }}
-          </option>
+          <option value="{{ mac.pk }}" {% if cat_sel == mac.pk|stringformat:'s' %}selected{% endif %}>{{ mac.nome }}</option>
         {% endif %}
       {% endfor %}
     </select>
   </div>
 
-  {% if conta_sel %}<input type="hidden" name="conta" value="{{ conta_sel }}">{% endif %}
-
-  <div class="col-auto">
-    <label class="form-label small mb-1">Membros</label>
+  <div class="col-12 col-md-6 col-lg-2">
+    <label class="form-label small mb-1">Atribuição</label>
     <select name="atribuicao" class="form-select form-select-sm" onchange="this.form.submit()">
       <option value="">Todas</option>
       <option value="0" {% if atrib_sel == '0' %}selected{% endif %}>Sem membro</option>
     </select>
   </div>
 
-  <div class="col-auto">
-    <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrar</button>
-    {% if ano_sel or mes_sel or membro_sel or inst_sel or conta_sel or busca or cat_sel or atrib_sel %}
-      <a href="{% url 'conta_corrente:transacoes_lista' %}" class="btn btn-sm btn-link text-muted">Limpar</a>
+  <div class="col-12 col-md-6 col-lg-3">
+    <label class="form-label small mb-1">Busca</label>
+    <input type="text" name="q" value="{{ busca }}" class="form-control form-control-sm" placeholder="Descrição…">
+  </div>
+
+  <div class="col-12 col-md-6 col-lg-2 d-flex align-items-end">
+    <button type="submit" class="btn btn-sm btn-outline-secondary me-2">Filtrar</button>
+    {% if ano_sel or mes_sel or membro_sel or cartao_sel or busca or cat_sel or atrib_sel %}
+      <a href="{% url 'cartao_credito:transacoes_lista' %}" class="btn btn-sm btn-link text-muted">Limpar</a>
     {% endif %}
   </div>
 
@@ -191,7 +170,7 @@
       </div>
       <div class="col-auto">
         <div class="card border-0 bg-light text-center px-3 py-2">
-          <div class="small text-muted">Saldo período</div>
+          <div class="small text-muted">Total período</div>
           <div class="fw-semibold {% if total_liquido >= 0 %}text-success{% else %}text-danger{% endif %}">
             {{ total_liquido|brl }}
           </div>
@@ -208,15 +187,15 @@
     {% if not transacoes %}
       <div class="alert alert-info m-3">
         Nenhuma transação encontrada.
-        {% if not ano_sel and not mes_sel and not membro_sel and not inst_sel and not busca %}
-          Importe extratos OFX pela
-          <a href="{% url 'conta_corrente:listar_extratos' %}">página de extratos no disco</a>.
+        {% if not ano_sel and not mes_sel and not membro_sel and not cartao_sel and not busca %}
+          Importe faturas pela
+          <a href="{% url 'cartao_credito:listar_faturas' %}">página de faturas no disco</a>.
         {% endif %}
       </div>
     {% else %}
 
     <form id="form-bulk-vis" method="post"
-          action="{% url 'conta_corrente:transacoes_bulk_action' %}">
+          action="{% url 'cartao_credito:transacoes_bulk_action' %}">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
@@ -228,7 +207,7 @@
         </div>
         <div class="vr mx-1"></div>
         <div class="bulk-group">
-          <select name="categoria_id" id="bulk-categoria-input" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
+          <select name="categoria_id" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
             <option value="">— Remover categoria —</option>
             {% for mac in categorias %}
               {% if mac.subcategorias.all %}
@@ -245,7 +224,7 @@
         </div>
         <div class="vr mx-1"></div>
         <div class="bulk-group">
-          <select name="membro_ids" id="bulk-membros-input" class="form-select form-select-sm" style="width:160px"
+          <select name="membro_ids" class="form-select form-select-sm" style="width:160px"
                   size="{{ membros|length }}"
                   multiple title="Ctrl+clique para selecionar múltiplos">
             {% for m in membros %}
@@ -255,10 +234,10 @@
         </div>
         <div class="vr mx-1"></div>
         <div class="bulk-group d-flex align-items-center">
-          <input type="text" name="anotacao" id="bulk-anotacao-input" class="form-control form-control-sm" style="width:180px" placeholder="Anotação em massa">
+          <input type="text" name="anotacao_bulk" class="form-control form-control-sm" style="width:140px" placeholder="Anotação em lote">
         </div>
         <div class="bulk-group">
-          <button type="submit" name="action" value="editar_tudo" class="btn btn-sm btn-success">💾 Salvar</button>
+          <button type="submit" name="action" value="editar_tudo" class="btn btn-sm btn-success">💾 Salvar tudo</button>
         </div>
         <div class="bulk-group ms-3" id="bulk-suggestions-vis" style="display:none">
           <span class="fw-semibold me-2">Sugestões:</span>
@@ -269,14 +248,6 @@
         </div>
         <button type="button" data-deselect="vis"
                 class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
-      </div>
-
-      <div id="bulk-suggestions-vis" class="bulk-bar bg-light border rounded p-2 mt-2 d-flex align-items-center d-none">
-        <span class="fw-semibold me-2">Sugestões:</span>
-        <span class="me-3" id="bulk-sug-cat-vis"></span>
-        <span class="me-3" id="bulk-sug-mem-vis"></span>
-        <span class="me-3" id="bulk-sug-ano-vis"></span>
-        <button type="button" class="btn btn-outline-primary btn-sm ms-2" id="bulk-accept-sug-vis">Aceitar sugestões</button>
       </div>
 
       <table class="table table-hover align-middle mb-0 table-sm">
@@ -297,7 +268,9 @@
                 Descrição{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
               </a>
             </th>{% endwith %}
-            <!-- coluna Conta removida -->
+            <!-- coluna removida: Cartão -->
+            <th style="width:85px">Competência</th>
+            <th style="width:70px">Parcela</th>
             {% with f='valor' %}
             <th class="col-sort text-end" style="width:130px">
               <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
@@ -323,7 +296,24 @@
               {% if t.anotacao %}
                 <span title="Anotação" class="ms-2 text-info">📝 {{ t.anotacao }}</span>
               {% endif %}
+              {% if t.moeda and t.moeda != 'BRL' %}
+                <span class="badge bg-secondary badge-moeda ms-1" title="{{ t.valor_moeda }} {{ t.moeda }}">
+                  {{ t.moeda }}
+                </span>
+              {% endif %}
             </td>
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.fatura.competencia %}
+                {{ t.fatura.competencia|date:"m/Y" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.etiqueta_parcela %}
+                {{ t.etiqueta_parcela }}
+              {% elif t.parcela_num and t.parcela_total %}
+                {{ t.parcela_num }}/{{ t.parcela_total }}
+              {% else %}—{% endif %}
             </td>
             <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
               {{ t.valor|brl }}
@@ -342,7 +332,7 @@
             </td>
             <td class="text-center">
               <button type="submit"
-                      formaction="{% url 'conta_corrente:transacao_toggle_oculta' t.pk %}"
+                      formaction="{% url 'cartao_credito:transacao_toggle_oculta' t.pk %}"
                       class="btn btn-ocultar btn-outline-warning"
                       title="Ocultar transação">🙈</button>
             </td>
@@ -373,7 +363,7 @@
       </div>
       <div class="col-auto">
         <div class="card border-0 bg-light text-center px-3 py-2">
-          <div class="small text-muted">Saldo período</div>
+          <div class="small text-muted">Total período</div>
           <div class="fw-semibold {% if total_liquido_ocultas >= 0 %}text-success{% else %}text-danger{% endif %}">
             {{ total_liquido_ocultas|brl }}
           </div>
@@ -392,7 +382,7 @@
     {% else %}
 
     <form id="form-bulk-ocultas" method="post"
-          action="{% url 'conta_corrente:transacoes_bulk_action' %}">
+          action="{% url 'cartao_credito:transacoes_bulk_action' %}">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
@@ -445,7 +435,9 @@
             </th>
             <th style="width:95px">Data</th>
             <th>Descrição</th>
-            <th>Conta</th>
+            <th style="width:160px">Cartão</th>
+            <th style="width:85px">Competência</th>
+            <th style="width:70px">Parcela</th>
             <th class="text-end" style="width:130px">Valor</th>
             <th style="width:160px">Categoria / Membros</th>
             <th style="width:36px"></th>
@@ -456,12 +448,30 @@
           <tr style="opacity:.6">
             <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-ocultas"></td>
             <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
-            <td class="small">{{ t.descricao }}</td>
-            <td class="small text-muted">
-              {{ t.extrato.conta.instituicao.nome }}
-              {% if t.extrato.conta.membro %}
-                <span class="text-secondary">/ {{ t.extrato.conta.membro.nome }}</span>
+            <td class="small">
+              {{ t.descricao }}
+              {% if t.moeda and t.moeda != 'BRL' %}
+                <span class="badge bg-secondary badge-moeda ms-1">{{ t.moeda }}</span>
               {% endif %}
+            </td>
+            <td class="small text-muted">
+              {{ t.fatura.cartao.instituicao.nome }}
+              <span class="text-secondary">****{{ t.fatura.cartao.cartao_final }}</span>
+              {% if t.fatura.cartao.membro %}
+                <br><span class="text-secondary">{{ t.fatura.cartao.membro.nome }}</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.fatura.competencia %}
+                {{ t.fatura.competencia|date:"m/Y" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="small text-muted text-center">
+              {% if t.etiqueta_parcela %}
+                {{ t.etiqueta_parcela }}
+              {% elif t.parcela_num and t.parcela_total %}
+                {{ t.parcela_num }}/{{ t.parcela_total }}
+              {% else %}—{% endif %}
             </td>
             <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
               {{ t.valor|brl }}
@@ -480,7 +490,7 @@
             </td>
             <td class="text-center">
               <button type="submit"
-                      formaction="{% url 'conta_corrente:transacao_toggle_oculta' t.pk %}"
+                      formaction="{% url 'cartao_credito:transacao_toggle_oculta' t.pk %}"
                       class="btn btn-ocultar btn-outline-secondary"
                       title="Mostrar transação">👁</button>
             </td>
@@ -495,9 +505,8 @@
 </div><!-- /tab-content -->
 
 <script>
-// --- Bulk-bar dynamic suggestions ---
 (function () {
-  // Atualiza URL e campos "next" quando o usuário troca de aba
+  /* Atualiza URL e campos "next" quando o usuário troca de aba */
   document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', () => {
       const target  = btn.getAttribute('data-bs-target');
@@ -511,7 +520,7 @@
     });
   });
 
-  // Select-all / bulk-bar por aba
+  /* Select-all / bulk-bar por aba */
   function setupBulk(suffix) {
     const chkAll  = document.getElementById(`chk-all-${suffix}`);
     const bar     = document.getElementById(`bulk-bar-${suffix}`);
@@ -554,30 +563,59 @@
       chkAll.indeterminate = n > 0 && n < rows().length;
       chkAll.checked = n > 0 && n === rows().length;
 
-      // --- Dynamic suggestions ---
-      if (sugBar) {
-        if (n === 0) {
-          sugBar.style.display = 'none';
-          return;
-        }
-        const selected = transRows().filter(r => r.checked);
-        // Anotação
-        const anotacoes = selected.map(r => r.anotacao).filter(Boolean);
-        const anotacaoMaj = majority(anotacoes);
-        sugAno.textContent = anotacaoMaj ? `Anotação: `+anotacaoMaj : '';
-        // Categoria
-        const categorias = selected.map(r => r.categoria).filter(Boolean);
-        const catMaj = majority(categorias);
-        sugCat.textContent = catMaj ? `Categoria: `+catMaj : '';
-        // Membros
-        const membrosArr = selected.map(r => r.membros.join(',')).filter(Boolean);
-        const memMaj = majority(membrosArr);
-        sugMem.textContent = memMaj ? `Membros: `+memMaj : '';
-        // Show/hide
-        if (anotacaoMaj || catMaj || memMaj) {
+      // Sugestão dinâmica
+      if (sugBar && sugCat && sugMem && sugAno) {
+        if (n > 0) {
           sugBar.style.display = '';
+          const selected = transRows().filter(r => r.checked);
+          // Categoria
+          const cats = selected.map(r => r.categoria).filter(Boolean);
+          sugCat.textContent = cats.length ? `Categoria: ${majority(cats)}` : '';
+          // Membros
+          const mems = selected.map(r => r.membros.join(',')).filter(Boolean);
+          sugMem.textContent = mems.length ? `Membros: ${majority(mems)}` : '';
+          // Anotação
+          const anos = selected.map(r => r.anotacao).filter(Boolean);
+          sugAno.textContent = anos.length ? `Anotação: ${majority(anos)}` : '';
+
+          // Preencher automaticamente se apenas uma transação
+          if (n === 1) {
+            // Categoria
+            if (cats.length) {
+              const sel = document.querySelector('select[name="categoria_id"]');
+              if (sel) {
+                for (let i=0;i<sel.options.length;i++) {
+                  let optionText = sel.options[i].text.trim();
+                  let parentText = sel.options[i].parentNode && sel.options[i].parentNode.label ? sel.options[i].parentNode.label.trim() : '';
+                  let fullText = parentText ? parentText + ' > ' + optionText : optionText;
+                  if (fullText === cats[0] || optionText === cats[0]) {
+                    sel.selectedIndex = i;
+                    break;
+                  }
+                }
+              }
+            }
+            // Membros
+            if (mems.length) {
+              const memNames = mems[0].split(',').map(s=>s.trim());
+              const sel = document.querySelector('select[name="membro_ids"]');
+              if (sel) {
+                for (let i=0;i<sel.options.length;i++) {
+                  sel.options[i].selected = memNames.includes(sel.options[i].text);
+                }
+              }
+            }
+            // Anotação
+            if (anos.length) {
+              const inp = document.querySelector('input[name="anotacao_bulk"]');
+              if (inp) inp.value = anos[0];
+            }
+          }
         } else {
           sugBar.style.display = 'none';
+          sugCat.textContent = '';
+          sugMem.textContent = '';
+          sugAno.textContent = '';
         }
       }
     }
@@ -586,33 +624,20 @@
     document.addEventListener('change', e => { if (e.target.classList.contains(`row-chk-${suffix}`)) update(); });
     if (desel) desel.addEventListener('click', () => { rows().forEach(c => c.checked = false); chkAll.checked = false; update(); });
 
-    // Accept suggestions
+    // Aceitar sugestões
     if (sugAccept) {
       sugAccept.addEventListener('click', function() {
-        // Fill bulk inputs
+        // Categoria
         if (sugCat && sugCat.textContent) {
-          const catName = sugCat.textContent.replace('Categoria: ','');
-          const sel = document.getElementById('bulk-categoria-input');
+          const catName = sugCat.textContent.replace('Categoria: ', '');
+          const sel = document.querySelector('select[name="categoria_id"]');
           if (sel) {
             let found = false;
             for (let i=0;i<sel.options.length;i++) {
               let optionText = sel.options[i].text.trim();
               let parentText = sel.options[i].parentNode && sel.options[i].parentNode.label ? sel.options[i].parentNode.label.trim() : '';
               let fullText = parentText ? parentText + ' > ' + optionText : optionText;
-              // Try by fullText (parent > child)
-              if (fullText === catName) {
-                sel.selectedIndex = i;
-                found = true;
-                break;
-              }
-              // Try by text
-              if (optionText === catName) {
-                sel.selectedIndex = i;
-                found = true;
-                break;
-              }
-              // Try by value (PK)
-              if (sel.options[i].value && catName === sel.options[i].value) {
+              if (fullText === catName || optionText === catName) {
                 sel.selectedIndex = i;
                 found = true;
                 break;
@@ -621,18 +646,20 @@
             if (!found) sel.selectedIndex = 0;
           }
         }
+        // Membros
         if (sugMem && sugMem.textContent) {
           const memNames = sugMem.textContent.replace('Membros: ','').split(',').map(s=>s.trim());
-          const sel = document.getElementById('bulk-membros-input');
+          const sel = document.querySelector('select[name="membro_ids"]');
           if (sel) {
             for (let i=0;i<sel.options.length;i++) {
               sel.options[i].selected = memNames.includes(sel.options[i].text);
             }
           }
         }
+        // Anotação
         if (sugAno && sugAno.textContent) {
           const anoVal = sugAno.textContent.replace('Anotação: ','');
-          const inp = document.getElementById('bulk-anotacao-input');
+          const inp = document.querySelector('input[name="anotacao_bulk"]');
           if (inp) inp.value = anoVal;
         }
       });
