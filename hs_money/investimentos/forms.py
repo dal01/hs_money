@@ -5,10 +5,11 @@ from .models import Investimento, Movimentacao, SaldoInvestimento
 class InvestimentoForm(forms.ModelForm):
     class Meta:
         model = Investimento
-        fields = ['nome', 'tipo', 'instituicao', 'membro', 'ativo']
+        fields = ['nome', 'tipo', 'tipo_financeiro', 'instituicao', 'membro', 'ativo']
         widgets = {
             'nome':        forms.TextInput(attrs={'class': 'form-control'}),
             'tipo':        forms.Select(attrs={'class': 'form-select'}),
+            'tipo_financeiro': forms.RadioSelect(attrs={'class': 'form-check-input', 'style': 'margin-right: 8px; display: inline-block;'}),
             'instituicao': forms.Select(attrs={'class': 'form-select'}),
             'membro':      forms.Select(attrs={'class': 'form-select'}),
             'ativo':       forms.CheckboxInput(attrs={'class': 'form-check-input'}),
