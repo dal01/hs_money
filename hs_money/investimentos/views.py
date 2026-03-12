@@ -51,16 +51,20 @@ def index(request):
     for s in all_saldos:
         inv_saldos[s['investimento_id']].append((s['data'], s['saldo']))
 
+    # Mapeia id do investimento para tipo_financeiro
+    tipo_map = {inv.pk: inv.tipo_financeiro for inv in investimentos}
+
     monthly_totals = []
     for primeiro, ultimo, label in meses:
         total = Decimal('0')
-        for saldo_list in inv_saldos.values():
+        for inv_id, saldo_list in inv_saldos.items():
             best = None
             for d, v in saldo_list:
                 if d <= ultimo:
                     best = v
             if best is not None:
-                total += best
+                sinal = 1 if tipo_map.get(inv_id) == 'CREDITO' else -1
+                total += sinal * best
         monthly_totals.append({'label': label, 'total': total})
 
     return render(request, 'investimentos/index.html', {

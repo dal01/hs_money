@@ -14,8 +14,14 @@ class Investimento(models.Model):
         ('OUTRO',     'Outro'),
     ]
 
+    TIPO_FINANCEIRO_CHOICES = [
+        ('CREDITO', 'Crédito (ativo)'),
+        ('DEBITO',  'Débito (dívida)'),
+    ]
+
     nome = models.CharField('Nome', max_length=200)
     tipo = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES, default='FUNDO_RF')
+    tipo_financeiro = models.CharField('Tipo financeiro', max_length=8, choices=TIPO_FINANCEIRO_CHOICES, default='CREDITO')
     instituicao = models.ForeignKey(
         InstituicaoFinanceira,
         on_delete=models.CASCADE,

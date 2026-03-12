@@ -26,6 +26,16 @@
       </div>
 
       <div class="mb-3">
+        {% for radio in form.tipo_financeiro %}
+        <div class="form-check form-check-inline">
+          {{ radio.tag }}
+          <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+        </div>
+        {% endfor %}
+        {% if form.tipo_financeiro.errors %}<div class="text-danger small">{{ form.tipo_financeiro.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
         <label class="form-label fw-semibold">Instituição Financeira</label>
         {{ form.instituicao }}
         {% if form.instituicao.errors %}<div class="text-danger small">{{ form.instituicao.errors }}</div>{% endif %}
