@@ -94,6 +94,7 @@ class Transacao(models.Model):
     is_duplicado = models.BooleanField(default=False)
 
     fitid = models.CharField(max_length=100, blank=True, null=True)
+    anotacao = models.CharField('Anotação', max_length=255, blank=True, null=True, help_text='Comentário ou identificação manual da transação.')
 
     class Meta:
         verbose_name = 'Transação'

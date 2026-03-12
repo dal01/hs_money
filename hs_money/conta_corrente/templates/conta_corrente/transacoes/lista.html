@@ -228,7 +228,7 @@
         </div>
         <div class="vr mx-1"></div>
         <div class="bulk-group">
-          <select name="categoria_id" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
+          <select name="categoria_id" id="bulk-categoria-input" class="form-select form-select-sm" style="width:200px" title="Selecione a categoria">
             <option value="">— Remover categoria —</option>
             {% for mac in categorias %}
               {% if mac.subcategorias.all %}
@@ -242,23 +242,41 @@
               {% endif %}
             {% endfor %}
           </select>
-          <button type="submit" name="action" value="categorizar"
-                  class="btn btn-sm btn-info">🏷️ Categorizar</button>
         </div>
         <div class="vr mx-1"></div>
         <div class="bulk-group">
-          <select name="membro_ids" class="form-select form-select-sm" style="width:160px"
+          <select name="membro_ids" id="bulk-membros-input" class="form-select form-select-sm" style="width:160px"
                   size="{{ membros|length }}"
                   multiple title="Ctrl+clique para selecionar múltiplos">
             {% for m in membros %}
               <option value="{{ m.pk }}">{{ m.nome }}</option>
             {% endfor %}
           </select>
-          <button type="submit" name="action" value="atribuir_membros"
-                  class="btn btn-sm btn-secondary">👥 Atribuir</button>
+        </div>
+        <div class="vr mx-1"></div>
+        <div class="bulk-group d-flex align-items-center">
+          <input type="text" name="anotacao" id="bulk-anotacao-input" class="form-control form-control-sm" style="width:180px" placeholder="Anotação em massa">
+        </div>
+        <div class="bulk-group">
+          <button type="submit" name="action" value="editar_tudo" class="btn btn-sm btn-success">💾 Salvar</button>
+        </div>
+        <div class="bulk-group ms-3" id="bulk-suggestions-vis" style="display:none">
+          <span class="fw-semibold me-2">Sugestões:</span>
+          <span class="me-3" id="bulk-sug-cat-vis"></span>
+          <span class="me-3" id="bulk-sug-mem-vis"></span>
+          <span class="me-3" id="bulk-sug-ano-vis"></span>
+          <button type="button" class="btn btn-outline-primary btn-sm ms-2" id="bulk-accept-sug-vis">Aceitar sugestões</button>
         </div>
         <button type="button" data-deselect="vis"
                 class="btn btn-sm btn-link text-muted ms-auto">Desmarcar tudo</button>
+      </div>
+
+      <div id="bulk-suggestions-vis" class="bulk-bar bg-light border rounded p-2 mt-2 d-flex align-items-center d-none">
+        <span class="fw-semibold me-2">Sugestões:</span>
+        <span class="me-3" id="bulk-sug-cat-vis"></span>
+        <span class="me-3" id="bulk-sug-mem-vis"></span>
+        <span class="me-3" id="bulk-sug-ano-vis"></span>
+        <button type="button" class="btn btn-outline-primary btn-sm ms-2" id="bulk-accept-sug-vis">Aceitar sugestões</button>
       </div>
 
       <table class="table table-hover align-middle mb-0 table-sm">
@@ -279,12 +297,7 @@
                 Descrição{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
               </a>
             </th>{% endwith %}
-            {% with f='conta' %}
-            <th class="col-sort">
-              <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
-                Conta{% if order_sel == f %} <span class="sort-icon">{% if dir_sel == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
-              </a>
-            </th>{% endwith %}
+            <!-- coluna Conta removida -->
             {% with f='valor' %}
             <th class="col-sort text-end" style="width:130px">
               <a href="{% sort_url f %}" class="th-sort {% if order_sel == f %}active{% endif %}">
@@ -305,12 +318,12 @@
           <tr>
             <td><input type="checkbox" name="ids" value="{{ t.pk }}" class="form-check-input row-chk-vis"></td>
             <td class="text-muted small">{{ t.data|date:"d/m/Y" }}</td>
-            <td class="small">{{ t.descricao }}</td>
-            <td class="small text-muted">
-              {{ t.extrato.conta.instituicao.nome }}
-              {% if t.extrato.conta.membro %}
-                <span class="text-secondary">/ {{ t.extrato.conta.membro.nome }}</span>
+            <td class="small">
+              {{ t.descricao }}
+              {% if t.anotacao %}
+                <span title="Anotação" class="ms-2 text-info">📝 {{ t.anotacao }}</span>
               {% endif %}
+            </td>
             </td>
             <td class="text-end fw-semibold {% if t.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
               {{ t.valor|brl }}
@@ -482,8 +495,9 @@
 </div><!-- /tab-content -->
 
 <script>
+// --- Bulk-bar dynamic suggestions ---
 (function () {
-  /* Atualiza URL e campos "next" quando o usuário troca de aba */
+  // Atualiza URL e campos "next" quando o usuário troca de aba
   document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
     btn.addEventListener('shown.bs.tab', () => {
       const target  = btn.getAttribute('data-bs-target');
@@ -497,15 +511,40 @@
     });
   });
 
-  /* Select-all / bulk-bar por aba */
+  // Select-all / bulk-bar por aba
   function setupBulk(suffix) {
     const chkAll  = document.getElementById(`chk-all-${suffix}`);
     const bar     = document.getElementById(`bulk-bar-${suffix}`);
     const countEl = document.getElementById(`bulk-count-${suffix}`);
     const desel   = document.querySelector(`[data-deselect="${suffix}"]`);
+    const sugBar  = document.getElementById(`bulk-suggestions-${suffix}`);
+    const sugCat  = document.getElementById(`bulk-sug-cat-${suffix}`);
+    const sugMem  = document.getElementById(`bulk-sug-mem-${suffix}`);
+    const sugAno  = document.getElementById(`bulk-sug-ano-${suffix}`);
+    const sugAccept = document.getElementById(`bulk-accept-sug-${suffix}`);
     if (!chkAll) return;
 
+    // Collect transaction data from table rows
     const rows = () => Array.from(document.querySelectorAll(`.row-chk-${suffix}`));
+    const transRows = () => Array.from(document.querySelectorAll(`.row-chk-${suffix}`)).map(chk => {
+      const tr = chk.closest('tr');
+      return {
+        checked: chk.checked,
+        pk: chk.value,
+        descricao: tr.querySelector('.small').textContent.trim(),
+        anotacao: tr.querySelector('.text-info') ? tr.querySelector('.text-info').textContent.replace('📝','').trim() : '',
+        categoria: tr.querySelector('.cat-name') ? tr.querySelector('.cat-name').textContent.trim() : '',
+        membros: Array.from(tr.querySelectorAll('.badge-membro')).map(b => b.textContent.trim()),
+      };
+    });
+
+    function majority(arr) {
+      if (!arr.length) return null;
+      const count = {};
+      arr.forEach(v => { count[v] = (count[v]||0)+1; });
+      const sorted = Object.entries(count).sort((a,b) => b[1]-a[1]);
+      return sorted[0][0];
+    }
 
     function update() {
       const checked = rows().filter(c => c.checked);
@@ -514,11 +553,91 @@
       countEl.textContent = n === 1 ? '1 selecionada' : `${n} selecionadas`;
       chkAll.indeterminate = n > 0 && n < rows().length;
       chkAll.checked = n > 0 && n === rows().length;
+
+      // --- Dynamic suggestions ---
+      if (sugBar) {
+        if (n === 0) {
+          sugBar.style.display = 'none';
+          return;
+        }
+        const selected = transRows().filter(r => r.checked);
+        // Anotação
+        const anotacoes = selected.map(r => r.anotacao).filter(Boolean);
+        const anotacaoMaj = majority(anotacoes);
+        sugAno.textContent = anotacaoMaj ? `Anotação: `+anotacaoMaj : '';
+        // Categoria
+        const categorias = selected.map(r => r.categoria).filter(Boolean);
+        const catMaj = majority(categorias);
+        sugCat.textContent = catMaj ? `Categoria: `+catMaj : '';
+        // Membros
+        const membrosArr = selected.map(r => r.membros.join(',')).filter(Boolean);
+        const memMaj = majority(membrosArr);
+        sugMem.textContent = memMaj ? `Membros: `+memMaj : '';
+        // Show/hide
+        if (anotacaoMaj || catMaj || memMaj) {
+          sugBar.style.display = '';
+        } else {
+          sugBar.style.display = 'none';
+        }
+      }
     }
 
     chkAll.addEventListener('change', () => { rows().forEach(c => c.checked = chkAll.checked); update(); });
     document.addEventListener('change', e => { if (e.target.classList.contains(`row-chk-${suffix}`)) update(); });
     if (desel) desel.addEventListener('click', () => { rows().forEach(c => c.checked = false); chkAll.checked = false; update(); });
+
+    // Accept suggestions
+    if (sugAccept) {
+      sugAccept.addEventListener('click', function() {
+        // Fill bulk inputs
+        if (sugCat && sugCat.textContent) {
+          const catName = sugCat.textContent.replace('Categoria: ','');
+          const sel = document.getElementById('bulk-categoria-input');
+          if (sel) {
+            let found = false;
+            for (let i=0;i<sel.options.length;i++) {
+              let optionText = sel.options[i].text.trim();
+              let parentText = sel.options[i].parentNode && sel.options[i].parentNode.label ? sel.options[i].parentNode.label.trim() : '';
+              let fullText = parentText ? parentText + ' > ' + optionText : optionText;
+              // Try by fullText (parent > child)
+              if (fullText === catName) {
+                sel.selectedIndex = i;
+                found = true;
+                break;
+              }
+              // Try by text
+              if (optionText === catName) {
+                sel.selectedIndex = i;
+                found = true;
+                break;
+              }
+              // Try by value (PK)
+              if (sel.options[i].value && catName === sel.options[i].value) {
+                sel.selectedIndex = i;
+                found = true;
+                break;
+              }
+            }
+            if (!found) sel.selectedIndex = 0;
+          }
+        }
+        if (sugMem && sugMem.textContent) {
+          const memNames = sugMem.textContent.replace('Membros: ','').split(',').map(s=>s.trim());
+          const sel = document.getElementById('bulk-membros-input');
+          if (sel) {
+            for (let i=0;i<sel.options.length;i++) {
+              sel.options[i].selected = memNames.includes(sel.options[i].text);
+            }
+          }
+        }
+        if (sugAno && sugAno.textContent) {
+          const anoVal = sugAno.textContent.replace('Anotação: ','');
+          const inp = document.getElementById('bulk-anotacao-input');
+          if (inp) inp.value = anoVal;
+        }
+      });
+    }
+    update();
   }
 
   setupBulk('vis');

@@ -1,4 +1,19 @@
 from __future__ import annotations
+from django.views.decorators.http import require_POST
+from django.http import HttpResponseRedirect
+# Inline annotation editing for credit card transaction
+@require_POST
+def transacao_anotacao(request, pk):
+    """Edita a anotação de uma transação de cartão (inline)."""
+    anotacao = request.POST.get('anotacao', '').strip()
+    if anotacao:
+        anotacao = anotacao[0].upper() + anotacao[1:] if len(anotacao) > 1 else anotacao.upper()
+    transacao = get_object_or_404(TransacaoCartao, pk=pk)
+    transacao.anotacao = anotacao
+    transacao.save(update_fields=['anotacao'])
+    next_url = request.POST.get('next') or reverse('cartao_credito:transacoes_lista')
+    return HttpResponseRedirect(next_url)
+
 
 import hashlib
 import re
@@ -252,10 +267,29 @@ def listar_faturas_disco(request):
     Varre DADOS_DIR/cartao_credito/**/*.pdf e mostra quais já foram
     importados (via FaturaCartao.arquivo_hash) e quais estão pendentes.
     """
+    import re as _re
     dados_dir = getattr(settings, 'DADOS_DIR', Path(settings.BASE_DIR) / 'data')
     raiz_cc   = dados_dir / 'cartao_credito'
 
     hashes_importados = set(FaturaCartao.objects.values_list('arquivo_hash', flat=True))
+
+    # índice (cartao_final, competencia_date) → fatura, para detectar arquivos
+    # renomeados cujo hash ainda não foi sincronizado no banco
+    _faturas_por_cartao_comp: dict = {}
+    for f in FaturaCartao.objects.select_related('cartao'):
+        _faturas_por_cartao_comp[(f.cartao.cartao_final, f.competencia)] = f
+
+    _NOME_PADRAO = _re.compile(r'^(\d+)-(\d{4})-(\d{2})(?:_\d+)?\.pdf$', _re.I)
+
+    def _inferir_fatura_por_nome(nome: str):
+        """Retorna FaturaCartao se o nome bate com padrão cartao_final-YYYY-MM.pdf."""
+        m = _NOME_PADRAO.match(nome)
+        if not m:
+            return None
+        cartao_final, ano, mes = m.group(1), int(m.group(2)), int(m.group(3))
+        from datetime import date as _date
+        comp = _date(ano, mes, 1)
+        return _faturas_por_cartao_comp.get((cartao_final, comp))
 
     arquivos = sorted(raiz_cc.rglob('*.pdf')) if raiz_cc.exists() else []
 
@@ -272,12 +306,37 @@ def listar_faturas_disco(request):
         ano         = partes[1] if len(partes) > 2 else '—'
         caminho_rel = str(arq.relative_to(dados_dir))
 
+        importado = sha in hashes_importados
+
+        if not importado and sha:
+            # Arquivo renomeado: hash não bate mas existe fatura com mesmo cartão/mês
+            fatura_match = _inferir_fatura_por_nome(arq.name)
+            if fatura_match:
+                # Sincroniza o hash no banco silenciosamente
+                fatura_match.arquivo_hash = sha
+                fatura_match.fonte_arquivo = str(arq)
+                fatura_match.save(update_fields=['arquivo_hash', 'fonte_arquivo'])
+                hashes_importados.add(sha)
+                importado = True
+            else:
+                # Arquivo original não normalizado: verifica se há duplicata com
+                # mesmo conteúdo (mesmo hash) no mesmo diretório já importada
+                for irmao in arq.parent.iterdir():
+                    if irmao == arq or irmao.suffix.lower() != '.pdf':
+                        continue
+                    try:
+                        if hash_pdf(irmao.read_bytes()) == sha:
+                            importado = True
+                            break
+                    except OSError:
+                        pass
+
         itens.append({
             'caminho':    caminho_rel,
             'nome':       arq.name,
             'membro':     membro_slug.replace('-', ' ').replace('_', ' ').title(),
             'ano':        ano,
-            'importado':  sha in hashes_importados,
+            'importado':  importado,
             'tamanho_kb': round(len(raw) / 1024, 1) if raw else 0,
         })
 
@@ -608,6 +667,28 @@ def transacoes_bulk_action(request):
             qs.update(oculta=True)
         elif action == 'mostrar':
             qs.update(oculta=False)
+        elif action == 'editar_tudo':
+            cat_id = request.POST.get('categoria_id', '')
+            membro_ids = request.POST.getlist('membro_ids')
+            anotacao = request.POST.get('anotacao_bulk', '').strip()
+            if anotacao:
+                anotacao = anotacao[0].upper() + anotacao[1:] if len(anotacao) > 1 else anotacao.upper()
+            for t in qs:
+                # Categoria
+                if cat_id:
+                    try:
+                        cat = Categoria.objects.get(pk=cat_id)
+                        t.categoria = cat
+                    except Categoria.DoesNotExist:
+                        t.categoria = None
+                elif cat_id == '':
+                    t.categoria = None
+                # Membros
+                if membro_ids:
+                    t.membros.set(membro_ids)
+                # Anotacao
+                t.anotacao = anotacao
+                t.save()
         elif action == 'categorizar':
             cat_id = request.POST.get('categoria_id', '')
             if cat_id:
@@ -622,6 +703,13 @@ def transacoes_bulk_action(request):
             membro_ids = request.POST.getlist('membro_ids')
             for t in qs:
                 t.membros.set(membro_ids)
+        elif action == 'anotacao_bulk':
+            anotacao = request.POST.get('anotacao_bulk', '').strip()
+            if anotacao:
+                anotacao = anotacao[0].upper() + anotacao[1:] if len(anotacao) > 1 else anotacao.upper()
+            for t in qs:
+                t.anotacao = anotacao
+                t.save(update_fields=['anotacao'])
 
     return redirect(voltar) if voltar else redirect('cartao_credito:transacoes_lista')
 

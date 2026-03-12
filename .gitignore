@@ -3,7 +3,15 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.so
+
+*.sqlite3
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
 *.egg
 *.egg-info/
 dist/
@@ -13,30 +21,83 @@ build/
 # Virtual environments
 venv/
 .venv/
+ENV/
 env/
 .env/
 
 # Django
+*.log
+*.pot
+*.pyc
 *.sqlite3
 *.db
 /staticfiles/
 /media/
 local_settings.py
 
-# Data files (faturas, extratos)
-/data/
+# VS Code
+.vscode/
 
-# Environment variables
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+*.bak
+*.tmp
+
+# Other
+out.txt
+
+# Ignore old migrations
+*/migrations/__pycache__/
+*/__pycache__/
+
+# Ignore data folders
+/data/
+/data/old/
+
+# Ignore environment files
 .env
 .env.*
 !.env.example
 
-# IDE
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
+# Ignore merge conflict files
+*.orig
+*.rej
 
+# Ignore test outputs
+*.coverage
+htmlcov/
+
+# Ignore build
+build/
+dist/
+
+# Ignore package
+*.egg-info/
+
+# Ignore cache
+.cache/
+
+# Ignore node
+node_modules/
+
+# Ignore lock files
+package-lock.json
+pipfile.lock
+
+# Ignore personal settings
+*.sublime-workspace
+*.sublime-project
+
+# Ignore Windows
+*.~
+*.swp
+*.swo
 # OS
 .DS_Store
 Thumbs.db

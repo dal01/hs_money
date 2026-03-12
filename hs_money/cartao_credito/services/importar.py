@@ -199,9 +199,8 @@ def importar_arquivo_pdf_bb(
 
         existe = Transacao.objects.filter(
             fatura=fatura,
-            data=l.data,
-            descricao=l.descricao[:255],
-            valor=valor_db,
+            hash_linha=l.hash_linha,
+            hash_ordem=l.hash_ordem,
         ).exists()
         if existe:
             result.pulados += 1

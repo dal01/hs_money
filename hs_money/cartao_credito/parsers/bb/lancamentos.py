@@ -8,6 +8,8 @@ from decimal import Decimal
 from collections import defaultdict
 from typing import List, Tuple, Optional
 
+from hs_money.core.utils import limpar_prefixo_descricao
+
 # ------------------ helpers ------------------
 def sha1(s: str) -> str:
     import hashlib as _h
@@ -225,6 +227,7 @@ def parse_lancamentos(
 
         descricao = " ".join(p for p in desc_partes if p).strip()
         descricao = re.sub(r"\s{2,}", " ", descricao).strip()
+        descricao = limpar_prefixo_descricao(descricao)
 
         # fallback: se ficou vazio, usa 1ª linha sem data apenas removendo valor
         if not descricao:
