@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg
+*.eggs
+*.whl
+*.env
+venv/
+ENV/
+env/
+
+# Django
+*.log
+*.pot
+*.pyc
+*.sqlite3
+*.db
+
+# VS Code
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+*.bak
+*.tmp
+
+# Other
+out.txt
+
+# Ignore old migrations
+*/migrations/__pycache__/
+*/__pycache__/
+
+# Ignore data folders
+/data/
+
+# Ignore old folders
+/data/old/
+
+# Ignore environment files
+.env
+
+# Ignore merge conflict files
+*.orig
+*.rej
+
+# Ignore test outputs
+*.coverage
+htmlcov/
+
+# Ignore build
+build/
+dist/
+
+# Ignore package
+*.egg-info/
+
+# Ignore cache
+.cache/
+
+# Ignore node
+node_modules/
+
+# Ignore lock files
+package-lock.json
+pipfile.lock
+
+# Ignore personal settings
+*.sublime-workspace
+*.sublime-project
+
+# Ignore Windows
+*.~
+*.swp
+*.swo
