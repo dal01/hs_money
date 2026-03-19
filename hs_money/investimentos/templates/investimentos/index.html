@@ -151,8 +151,8 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
-  const labels = [{% for row in monthly_totals %}"{{ row.label }}"{% if not forloop.last %},{% endif %}{% endfor %}];
-  const valores = [{% for row in monthly_totals %}{{ row.total }}{% if not forloop.last %},{% endif %}{% endfor %}];
+  const labels = {{ chart_labels|safe }};
+  const valores = {{ chart_valores|safe }};
 
   new Chart(document.getElementById('chartSaldos'), {
     type: 'line',

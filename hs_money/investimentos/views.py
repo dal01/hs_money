@@ -1,4 +1,5 @@
 import calendar
+import json
 from datetime import date
 from decimal import Decimal
 from collections import defaultdict
@@ -67,10 +68,15 @@ def index(request):
                 total += sinal * best
         monthly_totals.append({'label': label, 'total': total})
 
+    chart_labels = json.dumps([row['label'] for row in monthly_totals])
+    chart_valores = json.dumps([float(row['total']) for row in monthly_totals])
+
     return render(request, 'investimentos/index.html', {
         'investimentos': investimentos,
         'monthly_totals': monthly_totals,
         'selected_ids': selected_ids,
+        'chart_labels': chart_labels,
+        'chart_valores': chart_valores,
     })
 
 
