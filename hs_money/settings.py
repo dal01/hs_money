@@ -33,7 +33,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # DEVE ser o segundo
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -87,11 +87,21 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
-# Arquivos estáticos
+# --- CONFIGURAÇÃO DE ARQUIVOS ESTÁTICOS (AJUSTADA) ---
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# WhiteNoise: Uso de Finders para evitar 404 em volumes Docker
+WHITENOISE_USE_FINDERS = True
+
+# Storage simples (StaticFilesStorage) é mais estável para depurar que o Manifest
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
+
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+# -----------------------------------------------------
 
 # Chave primária padrão
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -100,4 +110,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 from django.contrib.messages import constants as message_constants
 MESSAGE_TAGS = {
     message_constants.ERROR: 'danger',
+}
+
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
 }

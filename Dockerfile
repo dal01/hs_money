@@ -22,8 +22,8 @@ COPY . .
 # --- O AJUSTE ESTÁ AQUI ---
 # Coleta os arquivos estáticos (CSS/JS do Admin) para a pasta definida no STATIC_ROOT
 # O --noinput evita que o Docker trave pedindo confirmação
-RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["gunicorn", "hs_money.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+# Substitua o seu CMD atual por este:
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn hs_money.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"]
