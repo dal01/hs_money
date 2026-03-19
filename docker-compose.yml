@@ -7,8 +7,8 @@ services:
       SECRET_KEY: ${SECRET_KEY:?Defina SECRET_KEY}
       DEBUG: ${DEBUG:-False}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
-      DB_NAME: ${DB_NAME:-hsmoney_db}
-      DB_USER: ${DB_USER:-hsmoney}
+      DB_NAME: hsmoney_db
+      DB_USER: admin
       DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD}
       DB_HOST: postgres
       DB_PORT: 5432
@@ -20,6 +20,7 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
+    command: sh -c "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn hs_money.wsgi:application --bind 0.0.0.0:8000"
 
 networks:
   db_stack_default:
