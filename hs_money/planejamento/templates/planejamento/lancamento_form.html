@@ -1,0 +1,118 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .field-pontual, .field-recorrente { transition: .2s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{% url 'planejamento:lancamento_lista' %}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
+  <h1 class="h4 mb-0">{{ titulo }}</h1>
+</div>
+
+<div class="card shadow-sm" style="max-width:600px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label">Descrição</label>
+        {{ form.descricao }}
+        {% if form.descricao.errors %}<div class="text-danger small">{{ form.descricao.errors }}</div>{% endif %}
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-6">
+          <label class="form-label">Valor (R$)</label>
+          {{ form.valor }}
+          <div class="form-text">Negativo = débito, positivo = crédito</div>
+          {% if form.valor.errors %}<div class="text-danger small">{{ form.valor.errors }}</div>{% endif %}
+        </div>
+        <div class="col-6">
+          <label class="form-label">Tipo</label>
+          {{ form.tipo }}
+          {% if form.tipo.errors %}<div class="text-danger small">{{ form.tipo.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      {# Pontual fields #}
+      <div id="rows-pontual">
+        <div class="mb-3">
+          <label class="form-label">Data</label>
+          {{ form.data }}
+          {% if form.data.errors %}<div class="text-danger small">{{ form.data.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      {# Recorrente fields #}
+      <div id="rows-recorrente">
+        <div class="mb-3">
+          <label class="form-label">Periodicidade</label>
+          {{ form.periodicidade }}
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-3">
+            <label class="form-label">Dia</label>
+            {{ form.dia_do_mes }}
+            {% if form.dia_do_mes.errors %}<div class="text-danger small">{{ form.dia_do_mes.errors }}</div>{% endif %}
+          </div>
+          <div id="row-mes-ano" class="col-4" style="display:none">
+            <label class="form-label">Mês</label>
+            {{ form.mes_do_ano }}
+            {% if form.mes_do_ano.errors %}<div class="text-danger small">{{ form.mes_do_ano.errors }}</div>{% endif %}
+          </div>
+          <div class="col">
+            <label class="form-label">Início (opcional)</label>
+            {{ form.data_inicio }}
+            {% if form.data_inicio.errors %}<div class="text-danger small">{{ form.data_inicio.errors }}</div>{% endif %}
+          </div>
+          <div class="col">
+            <label class="form-label">Fim (opcional)</label>
+            {{ form.data_fim }}
+            {% if form.data_fim.errors %}<div class="text-danger small">{{ form.data_fim.errors }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3 form-check">
+        {{ form.ativo }}
+        <label class="form-check-label">Ativo</label>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">💾 Salvar</button>
+        <a href="{% url 'planejamento:lancamento_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const tipoSel   = document.getElementById('id_tipo');
+  const periodSel = document.getElementById('id_periodicidade');
+  const rowPontual     = document.getElementById('rows-pontual');
+  const rowRecorrente  = document.getElementById('rows-recorrente');
+  const rowMesAno      = document.getElementById('row-mes-ano');
+
+  function update() {
+    const isPontual = tipoSel.value === 'pontual';
+    rowPontual.style.display    = isPontual ? '' : 'none';
+    rowRecorrente.style.display = isPontual ? 'none' : '';
+    if (!isPontual) {
+      rowMesAno.style.display = periodSel.value === 'anual' ? '' : 'none';
+    }
+  }
+
+  tipoSel.addEventListener('change', update);
+  periodSel.addEventListener('change', update);
+  update();
+})();
+</script>
+{% endblock %}

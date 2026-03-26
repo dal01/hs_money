@@ -1,0 +1,71 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Sugerir Recorrentes{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{% url 'planejamento:lancamento_lista' %}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
+  <h1 class="h4 mb-0">🔍 Sugestão de Recorrentes</h1>
+</div>
+
+<p class="text-muted">
+  Abaixo estão transações de conta corrente dos últimos 12 meses que aparecem em
+  <strong>3 ou mais meses</strong> com valor similar. Selecione as que deseja adicionar
+  ao planejamento como lançamentos recorrentes.
+</p>
+
+{% if not candidates %}
+  <div class="alert alert-info">Nenhuma transação recorrente identificada no período.</div>
+{% else %}
+<form method="post">
+  {% csrf_token %}
+  <div class="card shadow-sm mb-4">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width:36px"><input type="checkbox" id="sel-all" class="form-check-input"></th>
+          <th>Descrição</th>
+          <th class="text-end">Valor médio</th>
+          <th class="text-center">Meses</th>
+          <th class="text-center">Dia do mês</th>
+          <th>Categoria</th>
+          <th>Membro</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in candidates %}
+        <tr>
+          <td>
+            <input type="checkbox" name="sel_{{ c.key }}" value="1"
+                   class="form-check-input row-check">
+          </td>
+          <td>{{ c.descricao }}</td>
+          <td class="text-end fw-semibold {% if c.valor_medio >= 0 %}text-success{% else %}text-danger{% endif %}">
+            R$ {{ c.valor_medio|brl }}
+          </td>
+          <td class="text-center small">{{ c.n_meses }}</td>
+          <td class="text-center">
+            <input type="number" name="dia_{{ c.key }}" value="{{ c.dia_do_mes }}"
+                   min="1" max="28" class="form-control form-control-sm text-center" style="width:60px;display:inline">
+          </td>
+          <td class="small">{{ c.categoria|default:"—" }}</td>
+          <td class="small">{{ c.membro|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <button type="submit" class="btn btn-primary">➕ Criar selecionados</button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('sel-all').addEventListener('change', function () {
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}

@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'hs_money.conta_corrente.apps.ContaCorrenteConfig',
     'hs_money.relatorios.apps.RelatoriosConfig',
     'hs_money.investimentos.apps.InvestimentosConfig',
+    'hs_money.planejamento.apps.PlanejamentoConfig',
 ]
 
 MIDDLEWARE = [

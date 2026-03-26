@@ -1,0 +1,194 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Planejamento{% endblock %}
+
+{% block extra_head %}
+<style>
+  .saldo-positivo { color: #198754; }
+  .saldo-negativo { color: #dc3545; }
+  .mes-passado .accordion-button { opacity: .6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">📅 Planejamento</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'planejamento:lancamento_lista' %}" class="btn btn-outline-primary">📋 Lançamentos</a>
+    <a href="{% url 'planejamento:sugerir' %}" class="btn btn-outline-success">🔍 Sugerir recorrentes</a>
+    <a href="{% url 'planejamento:ajuste_cartao_lista' %}" class="btn btn-outline-secondary">💳 Ajustes cartão</a>
+    <a href="{% url 'planejamento:patrimonio_config' %}" class="btn btn-outline-secondary" title="Configurar patrimônio">⚙️</a>
+  </div>
+</div>
+
+{# Summary row #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-lg-3">
+    <div class="card text-center border-primary" role="button" data-bs-toggle="modal" data-bs-target="#modalPatrimonio" style="cursor:pointer">
+      <div class="card-body py-2">
+        <div class="small text-muted">Patrimônio líquido</div>
+        <div class="fs-5 fw-bold {% if patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
+          R$ {{ patrimonio|brl }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-lg-3">
+    <div class="card text-center">
+      <div class="card-body py-2">
+        <div class="small text-muted">Média mensal cartão (3m)</div>
+        <div class="fs-5 fw-bold saldo-negativo">— R$ {{ media_cartao|brl }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Modal detalhamento patrimônio #}
+<div class="modal fade" id="modalPatrimonio" tabindex="-1" aria-labelledby="modalPatrimonioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalPatrimonioLabel">Composição do Patrimônio Líquido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for item in inv_itens %}
+            <tr>
+              <td class="ps-3">
+                {{ item.nome }}
+                {% if item.data_ref %}<span class="text-muted ms-1" style="font-size:.75rem">{{ item.data_ref|date:"d/m/Y" }}</span>{% endif %}
+              </td>
+              <td class="text-end pe-3 fw-semibold {% if item.saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
+                R$ {{ item.saldo|brl }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="ps-3 fst-italic text-muted">Nenhum investimento selecionado. <a href="{% url 'planejamento:patrimonio_config' %}">Configurar ⚙️</a></td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light border-top">
+            <tr class="fw-bold">
+              <td class="ps-3">Total</td>
+              <td class="text-end pe-3 {% if patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
+                R$ {{ patrimonio|brl }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <a href="{% url 'planejamento:patrimonio_config' %}" class="btn btn-outline-secondary btn-sm">⚙️ Configurar</a>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Month projections #}
+<div class="accordion" id="accordionMeses">
+{% for mes in meses %}
+<div class="accordion-item {% if mes.e_passado %}mes-passado{% endif %}">
+  <h2 class="accordion-header">
+    <button class="accordion-button collapsed" type="button"
+            data-bs-toggle="collapse" data-bs-target="#mes-{{ mes.ano }}-{{ mes.mes }}"
+            aria-expanded="false">
+      <span class="me-auto">{{ mes.mes_nome }} {{ mes.ano }}</span>
+      <span class="me-2 fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
+        R$ {{ mes.saldo_final|brl }}
+      </span>
+    </button>
+  </h2>
+  <div id="mes-{{ mes.ano }}-{{ mes.mes }}" class="accordion-collapse collapse">
+    <div class="accordion-body p-0">
+      <table class="table table-sm mb-0">
+        <colgroup>
+          <col style="width:80px">
+          <col>
+          <col style="width:140px">
+          {% if not mes.e_passado %}<col style="width:40px">{% endif %}
+        </colgroup>
+        <tbody>
+
+          {# ── Débitos ── #}
+          <tr class="table-light">
+            <td colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}" class="ps-3 fw-semibold small text-danger">
+              ↓ Débitos
+            </td>
+          </tr>
+          {% for oc in mes.ocorrencias %}{% if oc.valor < 0 %}
+          <tr>
+            <td class="ps-3 text-muted small">{{ oc.data|date:"d/m" }}</td>
+            <td>{{ oc.descricao }}</td>
+            <td class="text-end pe-3 fw-semibold saldo-negativo">R$ {{ oc.valor|brl }}</td>
+            {% if not mes.e_passado %}
+            <td class="pe-2">
+              <a href="{% url 'planejamento:lancamento_editar' oc.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">✏</a>
+            </td>
+            {% endif %}
+          </tr>
+          {% endif %}{% endfor %}
+          {# CC projection row #}
+          <tr class="table-warning">
+            <td class="ps-3 text-muted small"></td>
+            <td class="fst-italic text-muted small">💳 Cartão de crédito (estimativa)</td>
+            <td class="text-end pe-3 fw-semibold saldo-negativo">R$ {{ mes.total_cartao|brl }}</td>
+            {% if not mes.e_passado %}<td></td>{% endif %}
+          </tr>
+
+          {# ── Créditos ── #}
+          <tr class="table-light border-top">
+            <td colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}" class="ps-3 fw-semibold small text-success">
+              ↑ Créditos
+            </td>
+          </tr>
+          {% for oc in mes.ocorrencias %}{% if oc.valor >= 0 %}
+          <tr>
+            <td class="ps-3 text-muted small">{{ oc.data|date:"d/m" }}</td>
+            <td>{{ oc.descricao }}</td>
+            <td class="text-end pe-3 fw-semibold saldo-positivo">R$ {{ oc.valor|brl }}</td>
+            {% if not mes.e_passado %}
+            <td class="pe-2">
+              <a href="{% url 'planejamento:lancamento_editar' oc.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">✏</a>
+            </td>
+            {% endif %}
+          </tr>
+          {% endif %}{% endfor %}
+          {% if not mes.ocorrencias %}
+          <tr><td colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}" class="ps-3 text-muted small fst-italic">Sem lançamentos pontuais</td></tr>
+          {% endif %}
+
+        </tbody>
+        <tfoot>
+          <tr class="table-light border-top">
+            <td class="ps-3 fw-semibold small text-muted" colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}">Total</td>
+          </tr>
+          <tr>
+            <td class="ps-3 text-muted small"></td>
+            <td class="small">Créditos</td>
+            <td class="text-end pe-3 fw-semibold saldo-positivo">R$ {{ mes.creditos|brl }}</td>
+            {% if not mes.e_passado %}<td></td>{% endif %}
+          </tr>
+          <tr>
+            <td class="ps-3 text-muted small"></td>
+            <td class="small">Débitos (incl. cartão)</td>
+            <td class="text-end pe-3 fw-semibold saldo-negativo">R$ {{ mes.debitos|brl }}</td>
+            {% if not mes.e_passado %}<td></td>{% endif %}
+          </tr>
+          <tr class="table-secondary fw-bold">
+            <td class="ps-3" colspan="2">Saldo do mês</td>
+            <td class="text-end pe-3 {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
+              R$ {{ mes.total_mes|brl }}
+            </td>
+            {% if not mes.e_passado %}<td></td>{% endif %}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

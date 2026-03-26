@@ -1,0 +1,84 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Ajustes – Cartão Médio{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{% url 'planejamento:index' %}" class="btn btn-outline-secondary btn-sm">← Calendário</a>
+  <h1 class="h4 mb-0">💳 Ajustes da Média Mensal do Cartão</h1>
+</div>
+
+<p class="text-muted">
+  Média mensal atual (últimos 12 meses): <strong class="text-danger">R$ {{ media_cartao|brl }}</strong>.
+  <br>
+  Use esta tela para excluir valores atípicos (ex.: compra de carro) do cálculo.
+</p>
+
+<div class="row g-4">
+  {# Form to add new adjustment #}
+  <div class="col-12 col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header">Novo ajuste</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Mês</label>
+            {{ form.mes }}
+            {% if form.mes.errors %}<div class="text-danger small">{{ form.mes.errors }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Valor a excluir (R$)</label>
+            {{ form.valor }}
+            {% if form.valor.errors %}<div class="text-danger small">{{ form.valor.errors }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descrição</label>
+            {{ form.descricao }}
+            {% if form.descricao.errors %}<div class="text-danger small">{{ form.descricao.errors }}</div>{% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary">💾 Salvar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# Existing adjustments #}
+  <div class="col-12 col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header">Ajustes existentes</div>
+      {% if ajustes %}
+      <table class="table table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Mês</th>
+            <th>Descrição</th>
+            <th class="text-end">Valor excluído</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for aj in ajustes %}
+          <tr>
+            <td>{{ aj.mes|date:"m/Y" }}</td>
+            <td>{{ aj.descricao }}</td>
+            <td class="text-end text-success fw-semibold">R$ {{ aj.valor|brl }}</td>
+            <td class="text-end pe-3">
+              <form method="post" action="{% url 'planejamento:ajuste_cartao_excluir' aj.pk %}"
+                    class="d-inline" onsubmit="return confirm('Excluir este ajuste?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">🗑</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div class="card-body text-muted small">Nenhum ajuste cadastrado.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

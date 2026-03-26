@@ -89,6 +89,10 @@
         <a class="nav-link {% if request.resolver_match.app_name == 'investimentos' %}active{% endif %}"
            href="{% url 'investimentos:index' %}">💹 Investimentos</a>
       </li>
+      <li class="nav-item mt-2">
+        <a class="nav-link {% if request.resolver_match.app_name == 'planejamento' %}active{% endif %}"
+           href="{% url 'planejamento:index' %}">📅 Planejamento</a>
+      </li>
     </ul>
   </nav>
 

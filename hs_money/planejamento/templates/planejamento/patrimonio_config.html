@@ -1,0 +1,61 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Configurar Patrimônio{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{% url 'planejamento:index' %}" class="btn btn-outline-secondary btn-sm">← Calendário</a>
+  <h1 class="h4 mb-0">⚙️ Configurar Patrimônio Líquido</h1>
+</div>
+
+<p class="text-muted">
+  Selecione os investimentos que devem compor o saldo de partida do calendário de planejamento.
+  O saldo mais recente de cada investimento selecionado será somado ao saldo da conta corrente.
+</p>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card shadow-sm mb-4">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width:40px"></th>
+          <th>Investimento</th>
+          <th>Membro</th>
+          <th>Instituição</th>
+          <th>Tipo</th>
+          <th class="text-end">Último saldo</th>
+          <th class="text-end text-muted small">Referência</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{% if row.selecionado %}table-success{% endif %}">
+          <td class="ps-3">
+            <input type="checkbox" name="investimentos" value="{{ row.inv.pk }}"
+                   class="form-check-input"
+                   {% if row.selecionado %}checked{% endif %}>
+          </td>
+          <td>{{ row.inv.nome }}</td>
+          <td class="small">{{ row.inv.membro|default:"—" }}</td>
+          <td class="small">{{ row.inv.instituicao }}</td>
+          <td class="small">{{ row.inv.get_tipo_display }}</td>
+          <td class="text-end fw-semibold {% if row.inv.tipo_financeiro == 'DEBITO' %}text-danger{% else %}text-success{% endif %}">
+            {% if row.saldo is not None %}
+              {% if row.inv.tipo_financeiro == 'DEBITO' %}-{% endif %}R$ {{ row.saldo|brl }}
+            {% else %}
+              <span class="text-muted small">sem saldo</span>
+            {% endif %}
+          </td>
+          <td class="text-end text-muted small">{{ row.data_ref|date:"d/m/Y"|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="ps-3 text-muted fst-italic">Nenhum investimento ativo cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <button type="submit" class="btn btn-primary">💾 Salvar</button>
+</form>
+{% endblock %}
