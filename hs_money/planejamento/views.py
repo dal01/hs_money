@@ -6,6 +6,7 @@ Projection calendar + CRUD for planned entries + recurring-transaction suggestio
 from __future__ import annotations
 
 import calendar
+import json
 import re
 from collections import defaultdict
 from datetime import date, timedelta
@@ -100,6 +101,8 @@ def _saldo_investimentos_selecionados(membro_id=None) -> tuple[Decimal, list]:
             'nome': str(inv),
             'saldo': saldo,
             'data_ref': ultimo.data if ultimo else None,
+            'projecao_percentual': inv.projecao_percentual,
+            'projecao_adicional': inv.projecao_adicional,
         })
     return total, itens
 
@@ -112,7 +115,7 @@ def _patrimonio_liquido(membro_id=None) -> tuple[Decimal, list]:
 
 def _media_mensal_cartao(membro_id=None) -> Decimal:
     """
-    Mean of monthly CC *spending* over the last 12 complete months.
+    Mean of monthly CC *spending* over the last 3 complete months.
     Adjustments (AjusteCartaoMes) reduce the monthly total before averaging.
     Returns a positive Decimal representing average monthly spend.
     """
@@ -179,6 +182,13 @@ def index(request):
     meses = []
     saldo_acumulado = patrimonio
 
+    # Running projected saldo per investment (for those with projection rules)
+    saldos_proj = {
+        item['nome']: item['saldo']
+        for item in inv_itens
+        if item['projecao_percentual'] is not None or item['projecao_adicional'] is not None
+    }
+
     for i in range(12):
         total_offset = (today.month - 1 + i)
         mes_num = total_offset % 12 + 1
@@ -208,7 +218,31 @@ def index(request):
         debitos  = sum(o['valor'] for o in ocorrencias if o['valor'] < ZERO)
         # CC projection: negative (spending)
         total_cartao = -(media_cartao)
-        total_mes = creditos + debitos + total_cartao
+
+        # Investment projection: advance each investment's running saldo by one month
+        crescimento_inv = ZERO
+        crescimento_inv_detail = []
+        for item in inv_itens:
+            nome = item['nome']
+            if nome not in saldos_proj:
+                continue
+            s = saldos_proj[nome]
+            pct = item['projecao_percentual'] or ZERO
+            adic = item['projecao_adicional'] or ZERO
+            s_novo = s * (1 + pct / 100) + adic
+            rendimento = s_novo - s
+            crescimento_inv += rendimento
+            saldos_proj[nome] = s_novo
+            crescimento_inv_detail.append({
+                'nome': nome,
+                'pct': float(pct),
+                'adic': float(adic),
+                'saldo_antes': float(s),
+                'saldo_depois': float(s_novo),
+                'rendimento': float(rendimento),
+            })
+
+        total_mes = creditos + debitos + total_cartao + crescimento_inv
         saldo_acumulado += total_mes
 
         meses.append({
@@ -221,6 +255,8 @@ def index(request):
             'creditos': creditos,
             'debitos': debitos + total_cartao,
             'total_cartao': total_cartao,
+            'crescimento_inv': crescimento_inv,
+            'crescimento_inv_json': json.dumps(crescimento_inv_detail, ensure_ascii=False),
             'total_mes': total_mes,
             'saldo_final': saldo_acumulado,
         })
@@ -241,13 +277,31 @@ def index(request):
 # ---------------------------------------------------------------------------
 
 def lancamento_lista(request):
+    VALID_ORDERS = {'descricao', 'valor', 'dia'}
+    order = request.GET.get('order', 'descricao')
+    direction = request.GET.get('dir', 'asc')
+    if order not in VALID_ORDERS:
+        order = 'descricao'
+    if direction not in ('asc', 'desc'):
+        direction = 'asc'
+
+    p = '-' if direction == 'desc' else ''
+    if order == 'valor':
+        sort_fields = [f'{p}valor']
+    elif order == 'dia':
+        sort_fields = [f'{p}dia_do_mes', f'{p}data']
+    else:  # descricao (default)
+        sort_fields = [f'{p}descricao']
+
     lancamentos = (
         LancamentoPlanejado.objects
         .select_related('categoria', 'membro')
-        .order_by('ativo', 'tipo', 'dia_do_mes', 'data', 'descricao')
+        .order_by('-ativo', 'tipo', *sort_fields)
     )
     return render(request, 'planejamento/lancamento_lista.html', {
         'lancamentos': lancamentos,
+        'order': order,
+        'dir': direction,
     })
 
 
@@ -406,17 +460,62 @@ def sugerir_recorrentes(request):
 # ---------------------------------------------------------------------------
 
 def ajuste_cartao_lista(request):
+    from hs_money.cartao_credito.models import Transacao as TCC
+
     ajustes = AjusteCartaoMes.objects.all()
     form = AjusteCartaoMesForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Ajuste salvo.')
         return redirect('planejamento:ajuste_cartao_lista')
+
+    today = date.today()
+    inicio = _meses_atras(today, 3)
+    fim_excl = today.replace(day=1)
+
+    qs = TCC.objects.filter(
+        oculta=False,
+        valor__lt=0,
+        fatura__competencia__gte=inicio,
+        fatura__competencia__lt=fim_excl,
+    ).select_related('fatura')
+
+    monthly_bruto: dict[tuple, Decimal] = defaultdict(ZERO.__class__)
+    for t in qs:
+        key = (t.fatura.competencia.year, t.fatura.competencia.month)
+        monthly_bruto[key] += abs(t.valor)
+
+    ajustes_map: dict[tuple, Decimal] = defaultdict(ZERO.__class__)
+    for aj in AjusteCartaoMes.objects.filter(mes__gte=inicio, mes__lt=fim_excl):
+        key = (aj.mes.year, aj.mes.month)
+        ajustes_map[key] += aj.valor
+
+    breakdown = []
+    cur = inicio
+    while cur < fim_excl:
+        key = (cur.year, cur.month)
+        bruto = monthly_bruto.get(key, ZERO)
+        ajuste = ajustes_map.get(key, ZERO)
+        liquido = max(ZERO, bruto - ajuste)
+        breakdown.append({
+            'label': f"{MESES_NOME[cur.month][:3]}/{cur.year}",
+            'mes_iso': cur.strftime('%Y-%m-%d'),
+            'bruto': bruto,
+            'ajuste': ajuste,
+            'liquido': liquido,
+        })
+        m, y = cur.month + 1, cur.year
+        if m > 12:
+            m, y = 1, y + 1
+        cur = date(y, m, 1)
+
     media = _media_mensal_cartao()
     return render(request, 'planejamento/ajuste_cartao.html', {
         'ajustes': ajustes,
         'form': form,
         'media_cartao': media,
+        'breakdown': breakdown,
+        'n_meses': len(breakdown),
     })
 
 

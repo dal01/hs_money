@@ -36,6 +36,17 @@ class Investimento(models.Model):
     )
     ativo = models.BooleanField('Ativo', default=True)
 
+    projecao_percentual = models.DecimalField(
+        'Variação mensal (%)', max_digits=8, decimal_places=4,
+        null=True, blank=True,
+        help_text='Ex: 1.5 para crescer 1,5% ao mês.',
+    )
+    projecao_adicional = models.DecimalField(
+        'Ajuste fixo mensal (R$)', max_digits=14, decimal_places=2,
+        null=True, blank=True,
+        help_text='Somado ao saldo todo mês. Negativo = resgata; positivo = aporta.',
+    )
+
     class Meta:
         verbose_name = 'Investimento'
         verbose_name_plural = 'Investimentos'

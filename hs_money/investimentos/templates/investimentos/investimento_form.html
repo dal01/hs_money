@@ -52,6 +52,26 @@
         <label class="form-check-label">Ativo</label>
       </div>
 
+      <hr class="my-3">
+      <p class="small text-muted mb-2">
+        <strong>Projeção mensal</strong> (opcional) — usado no calendário de planejamento.<br>
+        Fórmula aplicada mês a mês: <code>saldo × (1 + % / 100) + ajuste fixo</code>
+      </p>
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">Variação mensal (%)</label>
+          {{ form.projecao_percentual }}
+          {% if form.projecao_percentual.errors %}<div class="text-danger small">{{ form.projecao_percentual.errors }}</div>{% endif %}
+          <div class="form-text">Deixe em branco para não projetar.</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">Ajuste fixo mensal (R$)</label>
+          {{ form.projecao_adicional }}
+          {% if form.projecao_adicional.errors %}<div class="text-danger small">{{ form.projecao_adicional.errors }}</div>{% endif %}
+          <div class="form-text">Negativo = resgata; positivo = aporta todo mês.</div>
+        </div>
+      </div>
+
       <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">Salvar</button>
         <a href="{% url 'investimentos:index' %}" class="btn btn-outline-secondary">Cancelar</a>

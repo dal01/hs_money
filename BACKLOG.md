@@ -9,10 +9,7 @@
 
 ## Investimentos
 Em vez de ser últimos 12 meses, quero poder escolher o período
-Preciso de uma feature que faz o calculo de rendimento ou subtracao mensal
-Ex: Alberto = saldo + 15%
-Kimie = saldo + 1% - Prevent 
-No planejamento ele deve pegar esses valores
+
 
 ## Relatorios
 Precisa achar solucao pra pagamentos que fazemos para os amigos. Ex: paguei Xique xique para todos e depois dividimos
@@ -23,6 +20,7 @@ Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi 
 
   ## Lançamentos recorrentes (conta corrente)
   Contas variáveis (água, luz):pega média dos últimos 12 meses
+  precisa de um botao para recalcular, mas eu mudei o nome, acho que vai precisar guardar o nome original no BD
 
 
 ## Obs

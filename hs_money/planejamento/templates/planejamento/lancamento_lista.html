@@ -24,9 +24,21 @@
   <table class="table table-hover mb-0">
     <thead class="table-light">
       <tr>
-        <th>Descrição</th>
-        <th class="text-center">Dia / Data</th>
-        <th class="text-end">Valor</th>
+        <th>
+          <a href="{% sort_url 'descricao' %}" class="text-decoration-none text-dark">
+            Descrição {% if order == 'descricao' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
+          </a>
+        </th>
+        <th class="text-center">
+          <a href="{% sort_url 'dia' %}" class="text-decoration-none text-dark">
+            Dia / Data {% if order == 'dia' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
+          </a>
+        </th>
+        <th class="text-end">
+          <a href="{% sort_url 'valor' %}" class="text-decoration-none text-dark">
+            Valor {% if order == 'valor' %}{% if dir == 'asc' %}↑{% else %}↓{% endif %}{% endif %}
+          </a>
+        </th>
         <th class="text-center">Ativo</th>
         <th></th>
       </tr>

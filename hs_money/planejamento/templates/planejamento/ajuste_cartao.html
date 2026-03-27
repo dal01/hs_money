@@ -9,11 +9,47 @@
   <h1 class="h4 mb-0">💳 Ajustes da Média Mensal do Cartão</h1>
 </div>
 
-<p class="text-muted">
-  Média mensal atual (últimos 12 meses): <strong class="text-danger">R$ {{ media_cartao|brl }}</strong>.
-  <br>
-  Use esta tela para excluir valores atípicos (ex.: compra de carro) do cálculo.
+<p class="text-muted mb-1">
+  Média mensal dos últimos <strong>{{ n_meses }} meses completos</strong>:
+  <strong class="text-danger">R$ {{ media_cartao|brl }}</strong>
 </p>
+<p class="text-muted small mb-3">
+  Use ajustes para excluir do cálculo despesas que não se repetirão (ex.: parcela de carro que terminou, despesa pontual).
+  Clique em <strong>Ajustar</strong> em um mês para pré-preencher o formulário.
+</p>
+
+{% if breakdown %}
+<div class="card mb-4 shadow-sm">
+  <div class="card-header fw-semibold">Detalhamento do período</div>
+  <table class="table table-sm mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Mês</th>
+        <th class="text-end">Total cartão</th>
+        <th class="text-end">Ajuste</th>
+        <th class="text-end">Considerado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in breakdown %}
+      <tr>
+        <td class="fw-semibold">{{ row.label }}</td>
+        <td class="text-end">R$ {{ row.bruto|brl }}</td>
+        <td class="text-end {% if row.ajuste %}text-success fw-semibold{% else %}text-muted{% endif %}">
+          {% if row.ajuste %}− R$ {{ row.ajuste|brl }}{% else %}—{% endif %}
+        </td>
+        <td class="text-end fw-semibold">R$ {{ row.liquido|brl }}</td>
+        <td class="text-end pe-3">
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+                  onclick="prefillMes('{{ row.mes_iso }}')">Ajustar</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
 
 <div class="row g-4">
   {# Form to add new adjustment #}
@@ -81,4 +117,13 @@
     </div>
   </div>
 </div>
+
+<script>
+function prefillMes(isoDate) {
+  const input = document.getElementById('id_mes');
+  input.value = isoDate;
+  input.closest('.card').scrollIntoView({behavior: 'smooth', block: 'start'});
+  document.getElementById('id_valor').focus();
+}
+</script>
 {% endblock %}

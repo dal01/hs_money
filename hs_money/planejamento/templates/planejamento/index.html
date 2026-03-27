@@ -156,6 +156,18 @@
             {% endif %}
           </tr>
           {% endif %}{% endfor %}
+          {% if mes.crescimento_inv %}
+          <tr class="table-success" style="cursor:pointer"
+              data-bs-toggle="modal" data-bs-target="#modalRendimento"
+              data-label="{{ mes.mes_nome }} {{ mes.ano }}"
+              data-detail='{{ mes.crescimento_inv_json }}'
+              title="Ver detalhamento">
+            <td class="ps-3 text-muted small"></td>
+            <td class="fst-italic text-muted small">📈 Rendimento investimentos <span class="text-muted" style="font-size:.75rem">▸</span></td>
+            <td class="text-end pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">R$ {{ mes.crescimento_inv|brl }}</td>
+            {% if not mes.e_passado %}<td></td>{% endif %}
+          </tr>
+          {% endif %}
           {% if not mes.ocorrencias %}
           <tr><td colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}" class="ps-3 text-muted small fst-italic">Sem lançamentos pontuais</td></tr>
           {% endif %}
@@ -177,6 +189,14 @@
             <td class="text-end pe-3 fw-semibold saldo-negativo">R$ {{ mes.debitos|brl }}</td>
             {% if not mes.e_passado %}<td></td>{% endif %}
           </tr>
+          {% if mes.crescimento_inv %}
+          <tr>
+            <td class="ps-3 text-muted small"></td>
+            <td class="small">Rendimento investimentos</td>
+            <td class="text-end pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">R$ {{ mes.crescimento_inv|brl }}</td>
+            {% if not mes.e_passado %}<td></td>{% endif %}
+          </tr>
+          {% endif %}
           <tr class="table-secondary fw-bold">
             <td class="ps-3" colspan="2">Saldo do mês</td>
             <td class="text-end pe-3 {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
@@ -191,4 +211,84 @@
 </div>
 {% endfor %}
 </div>
+
+{# Modal detalhamento rendimento investimentos #}
+<div class="modal fade" id="modalRendimento" tabindex="-1" aria-labelledby="modalRendimentoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalRendimentoLabel">📈 Rendimento investimentos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body p-0">
+        <p class="px-3 pt-3 mb-2 text-muted small" id="modalRendimentoSubtitle"></p>
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Investimento</th>
+              <th class="text-end">Saldo início</th>
+              <th class="text-end">Rendimento</th>
+              <th class="text-end pe-3">Saldo fim</th>
+            </tr>
+          </thead>
+          <tbody id="modalRendimentoBody"></tbody>
+          <tfoot class="table-light border-top fw-bold" id="modalRendimentoFoot"></tfoot>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function brl(v) {
+    return v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+  function colorClass(v) {
+    return v >= 0 ? 'saldo-positivo' : 'saldo-negativo';
+  }
+
+  document.getElementById('modalRendimento').addEventListener('show.bs.modal', function (e) {
+    const row = e.relatedTarget;
+    const label = row.dataset.label;
+    const detail = JSON.parse(row.dataset.detail);
+
+    document.getElementById('modalRendimentoSubtitle').textContent = label;
+
+    const tbody = document.getElementById('modalRendimentoBody');
+    tbody.innerHTML = '';
+    let totalAntes = 0, totalRendimento = 0, totalDepois = 0;
+    detail.forEach(function (d) {
+      const rend = d.rendimento;
+      let desc = [];
+      if (d.pct !== 0) desc.push(d.pct.toLocaleString('pt-BR', {maximumFractionDigits: 4}) + '%');
+      if (d.adic !== 0) desc.push((d.adic >= 0 ? '+' : '') + 'R$ ' + brl(d.adic));
+      const descStr = desc.length ? ' <span class="text-muted" style="font-size:.75rem">[' + desc.join(', ') + ']</span>' : '';
+      tbody.insertAdjacentHTML('beforeend',
+        '<tr>' +
+        '<td class="ps-3">' + d.nome + descStr + '</td>' +
+        '<td class="text-end">R$ ' + brl(d.saldo_antes) + '</td>' +
+        '<td class="text-end fw-semibold ' + colorClass(rend) + '">R$ ' + brl(rend) + '</td>' +
+        '<td class="text-end pe-3">R$ ' + brl(d.saldo_depois) + '</td>' +
+        '</tr>'
+      );
+      totalAntes += d.saldo_antes;
+      totalRendimento += d.rendimento;
+      totalDepois += d.saldo_depois;
+    });
+
+    const tfoot = document.getElementById('modalRendimentoFoot');
+    tfoot.innerHTML =
+      '<tr>' +
+      '<td class="ps-3">Total</td>' +
+      '<td class="text-end">R$ ' + brl(totalAntes) + '</td>' +
+      '<td class="text-end ' + colorClass(totalRendimento) + '">R$ ' + brl(totalRendimento) + '</td>' +
+      '<td class="text-end pe-3">R$ ' + brl(totalDepois) + '</td>' +
+      '</tr>';
+  });
+}());
+</script>
 {% endblock %}
