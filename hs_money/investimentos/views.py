@@ -11,34 +11,82 @@ from .models import Investimento, Movimentacao, SaldoInvestimento
 from .forms import InvestimentoForm, MovimentacaoForm, SaldoForm
 
 
-def _ultimos_12_meses():
-    """Retorna lista de (date_inicio, date_fim, label) dos últimos 12 meses."""
-    today = date.today()
+def _meses_no_periodo(inicio: date, fim: date):
+    """Retorna lista de (date_inicio, date_fim, label) entre inicio e fim."""
     meses = []
-    for i in range(11, -1, -1):
-        total = today.year * 12 + today.month - 1 - i
-        y, m = divmod(total, 12)
-        m += 1
+    y, m = inicio.year, inicio.month
+    while (y, m) <= (fim.year, fim.month):
         ultimo_dia = calendar.monthrange(y, m)[1]
         meses.append((date(y, m, 1), date(y, m, ultimo_dia), f'{m:02d}/{y}'))
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
     return meses
+
+
+def _parse_periodo(request, selected_ids):
+    """
+    Lê os parâmetros GET 'inicio' e 'fim' (YYYY-MM-DD).
+    Retorna (inicio, fim) como date. Se inválidos usa últimos 12 meses.
+    """
+    today = date.today()
+    atalho = request.GET.get('atalho', '')
+
+    if atalho == 'ano_atual':
+        inicio = date(today.year, 1, 1)
+        fim = date(today.year, 12, 31)
+    elif atalho == 'ano_anterior':
+        inicio = date(today.year - 1, 1, 1)
+        fim = date(today.year - 1, 12, 31)
+    elif atalho == 'historico':
+        from .models import SaldoInvestimento
+        primeiro = SaldoInvestimento.objects.filter(
+            investimento_id__in=selected_ids,
+            saldo__gt=0
+        ).order_by('data').first()
+        
+        if primeiro:
+            inicio = primeiro.data.replace(day=1)
+        else:
+            inicio = date(today.year, 1, 1)
+        fim = today
+    else:
+        # Tenta ler params manuais; cai no default de 12 meses
+        try:
+            inicio = date.fromisoformat(request.GET['inicio'])
+        except (KeyError, ValueError):
+            inicio = None
+        try:
+            fim = date.fromisoformat(request.GET['fim'])
+        except (KeyError, ValueError):
+            fim = None
+
+        if not inicio or not fim or inicio > fim:
+            # default: últimos 12 meses
+            total = today.year * 12 + today.month - 1 - 11
+            y_i, m_i = divmod(total, 12)
+            m_i += 1
+            inicio = date(y_i, m_i, 1)
+            fim = today
+            atalho = 'ultimos12'
+
+    return inicio, fim, atalho
 
 
 def index(request):
     investimentos = list(Investimento.objects.select_related('instituicao', 'membro').order_by('membro', 'nome'))
 
     # Filtro: quais investimentos incluir nos totais
-    selected_ids_str = request.GET.getlist('inv')
-    if selected_ids_str:
-        try:
-            selected_ids = [int(i) for i in selected_ids_str]
-        except ValueError:
-            selected_ids = [inv.pk for inv in investimentos]
+    if 'filtrado' in request.GET:
+        selected_ids = [int(i) for i in request.GET.getlist('inv') if i.isdigit()]
+    elif request.GET.getlist('inv'):
+        selected_ids = [int(i) for i in request.GET.getlist('inv') if i.isdigit()]
     else:
         selected_ids = [inv.pk for inv in investimentos]
 
-    meses = _ultimos_12_meses()
-    data_limite = meses[-1][1]
+    inicio, fim, atalho = _parse_periodo(request, selected_ids)
+    meses = _meses_no_periodo(inicio, fim)
+    data_limite = meses[-1][1] if meses else fim
 
     all_saldos = list(
         SaldoInvestimento.objects
@@ -71,7 +119,12 @@ def index(request):
         'investimentos': investimentos,
         'monthly_totals': monthly_totals,
         'selected_ids': selected_ids,
+        'periodo_inicio': inicio.isoformat(),
+        'periodo_fim': fim.isoformat(),
+        'periodo_label': f'{inicio.strftime("%m/%Y")} → {fim.strftime("%m/%Y")}',
+        'atalho': atalho,
     })
+
 
 
 def investimento_criar(request):

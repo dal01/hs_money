@@ -1,4 +1,4 @@
-﻿{% extends "core/base.html" %}
+{% extends "core/base.html" %}
 {% load hs_filters %}
 
 {% block title %}Investimentos  HS Money{% endblock %}
@@ -10,7 +10,7 @@
 </div>
 
 <!-- Filtro de investimentos -->
-<div class="card mb-4">
+<div class="card mb-3">
   <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
     <span>Filtrar investimentos no total</span>
     <div class="d-flex gap-2">
@@ -20,6 +20,10 @@
   </div>
   <div class="card-body">
     <form id="filtroForm" method="get" action="">
+      <input type="hidden" name="inicio" value="{{ periodo_inicio }}">
+      <input type="hidden" name="fim" value="{{ periodo_fim }}">
+      {% if atalho %}<input type="hidden" name="atalho" value="{{ atalho }}">{% endif %}
+      <input type="hidden" name="filtrado" value="1">
       <div class="d-flex flex-wrap gap-3">
         {% for inv in investimentos %}
         <div class="form-check">
@@ -37,11 +41,42 @@
   </div>
 </div>
 
+<!-- Seletor de período -->
+<div class="card mb-4">
+  <div class="card-body py-2">
+    <form id="periodoForm" method="get" action="" class="d-flex flex-wrap align-items-center gap-2">
+      {# preservar filtro de investimentos selecionados #}
+      {% for inv_id in selected_ids %}
+      <input type="hidden" name="inv" value="{{ inv_id }}">
+      {% endfor %}
+      <input type="hidden" name="filtrado" value="1">
+      <span class="text-muted small me-1">Período:</span>
+      <a href="?atalho=ano_atual{% for id in selected_ids %}&inv={{ id }}{% endfor %}&filtrado=1"
+         class="btn btn-sm {% if atalho == 'ano_atual' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Ano atual</a>
+      <a href="?atalho=ano_anterior{% for id in selected_ids %}&inv={{ id }}{% endfor %}&filtrado=1"
+         class="btn btn-sm {% if atalho == 'ano_anterior' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Ano anterior</a>
+      <a href="?atalho=ultimos12{% for id in selected_ids %}&inv={{ id }}{% endfor %}&filtrado=1"
+         class="btn btn-sm {% if atalho == 'ultimos12' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Últimos 12 meses</a>
+      <a href="?atalho=historico{% for id in selected_ids %}&inv={{ id }}{% endfor %}&filtrado=1"
+         class="btn btn-sm {% if atalho == 'historico' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Histórico completo</a>
+      <div class="d-flex align-items-center gap-1 ms-2">
+        <input type="date" name="inicio" class="form-control form-control-sm" style="width:145px"
+               value="{{ periodo_inicio }}" id="inputInicio">
+        <span class="text-muted">→</span>
+        <input type="date" name="fim" class="form-control form-control-sm" style="width:145px"
+               value="{{ periodo_fim }}" id="inputFim">
+        <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
 <!-- Grafico + Tabela mensal -->
 <div class="row g-4 mb-4">
   <div class="col-xl-8">
     <div class="card h-100">
-      <div class="card-header fw-semibold">Evolucao do patrimonio ultimos 12 meses</div>
+      <div class="card-header fw-semibold">Evolução do patrimônio — {{ periodo_label }}</div>
       <div class="card-body">
         <canvas id="chartSaldos" height="120"></canvas>
       </div>
