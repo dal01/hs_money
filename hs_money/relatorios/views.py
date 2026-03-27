@@ -292,6 +292,10 @@ def dashboard(request):
     from hs_money.core.models import Categoria as _Cat
     membros = Membro.objects.order_by('ordem', 'nome')
     macros_cats = list(_Cat.objects.filter(nivel=1).prefetch_related('subcategorias').order_by('nome'))
+    
+    excluir_cats_nomes = []
+    if excluir_cats:
+        excluir_cats_nomes = list(_Cat.objects.filter(pk__in=excluir_cats).values('pk', 'nome'))
 
     # --- querysets ---
     lista_cc     = list(_cc_qs(ano_sel, mes_sel, membro_sel, excluir_cats))
@@ -345,6 +349,7 @@ def dashboard(request):
         'cat_nivel':        cat_nivel,
         'macros_cats':      macros_cats,
         'excluir_cats':     excluir_cats,
+        'excluir_cats_nomes': excluir_cats_nomes,
     }
     return render(request, 'relatorios/dashboard.html', context)
 

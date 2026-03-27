@@ -12,7 +12,6 @@ Criar uma forma visual de ver os pagamentos parcelados futuros
 
 
 ## Investimentos
-Em vez de ser últimos 12 meses, quero poder escolher o período
   
 ## Relatorios
 Precisa achar solucao pra pagamentos que fazemos para os amigos. Ex: paguei Xique xique para todos e depois dividimos
@@ -30,6 +29,7 @@ Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi 
 Transferencias entre Dalton e Andrea devem ser ocultas, elas não são receitas nem despesas
   Isso vai dar diferença apenas quando analisar saldos individuais
 Transacoes estornadas, devem ser ignoradas
+  Fazer uma ferramenta para detectar lançamentos com valores opostos Ex: +100,00 e -100,00. QUando detectados esses lançamentos posso ignorar/ocultar
 
 
 
