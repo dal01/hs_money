@@ -55,7 +55,7 @@
           {{ form.periodicidade }}
         </div>
         <div class="row g-3 mb-3">
-          <div class="col-3">
+          <div id="row-dia-mes" class="col-3">
             <label class="form-label">Dia</label>
             {{ form.dia_do_mes }}
             {% if form.dia_do_mes.errors %}<div class="text-danger small">{{ form.dia_do_mes.errors }}</div>{% endif %}
@@ -64,6 +64,11 @@
             <label class="form-label">Mês</label>
             {{ form.mes_do_ano }}
             {% if form.mes_do_ano.errors %}<div class="text-danger small">{{ form.mes_do_ano.errors }}</div>{% endif %}
+          </div>
+          <div id="row-dia-semana" class="col-5" style="display:none">
+            <label class="form-label">Dia da semana</label>
+            {{ form.dia_da_semana }}
+            {% if form.dia_da_semana.errors %}<div class="text-danger small">{{ form.dia_da_semana.errors }}</div>{% endif %}
           </div>
           <div class="col">
             <label class="form-label">Início (opcional)</label>
@@ -95,18 +100,24 @@
 {% block extra_scripts %}
 <script>
 (function () {
-  const tipoSel   = document.getElementById('id_tipo');
-  const periodSel = document.getElementById('id_periodicidade');
+  const tipoSel     = document.getElementById('id_tipo');
+  const periodSel   = document.getElementById('id_periodicidade');
   const rowPontual     = document.getElementById('rows-pontual');
   const rowRecorrente  = document.getElementById('rows-recorrente');
   const rowMesAno      = document.getElementById('row-mes-ano');
+  const rowDiaMes      = document.getElementById('row-dia-mes');
+  const rowDiaSemana   = document.getElementById('row-dia-semana');
 
   function update() {
-    const isPontual = tipoSel.value === 'pontual';
+    const isPontual  = tipoSel.value === 'pontual';
+    const isSemanal  = periodSel.value === 'semanal';
+    const isAnual    = periodSel.value === 'anual';
     rowPontual.style.display    = isPontual ? '' : 'none';
     rowRecorrente.style.display = isPontual ? 'none' : '';
     if (!isPontual) {
-      rowMesAno.style.display = periodSel.value === 'anual' ? '' : 'none';
+      rowDiaMes.style.display    = isSemanal ? 'none' : '';
+      rowMesAno.style.display    = isAnual   ? '' : 'none';
+      rowDiaSemana.style.display = isSemanal ? '' : 'none';
     }
   }
 

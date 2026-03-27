@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -14,11 +14,23 @@ class LancamentoPlanejado(models.Model):
         (TIPO_RECORRENTE, 'Recorrente'),
     ]
 
-    PERIOD_MENSAL = 'mensal'
-    PERIOD_ANUAL  = 'anual'
+    PERIOD_MENSAL   = 'mensal'
+    PERIOD_ANUAL    = 'anual'
+    PERIOD_SEMANAL  = 'semanal'
     PERIOD_CHOICES = [
-        (PERIOD_MENSAL, 'Mensal'),
-        (PERIOD_ANUAL,  'Anual'),
+        (PERIOD_MENSAL,  'Mensal'),
+        (PERIOD_ANUAL,   'Anual'),
+        (PERIOD_SEMANAL, 'Semanal'),
+    ]
+
+    DIA_SEMANA_CHOICES = [
+        (0, 'Segunda-feira'),
+        (1, 'Terça-feira'),
+        (2, 'Quarta-feira'),
+        (3, 'Quinta-feira'),
+        (4, 'Sexta-feira'),
+        (5, 'Sábado'),
+        (6, 'Domingo'),
     ]
 
     descricao = models.CharField('Descrição', max_length=200)
@@ -37,7 +49,7 @@ class LancamentoPlanejado(models.Model):
     # Recorrente-specific
     periodicidade = models.CharField(
         'Periodicidade', max_length=10, choices=[
-            ('mensal', 'Mensal'), ('anual', 'Anual'),
+            ('mensal', 'Mensal'), ('anual', 'Anual'), ('semanal', 'Semanal'),
         ], default='mensal',
     )
     dia_do_mes = models.PositiveSmallIntegerField(
@@ -49,6 +61,11 @@ class LancamentoPlanejado(models.Model):
         'Mês', null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(12)],
         help_text='Mês de ocorrência (apenas para periodicidade anual)',
+    )
+    dia_da_semana = models.PositiveSmallIntegerField(
+        'Dia da semana', null=True, blank=True,
+        choices=DIA_SEMANA_CHOICES,
+        help_text='Dia da semana para recorrência semanal (0=Segunda … 6=Domingo)',
     )
     data_inicio = models.DateField(
         'Data início', null=True, blank=True,
@@ -87,10 +104,15 @@ class LancamentoPlanejado(models.Model):
         from django.core.exceptions import ValidationError
         if self.tipo == self.TIPO_PONTUAL and not self.data:
             raise ValidationError({'data': 'Data é obrigatória para lançamentos pontuais.'})
-        if self.tipo == self.TIPO_RECORRENTE and not self.dia_do_mes:
-            raise ValidationError({'dia_do_mes': 'Dia do mês é obrigatório para lançamentos recorrentes.'})
-        if self.tipo == self.TIPO_RECORRENTE and self.periodicidade == self.PERIOD_ANUAL and not self.mes_do_ano:
-            raise ValidationError({'mes_do_ano': 'Mês é obrigatório para recorrência anual.'})
+        if self.tipo == self.TIPO_RECORRENTE:
+            if self.periodicidade == self.PERIOD_SEMANAL:
+                if self.dia_da_semana is None:
+                    raise ValidationError({'dia_da_semana': 'Dia da semana é obrigatório para recorrência semanal.'})
+            else:
+                if not self.dia_do_mes:
+                    raise ValidationError({'dia_do_mes': 'Dia do mês é obrigatório para lançamentos recorrentes.'})
+            if self.periodicidade == self.PERIOD_ANUAL and not self.mes_do_ano:
+                raise ValidationError({'mes_do_ano': 'Mês é obrigatório para recorrência anual.'})
         if (self.data_inicio and self.data_fim
                 and self.data_inicio > self.data_fim):
             raise ValidationError({'data_fim': 'Data fim deve ser posterior à data início.'})
@@ -104,6 +126,22 @@ class LancamentoPlanejado(models.Model):
             if self.data and inicio <= self.data <= fim:
                 return [(self.data, self.valor)]
             return []
+
+        if self.periodicidade == self.PERIOD_SEMANAL:
+            # Fires every week on the chosen weekday
+            result = []
+            # Find first matching weekday >= inicio
+            days_ahead = (self.dia_da_semana - inicio.weekday()) % 7
+            d = inicio + timedelta(days=days_ahead)
+            while d <= fim:
+                if self.data_inicio and d < self.data_inicio:
+                    d += timedelta(weeks=1)
+                    continue
+                if self.data_fim and d > self.data_fim:
+                    break
+                result.append((d, self.valor))
+                d += timedelta(weeks=1)
+            return result
 
         if self.periodicidade == self.PERIOD_ANUAL:
             # Fires once a year on dia_do_mes / mes_do_ano

@@ -6,10 +6,13 @@
 ## Conta corrente
 
 ## Cartao de credito
+Fazer controle de pagamentos parcelados
+
 
 ## Investimentos
 Em vez de ser últimos 12 meses, quero poder escolher o período
-
+  Criar uma forma visual de ver os pagamentos parcelados futuros
+    fazer gráfico de parcelados mes a mes para ver se o volume esta aumentando ou diminuindo
 
 ## Relatorios
 Precisa achar solucao pra pagamentos que fazemos para os amigos. Ex: paguei Xique xique para todos e depois dividimos
@@ -21,6 +24,9 @@ Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi 
   ## Lançamentos recorrentes (conta corrente)
   Contas variáveis (água, luz):pega média dos últimos 12 meses
   precisa de um botao para recalcular, mas eu mudei o nome, acho que vai precisar guardar o nome original no BD
+
+  Colocar recorrencia semanal (dia da semana)
+  Colocar botao de adicionar lancamento no calendario
 
 
 ## Obs

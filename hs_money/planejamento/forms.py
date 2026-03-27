@@ -13,11 +13,28 @@ MES_CHOICES = [
     (9, 'Setembro'), (10, 'Outubro'), (11, 'Novembro'), (12, 'Dezembro'),
 ]
 
+DIA_SEMANA_CHOICES = [
+    ('', '---'),
+    (0, 'Segunda-feira'),
+    (1, 'Terça-feira'),
+    (2, 'Quarta-feira'),
+    (3, 'Quinta-feira'),
+    (4, 'Sexta-feira'),
+    (5, 'Sábado'),
+    (6, 'Domingo'),
+]
+
 
 class LancamentoPlanejadoForm(forms.ModelForm):
     mes_do_ano = forms.ChoiceField(
         label='Mês',
         choices=[('', '---')] + MES_CHOICES,
+        required=False,
+        widget=forms.Select(attrs=_SELECT_CLASS),
+    )
+    dia_da_semana = forms.ChoiceField(
+        label='Dia da semana',
+        choices=DIA_SEMANA_CHOICES,
         required=False,
         widget=forms.Select(attrs=_SELECT_CLASS),
     )
@@ -27,7 +44,7 @@ class LancamentoPlanejadoForm(forms.ModelForm):
         fields = [
             'descricao', 'valor', 'tipo',
             'data',
-            'periodicidade', 'dia_do_mes', 'mes_do_ano', 'data_inicio', 'data_fim',
+            'periodicidade', 'dia_do_mes', 'mes_do_ano', 'dia_da_semana', 'data_inicio', 'data_fim',
             'ativo',
         ]
         widgets = {
@@ -44,6 +61,12 @@ class LancamentoPlanejadoForm(forms.ModelForm):
 
     def clean_mes_do_ano(self):
         v = self.cleaned_data.get('mes_do_ano')
+        if v == '' or v is None:
+            return None
+        return int(v)
+
+    def clean_dia_da_semana(self):
+        v = self.cleaned_data.get('dia_da_semana')
         if v == '' or v is None:
             return None
         return int(v)
