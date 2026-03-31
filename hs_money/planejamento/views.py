@@ -189,7 +189,7 @@ def index(request):
         if item['projecao_percentual'] is not None or item['projecao_adicional'] is not None
     }
 
-    for i in range(12):
+    for i in range(72):
         total_offset = (today.month - 1 + i)
         mes_num = total_offset % 12 + 1
         ano = today.year + total_offset // 12
@@ -261,8 +261,36 @@ def index(request):
             'saldo_final': saldo_acumulado,
         })
 
+    # Build annual projection tables for the 5 next full calendar years
+    anos_proj = []
+    target_year = today.year + 1
+    for yr in range(target_year, target_year + 5):
+        yr_meses = [m for m in meses if m['ano'] == yr]
+        if yr_meses:
+            anos_proj.append({
+                'ano': yr,
+                'meses': yr_meses,
+                'total_debitos': sum(m['debitos'] for m in yr_meses),
+                'total_creditos': sum(m['creditos'] for m in yr_meses),
+                'total_saldo': sum(m['total_mes'] for m in yr_meses),
+            })
+
+    meses = meses[:12]
+
+    # Current year remaining months table
+    ano_atual_meses = [m for m in meses if m['ano'] == today.year]
+    ano_atual = {
+        'ano': today.year,
+        'meses': ano_atual_meses,
+        'total_debitos': sum(m['debitos'] for m in ano_atual_meses),
+        'total_creditos': sum(m['creditos'] for m in ano_atual_meses),
+        'total_saldo': sum(m['total_mes'] for m in ano_atual_meses),
+    }
+
     return render(request, 'planejamento/index.html', {
         'meses': meses,
+        'anos_proj': anos_proj,
+        'ano_atual': ano_atual,
         'patrimonio': patrimonio,
         'inv_itens': inv_itens,
         'media_cartao': media_cartao,

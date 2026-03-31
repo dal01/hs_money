@@ -88,7 +88,7 @@
 </div>
 
 {# Month projections #}
-<div class="accordion" id="accordionMeses">
+<div class="accordion" id="accordionMeses" style="max-width:900px">
 {% for mes in meses %}
 <div class="accordion-item {% if mes.e_passado %}mes-passado{% endif %}">
   <h2 class="accordion-header">
@@ -97,7 +97,7 @@
             aria-expanded="false">
       <span class="me-auto">{{ mes.mes_nome }} {{ mes.ano }}</span>
       <span class="me-2 fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
-        R$ {{ mes.saldo_final|brl }}
+        {{ mes.saldo_final|brl }}
       </span>
     </button>
   </h2>
@@ -122,7 +122,7 @@
           <tr>
             <td class="ps-3 text-muted small">{{ oc.data|date:"d/m" }}</td>
             <td>{{ oc.descricao }}</td>
-            <td class="text-end pe-3 fw-semibold saldo-negativo">R$ {{ oc.valor|brl }}</td>
+            <td class="text-end pe-3 fw-semibold saldo-negativo">{{ oc.valor|brl }}</td>
             {% if not mes.e_passado %}
             <td class="pe-2">
               <a href="{% url 'planejamento:lancamento_editar' oc.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">✏</a>
@@ -134,7 +134,7 @@
           <tr class="table-warning">
             <td class="ps-3 text-muted small"></td>
             <td class="fst-italic text-muted small">💳 Cartão de crédito (estimativa)</td>
-            <td class="text-end pe-3 fw-semibold saldo-negativo">R$ {{ mes.total_cartao|brl }}</td>
+            <td class="text-end pe-3 fw-semibold saldo-negativo">{{ mes.total_cartao|brl }}</td>
             {% if not mes.e_passado %}<td></td>{% endif %}
           </tr>
 
@@ -148,7 +148,7 @@
           <tr>
             <td class="ps-3 text-muted small">{{ oc.data|date:"d/m" }}</td>
             <td>{{ oc.descricao }}</td>
-            <td class="text-end pe-3 fw-semibold saldo-positivo">R$ {{ oc.valor|brl }}</td>
+            <td class="text-end pe-3 fw-semibold saldo-positivo">{{ oc.valor|brl }}</td>
             {% if not mes.e_passado %}
             <td class="pe-2">
               <a href="{% url 'planejamento:lancamento_editar' oc.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">✏</a>
@@ -164,7 +164,7 @@
               title="Ver detalhamento">
             <td class="ps-3 text-muted small"></td>
             <td class="fst-italic text-muted small">📈 Rendimento investimentos <span class="text-muted" style="font-size:.75rem">▸</span></td>
-            <td class="text-end pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">R$ {{ mes.crescimento_inv|brl }}</td>
+            <td class="text-end pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
             {% if not mes.e_passado %}<td></td>{% endif %}
           </tr>
           {% endif %}
@@ -180,27 +180,27 @@
           <tr>
             <td class="ps-3 text-muted small"></td>
             <td class="small">Créditos</td>
-            <td class="text-end pe-3 fw-semibold saldo-positivo">R$ {{ mes.creditos|brl }}</td>
+            <td class="text-end pe-3 fw-semibold saldo-positivo">{{ mes.creditos|brl }}</td>
             {% if not mes.e_passado %}<td></td>{% endif %}
           </tr>
           <tr>
             <td class="ps-3 text-muted small"></td>
             <td class="small">Débitos (incl. cartão)</td>
-            <td class="text-end pe-3 fw-semibold saldo-negativo">R$ {{ mes.debitos|brl }}</td>
+            <td class="text-end pe-3 fw-semibold saldo-negativo">{{ mes.debitos|brl }}</td>
             {% if not mes.e_passado %}<td></td>{% endif %}
           </tr>
           {% if mes.crescimento_inv %}
           <tr>
             <td class="ps-3 text-muted small"></td>
             <td class="small">Rendimento investimentos</td>
-            <td class="text-end pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">R$ {{ mes.crescimento_inv|brl }}</td>
+            <td class="text-end pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
             {% if not mes.e_passado %}<td></td>{% endif %}
           </tr>
           {% endif %}
           <tr class="table-secondary fw-bold">
             <td class="ps-3" colspan="2">Saldo do mês</td>
             <td class="text-end pe-3 {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
-              R$ {{ mes.total_mes|brl }}
+              {{ mes.total_mes|brl }}
             </td>
             {% if not mes.e_passado %}<td></td>{% endif %}
           </tr>
@@ -211,6 +211,85 @@
 </div>
 {% endfor %}
 </div>
+
+{# Annual projection tables #}
+{% if ano_atual.meses or anos_proj %}
+<h4 class="mt-5 mb-3">Projeção Anual</h4>
+<div style="max-width:900px">
+{% if ano_atual.meses %}
+<h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano_atual.ano }}</h5>
+<div class="card shadow-sm mb-4">
+  <table class="table table-sm table-hover mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Mês</th>
+        <th class="text-end">Patrimônio Líquido</th>
+        <th class="text-end">Total de Débitos</th>
+        <th class="text-end">Total de Créditos</th>
+        <th class="text-end">Saldo do Mês</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for mes in ano_atual.meses %}
+      <tr>
+        <td>{{ mes.mes_nome }}</td>
+        <td class="text-end fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
+        <td class="text-end saldo-negativo">{{ mes.debitos|brl }}</td>
+        <td class="text-end saldo-positivo">{{ mes.creditos|brl }}</td>
+        <td class="text-end fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="table-secondary fw-bold border-top">
+      <tr>
+        <td>Total</td>
+        <td></td>
+        <td class="text-end saldo-negativo">{{ ano_atual.total_debitos|brl }}</td>
+        <td class="text-end saldo-positivo">{{ ano_atual.total_creditos|brl }}</td>
+        <td class="text-end {% if ano_atual.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_saldo|brl }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endif %}
+{% for ano_data in anos_proj %}
+<h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano_data.ano }}</h5>
+<div class="card shadow-sm mb-4">
+  <table class="table table-sm table-hover mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Mês</th>
+        <th class="text-end">Patrimônio Líquido</th>
+        <th class="text-end">Total de Débitos</th>
+        <th class="text-end">Total de Créditos</th>
+        <th class="text-end">Saldo do Mês</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for mes in ano_data.meses %}
+      <tr>
+        <td>{{ mes.mes_nome }}</td>
+        <td class="text-end fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
+        <td class="text-end saldo-negativo">{{ mes.debitos|brl }}</td>
+        <td class="text-end saldo-positivo">{{ mes.creditos|brl }}</td>
+        <td class="text-end fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot class="table-secondary fw-bold border-top">
+      <tr>
+        <td>Total</td>
+        <td></td>
+        <td class="text-end saldo-negativo">{{ ano_data.total_debitos|brl }}</td>
+        <td class="text-end saldo-positivo">{{ ano_data.total_creditos|brl }}</td>
+        <td class="text-end {% if ano_data.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_saldo|brl }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endfor %}
+</div>
+{% endif %}
 
 {# Modal detalhamento rendimento investimentos #}
 <div class="modal fade" id="modalRendimento" tabindex="-1" aria-labelledby="modalRendimentoLabel" aria-hidden="true">
