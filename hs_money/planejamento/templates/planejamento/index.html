@@ -15,19 +15,10 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">📅 Planejamento</h1>
   <div class="d-flex gap-2">
-    <a href="{% url 'planejamento:lancamento_criar' %}" class="btn btn-primary">+ Novo Lançamento</a>
     <a href="{% url 'planejamento:lancamento_lista' %}" class="btn btn-outline-primary">📋 Lançamentos</a>
-    <div class="dropdown">
-      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Configurações">
-        ⚙️
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item" href="{% url 'planejamento:sugerir' %}">🔍 Sugerir recorrentes</a></li>
-        <li><a class="dropdown-item" href="{% url 'planejamento:ajuste_cartao_lista' %}">💳 Ajustes cartão</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{% url 'planejamento:patrimonio_config' %}">🏦 Configurar patrimônio</a></li>
-      </ul>
-    </div>
+    <a href="{% url 'planejamento:sugerir' %}" class="btn btn-outline-success">🔍 Sugerir recorrentes</a>
+    <a href="{% url 'planejamento:ajuste_cartao_lista' %}" class="btn btn-outline-secondary">💳 Ajustes cartão</a>
+    <a href="{% url 'planejamento:patrimonio_config' %}" class="btn btn-outline-secondary" title="Configurar patrimônio">⚙️</a>
   </div>
 </div>
 

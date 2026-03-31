@@ -55,11 +55,6 @@
             {% if l.data_inicio or l.data_fim %}
               <br><span class="text-muted">{{ l.data_inicio|date:"Y"|default:"&mdash;" }} → {{ l.data_fim|date:"Y"|default:"∞" }}</span>
             {% endif %}
-          {% elif l.periodicidade == 'semanal' %}
-            Semanal &mdash; {{ l.get_dia_da_semana_display }}
-            {% if l.data_inicio or l.data_fim %}
-              <br><span class="text-muted">{{ l.data_inicio|date:"d/m/Y"|default:"&mdash;" }} → {{ l.data_fim|date:"d/m/Y"|default:"∞" }}</span>
-            {% endif %}
           {% else %}
             Mensal &mdash; dia {{ l.dia_do_mes }}
             {% if l.data_inicio or l.data_fim %}
