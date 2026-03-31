@@ -523,6 +523,137 @@ def categoria_transacoes_json(request):
     })
 
 
+def graficos(request):
+    import datetime
+    import json
+    from collections import defaultdict
+    from django.db.models import Sum, Q
+    from django.db.models.functions import TruncMonth
+    from hs_money.core.models import Categoria as _Cat
+
+    hoje = datetime.date.today()
+    periodo = request.GET.get('periodo', '24m')
+    data_ini_str = request.GET.get('data_ini', '')
+    data_fim_str = request.GET.get('data_fim', '')
+
+    _MESES = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
+              7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
+
+    ids_fatura = list(
+        _Cat.objects.filter(nome__icontains='fatura do cart')
+        .values_list('pk', flat=True)
+    )
+
+    def _build_month_list():
+        if periodo == 'custom':
+            if data_ini_str and data_fim_str:
+                try:
+                    ini = datetime.datetime.strptime(data_ini_str, '%Y-%m').date()
+                    fim = datetime.datetime.strptime(data_fim_str, '%Y-%m').date()
+                    result, y, m = [], ini.year, ini.month
+                    while (y, m) <= (fim.year, fim.month):
+                        result.append((y, m))
+                        m += 1
+                        if m > 12:
+                            m, y = 1, y + 1
+                    return result
+                except ValueError:
+                    pass
+            return []
+        if periodo == 'ano_atual':
+            return [(hoje.year, m) for m in range(1, 13)]
+        if periodo == 'ano_anterior':
+            return [(hoje.year - 1, m) for m in range(1, 13)]
+        n = {'12m': 12, '24m': 24}.get(periodo)
+        if n:
+            result, y, m = [], hoje.year, hoje.month
+            for _ in range(n):
+                result.append((y, m))
+                m -= 1
+                if m == 0:
+                    m, y = 12, y - 1
+            return list(reversed(result))
+        return None  # 'todos'
+
+    meses_list = _build_month_list()
+
+    cc_qs = (TransacaoCC.objects
+             .filter(oculta=False)
+             .exclude(categoria_id__in=ids_fatura))
+    ca_qs = TransacaoCartao.objects.filter(oculta=False)
+
+    if meses_list:
+        d_ini = datetime.date(meses_list[0][0], meses_list[0][1], 1)
+        d_fim_ca = datetime.date(meses_list[-1][0], meses_list[-1][1], 1)
+        last_y, last_m = meses_list[-1]
+        if last_m == 12:
+            d_fim_cc = datetime.date(last_y + 1, 1, 1) - datetime.timedelta(days=1)
+        else:
+            d_fim_cc = datetime.date(last_y, last_m + 1, 1) - datetime.timedelta(days=1)
+        cc_qs = cc_qs.filter(data__gte=d_ini, data__lte=d_fim_cc)
+        ca_qs = ca_qs.filter(fatura__competencia__gte=d_ini, fatura__competencia__lte=d_fim_ca)
+
+    cc_monthly = (cc_qs
+                  .annotate(mes=TruncMonth('data'))
+                  .values('mes')
+                  .annotate(entradas=Sum('valor', filter=Q(valor__gt=0)),
+                            saidas=Sum('valor', filter=Q(valor__lt=0))))
+    ca_monthly = (ca_qs
+                  .annotate(mes=TruncMonth('fatura__competencia'))
+                  .values('mes')
+                  .annotate(entradas=Sum('valor', filter=Q(valor__gt=0)),
+                            saidas=Sum('valor', filter=Q(valor__lt=0))))
+
+    monthly: dict = defaultdict(lambda: {'entradas': ZERO, 'saidas': ZERO})
+    for row in cc_monthly:
+        k = (row['mes'].year, row['mes'].month)
+        monthly[k]['entradas'] += row['entradas'] or ZERO
+        monthly[k]['saidas'] += row['saidas'] or ZERO
+    for row in ca_monthly:
+        k = (row['mes'].year, row['mes'].month)
+        monthly[k]['entradas'] += row['entradas'] or ZERO
+        monthly[k]['saidas'] += row['saidas'] or ZERO
+
+    if meses_list is None:
+        all_keys = sorted(monthly.keys())
+        if all_keys:
+            meses_list = []
+            y, m = all_keys[0]
+            end_y, end_m = all_keys[-1]
+            while (y, m) <= (end_y, end_m):
+                meses_list.append((y, m))
+                m += 1
+                if m > 12:
+                    m, y = 1, y + 1
+        else:
+            meses_list = []
+
+    labels, entradas_data, saidas_data, saldo_data = [], [], [], []
+    for y, m in meses_list:
+        labels.append(f"{_MESES[m]}/{str(y)[2:]}")
+        e = float(monthly[(y, m)]['entradas'])
+        s = float(monthly[(y, m)]['saidas'])
+        entradas_data.append(round(e, 2))
+        saidas_data.append(round(abs(s), 2))
+        saldo_data.append(round(e + s, 2))
+
+    chart_data = json.dumps({
+        'labels': labels,
+        'entradas': entradas_data,
+        'saidas': saidas_data,
+        'saldo': saldo_data,
+    })
+
+    return render(request, 'relatorios/graficos.html', {
+        'periodo': periodo,
+        'chart_data': chart_data,
+        'ano_atual': hoje.year,
+        'ano_anterior': hoje.year - 1,
+        'data_ini': data_ini_str,
+        'data_fim': data_fim_str,
+    })
+
+
 def mes_transacoes_json(request):
     """Retorna JSON com lançamentos de um mês específico para a modal de evolução mensal."""
     from django.http import JsonResponse

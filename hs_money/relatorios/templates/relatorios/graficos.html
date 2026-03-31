@@ -1,0 +1,230 @@
+{% extends "core/base.html" %}
+
+{% block title %}Gráficos — HS Money{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  .periodo-ativo { font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">📊 Gráficos Financeiros</h4>
+  <a href="{% url 'relatorios:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Dashboard</a>
+</div>
+
+<div style="max-width:900px">
+
+  <!-- Atalhos de período -->
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <div class="btn-group" role="group" aria-label="Período">
+      <a href="?periodo=12m"
+         class="btn btn-sm btn-outline-secondary{% if periodo == '12m' %} active periodo-ativo{% endif %}">
+        12 meses
+      </a>
+      <a href="?periodo=24m"
+         class="btn btn-sm btn-outline-secondary{% if periodo == '24m' %} active periodo-ativo{% endif %}">
+        24 meses
+      </a>
+      <a href="?periodo=ano_atual"
+         class="btn btn-sm btn-outline-secondary{% if periodo == 'ano_atual' %} active periodo-ativo{% endif %}">
+        {{ ano_atual }}
+      </a>
+      <a href="?periodo=ano_anterior"
+         class="btn btn-sm btn-outline-secondary{% if periodo == 'ano_anterior' %} active periodo-ativo{% endif %}">
+        {{ ano_anterior }}
+      </a>
+      <a href="?periodo=todos"
+         class="btn btn-sm btn-outline-secondary{% if periodo == 'todos' %} active periodo-ativo{% endif %}">
+        Todos
+      </a>
+    </div>
+
+    <!-- Date picker personalizado -->
+    <form method="get" action="" class="d-flex align-items-center gap-1{% if periodo == 'custom' %} border rounded px-2 py-1 bg-light{% endif %}" id="formPeriodoCustom">
+      <input type="hidden" name="periodo" value="custom">
+      <label class="small text-muted mb-0 me-1">De</label>
+      <input type="month" name="data_ini" class="form-control form-control-sm" style="width:140px"
+             value="{{ data_ini }}" required>
+      <label class="small text-muted mb-0 mx-1">até</label>
+      <input type="month" name="data_fim" class="form-control form-control-sm" style="width:140px"
+             value="{{ data_fim }}" required>
+      <button type="submit" class="btn btn-sm {% if periodo == 'custom' %}btn-secondary{% else %}btn-outline-secondary{% endif %} ms-1">Aplicar</button>
+    </form>
+  </div>
+
+  <!-- Gráfico: Entradas -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="small text-muted fw-semibold text-uppercase mb-3" style="letter-spacing:.06em">
+        Entradas
+      </div>
+      <canvas id="chartEntradas"></canvas>
+    </div>
+  </div>
+
+  <!-- Gráfico: Saídas + mediana -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="small text-muted fw-semibold text-uppercase mb-3" style="letter-spacing:.06em">
+        Saídas
+      </div>
+      <canvas id="chartSaidas"></canvas>
+    </div>
+  </div>
+
+  <!-- Gráfico: Saldo -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="small text-muted fw-semibold text-uppercase mb-3" style="letter-spacing:.06em">
+        Saldo
+      </div>
+      <canvas id="chartSaldo"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const raw = {{ chart_data|safe }};
+
+  function fmtBRL(v) {
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  const tickFmt = function (val) {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  const tooltipFmt = {
+    callbacks: {
+      label: function (ctx) {
+        return ctx.dataset.label + ': ' + fmtBRL(ctx.parsed.y);
+      }
+    }
+  };
+
+  function mediana(arr) {
+    if (!arr.length) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  const baseScales = {
+    y: {
+      ticks: { callback: tickFmt },
+      grid: { color: 'rgba(0,0,0,0.05)' },
+    },
+    x: {
+      grid: { display: false },
+    },
+  };
+
+  // ── Gráfico 1: Entradas ───────────────────────────────────────────
+  new Chart(document.getElementById('chartEntradas'), {
+    type: 'bar',
+    data: {
+      labels: raw.labels,
+      datasets: [
+        {
+          label: 'Entradas',
+          data: raw.entradas,
+          backgroundColor: 'rgba(25, 135, 84, 0.75)',
+          borderColor: 'rgba(25, 135, 84, 1)',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: tooltipFmt,
+      },
+      scales: baseScales,
+    },
+  });
+
+  // ── Gráfico 2: Saídas + mediana ───────────────────────────────────
+  const medSaidas = mediana(raw.saidas);
+
+  new Chart(document.getElementById('chartSaidas'), {
+    data: {
+      labels: raw.labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Saídas',
+          data: raw.saidas,
+          backgroundColor: 'rgba(220, 53, 69, 0.75)',
+          borderColor: 'rgba(220, 53, 69, 1)',
+          borderWidth: 1,
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: 'Mediana',
+          data: raw.labels.map(() => medSaidas),
+          borderColor: 'rgba(255, 153, 0, 1)',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          tension: 0,
+          fill: false,
+          order: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: tooltipFmt,
+      },
+      scales: baseScales,
+    },
+  });
+
+  // ── Gráfico 3: Saldo ──────────────────────────────────────────────
+  const saldoColors = raw.saldo.map(v => v >= 0 ? 'rgba(25, 135, 84, 1)' : 'rgba(220, 53, 69, 1)');
+
+  new Chart(document.getElementById('chartSaldo'), {
+    type: 'line',
+    data: {
+      labels: raw.labels,
+      datasets: [
+        {
+          label: 'Saldo',
+          data: raw.saldo,
+          borderColor: 'rgba(13, 110, 253, 1)',
+          backgroundColor: 'rgba(13, 110, 253, 0.08)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: saldoColors,
+          pointBorderColor: saldoColors,
+          tension: 0.3,
+          fill: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: tooltipFmt,
+      },
+      scales: baseScales,
+    },
+  });
+})();
+</script>
+{% endblock %}

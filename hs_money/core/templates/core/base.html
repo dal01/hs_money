@@ -84,6 +84,16 @@
       <li class="nav-item mt-2">
         <a class="nav-link {% if request.resolver_match.app_name == 'relatorios' %}active{% endif %}"
            href="{% url 'relatorios:dashboard' %}">📈 Relatórios</a>
+        <ul class="nav flex-column ms-3 mt-1">
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.app_name == 'relatorios' %}active{% endif %}"
+               href="{% url 'relatorios:dashboard' %}">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'graficos' %}active{% endif %}"
+               href="{% url 'relatorios:graficos' %}">📊 Gráficos</a>
+          </li>
+        </ul>
       </li>
       <li class="nav-item mt-2">
         <a class="nav-link {% if request.resolver_match.app_name == 'investimentos' %}active{% endif %}"
