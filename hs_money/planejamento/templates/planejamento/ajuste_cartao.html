@@ -11,7 +11,7 @@
 
 <p class="text-muted mb-1">
   Média mensal dos últimos <strong>{{ n_meses }} meses completos</strong>:
-  <strong class="text-danger">R$ {{ media_cartao|brl }}</strong>
+  <strong class="text-danger">{{ media_cartao|brl }}</strong>
 </p>
 <p class="text-muted small mb-3">
   Use ajustes para excluir do cálculo despesas que não se repetirão (ex.: parcela de carro que terminou, despesa pontual).
@@ -21,26 +21,26 @@
 {% if breakdown %}
 <div class="card mb-4 shadow-sm">
   <div class="card-header fw-semibold">Detalhamento do período</div>
-  <table class="table table-sm mb-0">
+  <table class="table table-sm mb-0 hs-table-fixed">
     <thead class="table-light">
       <tr>
         <th>Mês</th>
-        <th class="text-end">Total cartão</th>
-        <th class="text-end">Ajuste</th>
-        <th class="text-end">Considerado</th>
-        <th></th>
+        <th class="pl-col-valor">Total cartão</th>
+        <th class="pl-col-valor">Ajuste</th>
+        <th class="pl-col-valor">Considerado</th>
+        <th class="pl-col-action"></th>
       </tr>
     </thead>
-    <tbody>
+        <tbody>
       {% for row in breakdown %}
       <tr>
         <td class="fw-semibold">{{ row.label }}</td>
-        <td class="text-end">R$ {{ row.bruto|brl }}</td>
-        <td class="text-end {% if row.ajuste %}text-success fw-semibold{% else %}text-muted{% endif %}">
-          {% if row.ajuste %}− R$ {{ row.ajuste|brl }}{% else %}—{% endif %}
+        <td class="pl-col-valor">{{ row.bruto|brl }}</td>
+        <td class="pl-col-valor {% if row.ajuste %}text-success fw-semibold{% else %}text-muted{% endif %}">
+          {% if row.ajuste %}− {{ row.ajuste|brl }}{% else %}—{% endif %}
         </td>
-        <td class="text-end fw-semibold">R$ {{ row.liquido|brl }}</td>
-        <td class="text-end pe-3">
+        <td class="pl-col-valor fw-semibold">{{ row.liquido|brl }}</td>
+        <td class="pl-col-action pe-3">
           <button type="button" class="btn btn-sm btn-outline-secondary"
                   onclick="prefillMes('{{ row.mes_iso }}')">Ajustar</button>
         </td>
@@ -65,7 +65,7 @@
             {% if form.mes.errors %}<div class="text-danger small">{{ form.mes.errors }}</div>{% endif %}
           </div>
           <div class="mb-3">
-            <label class="form-label">Valor a excluir (R$)</label>
+            <label class="form-label">Valor a excluir</label>
             {{ form.valor }}
             {% if form.valor.errors %}<div class="text-danger small">{{ form.valor.errors }}</div>{% endif %}
           </div>
@@ -85,12 +85,12 @@
     <div class="card shadow-sm">
       <div class="card-header">Ajustes existentes</div>
       {% if ajustes %}
-      <table class="table table-sm mb-0">
+      <table class="table table-sm mb-0 hs-table-fixed">
         <thead class="table-light">
           <tr>
             <th>Mês</th>
             <th>Descrição</th>
-            <th class="text-end">Valor excluído</th>
+            <th class="pl-col-valor">Valor excluído</th>
             <th></th>
           </tr>
         </thead>
@@ -99,8 +99,8 @@
           <tr>
             <td>{{ aj.mes|date:"m/Y" }}</td>
             <td>{{ aj.descricao }}</td>
-            <td class="text-end text-success fw-semibold">R$ {{ aj.valor|brl }}</td>
-            <td class="text-end pe-3">
+            <td class="pl-col-valor text-success fw-semibold">{{ aj.valor|brl }}</td>
+            <td class="pl-col-action pe-3">
               <form method="post" action="{% url 'planejamento:ajuste_cartao_excluir' aj.pk %}"
                     class="d-inline" onsubmit="return confirm('Excluir este ajuste?')">
                 {% csrf_token %}

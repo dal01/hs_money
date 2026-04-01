@@ -13,6 +13,18 @@
     .sidebar .brand { color: #fff; font-weight: 700; font-size: 1.2rem; }
     .sidebar .section-label { color: #6c757d; font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; padding: .5rem 1rem; }
     .main-content { padding: 2rem; }
+    /* Tabelas com largura fixa e colunas com largura fixa */
+    .hs-table-fixed { table-layout: fixed; width: 100%; }
+    .hs-table-fixed th, .hs-table-fixed td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .pl-col-dia { width: 80px; text-align: right; padding-right: .75rem; }
+    .pl-col-valor { width: 140px; text-align: right; padding-right: .75rem; }
+    .pl-col-action { width: 56px; text-align: center; }
+    .pl-col-checkbox { width: 36px; text-align: center; }
   </style>
   {% block extra_head %}{% endblock %}
 </head>

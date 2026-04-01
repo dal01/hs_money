@@ -321,13 +321,34 @@ def lancamento_lista(request):
     else:  # descricao (default)
         sort_fields = [f'{p}descricao']
 
-    lancamentos = (
+    lancamentos_qs = (
         LancamentoPlanejado.objects
         .select_related('categoria', 'membro')
         .order_by('-ativo', 'tipo', *sort_fields)
     )
+
+    lancamentos = list(lancamentos_qs)
+
+    # Separate pontual and recorrente entries for clearer presentation
+    pontual_list = [l for l in lancamentos if l.tipo == LancamentoPlanejado.TIPO_PONTUAL]
+    recorrente_list = [l for l in lancamentos if l.tipo == LancamentoPlanejado.TIPO_RECORRENTE]
+
+    periods = [
+        (LancamentoPlanejado.PERIOD_ANUAL, 'Anual'),
+        (LancamentoPlanejado.PERIOD_MENSAL, 'Mensal'),
+        (LancamentoPlanejado.PERIOD_SEMANAL, 'Semanal'),
+    ]
+
+    rec_periods = []
+    for key, label in periods:
+        creditos = [l for l in recorrente_list if l.periodicidade == key and l.valor > ZERO]
+        debitos = [l for l in recorrente_list if l.periodicidade == key and l.valor < ZERO]
+        rec_periods.append({'key': key, 'label': label, 'creditos': creditos, 'debitos': debitos})
+
     return render(request, 'planejamento/lancamento_lista.html', {
         'lancamentos': lancamentos,
+        'pontual_list': pontual_list,
+        'rec_periods': rec_periods,
         'order': order,
         'dir': direction,
     })

@@ -21,14 +21,14 @@
 <form method="post">
   {% csrf_token %}
   <div class="card shadow-sm mb-4">
-    <table class="table table-hover mb-0">
+    <table class="table table-hover mb-0 hs-table-fixed">
       <thead class="table-light">
         <tr>
           <th style="width:36px"><input type="checkbox" id="sel-all" class="form-check-input"></th>
           <th>Descrição</th>
-          <th class="text-end">Valor médio</th>
+          <th class="pl-col-valor">Valor médio</th>
           <th class="text-center">Meses</th>
-          <th class="text-center">Dia do mês</th>
+          <th class="pl-col-dia">Dia do mês</th>
           <th>Categoria</th>
           <th>Membro</th>
         </tr>
@@ -41,11 +41,11 @@
                    class="form-check-input row-check">
           </td>
           <td>{{ c.descricao }}</td>
-          <td class="text-end fw-semibold {% if c.valor_medio >= 0 %}text-success{% else %}text-danger{% endif %}">
-            R$ {{ c.valor_medio|brl }}
+            <td class="pl-col-valor fw-semibold {% if c.valor_medio >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ c.valor_medio|brl }}
           </td>
           <td class="text-center small">{{ c.n_meses }}</td>
-          <td class="text-center">
+          <td class="pl-col-dia">
             <input type="number" name="dia_{{ c.key }}" value="{{ c.dia_do_mes }}"
                    min="1" max="28" class="form-control form-control-sm text-center" style="width:60px;display:inline">
           </td>
