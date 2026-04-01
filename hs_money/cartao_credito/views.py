@@ -32,6 +32,16 @@ from django.urls import reverse
 from hs_money.cartao_credito.models import Cartao, FaturaCartao, Transacao as TransacaoCartao
 from hs_money.cartao_credito.parsers.bb.dados_fatura import parse_dados_fatura
 from hs_money.cartao_credito.services.importar import importar_arquivo_pdf_bb, hash_pdf
+from hs_money.cartao_credito.services.parcelados import (
+    agrupar_parcelados,
+    _extract_num_total,
+    _tem_padrao_parcelado,
+    _try_normalizar,
+)
+from django.db.models import Q
+from decimal import Decimal
+from collections import defaultdict
+import calendar
 from hs_money.core.models import Membro, InstituicaoFinanceira, Categoria
 
 
@@ -712,4 +722,465 @@ def transacoes_bulk_action(request):
                 t.save(update_fields=['anotacao'])
 
     return redirect(voltar) if voltar else redirect('cartao_credito:transacoes_lista')
+
+
+def parcelados(request):
+    """Lista de compras parceladas agrupadas por compra e por mês.
+
+    Filtros (GET):
+      - start: YYYY-MM (primeiro dia do mês)
+      - end: YYYY-MM (último dia do mês)
+      - period: '12m' (padrão), '24m', 'year', 'prev_year'
+    """
+    # Parâmetros
+    period = request.GET.get('period', '')
+    start_param = request.GET.get('start', '').strip()
+    end_param = request.GET.get('end', '').strip()
+
+    hoje = date.today()
+
+    def parse_ym(s: str):
+        if not s:
+            return None
+        try:
+            if re.match(r'^\d{4}-\d{2}$', s):
+                y, m = map(int, s.split('-'))
+                return date(y, m, 1)
+            return date.fromisoformat(s)
+        except Exception:
+            return None
+
+    def last_day_of_month(d: date) -> date:
+        last = calendar.monthrange(d.year, d.month)[1]
+        return date(d.year, d.month, last)
+
+    _re_parc_token = re.compile(r'\s*[-–]?\s*PARC\s+\d{1,2}/\d{1,2}\b', re.IGNORECASE)
+
+    def _clean_desc(texto: str) -> str:
+        """Remove 'PARC XX/XX' da descrição para exibição."""
+        if not texto:
+            return ''
+        return re.sub(r'\s+', ' ', _re_parc_token.sub('', texto)).strip()
+
+    def _add_months(d: date, n: int) -> date:
+        y = d.year + (d.month - 1 + n) // 12
+        m = (d.month - 1 + n) % 12 + 1
+        return date(y, m, 1)
+
+    # Carrega todos os grupos antes de determinar o período (necessário para calcular max_proj)
+    try:
+        grupos = agrupar_parcelados(TransacaoCartao.objects.filter(oculta=False))
+    except Exception:
+        grupos = []
+
+    all_ids = [pid for g in grupos for pid in g.lancamento_ids]
+
+    # Calcula o último mês com parcela projetada (para período padrão)
+    max_proj = date(hoje.year, hoje.month, 1)
+    for g in grupos:
+        if g.parcela_total:
+            candidate = _add_months(g.data_compra, g.parcela_total - 1)
+            if candidate > max_proj:
+                max_proj = candidate
+    try:
+        for t in TransacaoCartao.objects.filter(
+            oculta=False, parcela_total__gt=0
+        ).exclude(pk__in=all_ids).select_related('fatura'):
+            num = int(t.parcela_num) if (t.parcela_num or 0) > 0 else None
+            total = int(t.parcela_total)
+            if num and total and num < total:
+                base = (t.fatura.competencia if getattr(t, 'fatura', None) and getattr(t.fatura, 'competencia', None) else date(t.data.year, t.data.month, 1))
+                candidate = _add_months(base, total - num)
+                if candidate > max_proj:
+                    max_proj = candidate
+    except Exception:
+        pass
+
+    # Determina intervalo
+    if start_param and end_param:
+        sd = parse_ym(start_param) or date(hoje.year, hoje.month, 1)
+        ed_tmp = parse_ym(end_param) or date(hoje.year, hoje.month, 1)
+        ed = last_day_of_month(ed_tmp)
+    elif period == '24m':
+        sd = _add_months(date(hoje.year, hoje.month, 1), -23)
+        ed = last_day_of_month(hoje)
+    elif period == '12m':
+        sd = _add_months(date(hoje.year, hoje.month, 1), -11)
+        ed = last_day_of_month(hoje)
+    elif period == 'year':
+        sd = date(hoje.year, 1, 1)
+        ed = date(hoje.year, 12, 31)
+    elif period == 'prev_year':
+        sd = date(hoje.year - 1, 1, 1)
+        ed = date(hoje.year - 1, 12, 31)
+    else:
+        # Padrão: 6 meses anteriores até o fim das parcelas futuras
+        sd = _add_months(date(hoje.year, hoje.month, 1), -6)
+        ed = last_day_of_month(max_proj)
+
+    # lista de meses para exibição
+    months = []
+    cur = date(sd.year, sd.month, 1)
+    end_month = date(ed.year, ed.month, 1)
+    while cur <= end_month:
+        months.append({'year': cur.year, 'month': cur.month, 'label': f"{cur.month:02d}/{cur.year}"})
+        cur = _add_months(cur, 1)
+    trans_qs = TransacaoCartao.objects.filter(pk__in=all_ids).select_related('fatura', 'fatura__cartao', 'categoria').prefetch_related('membros')
+    trans_map = {t.pk: t for t in trans_qs}
+
+    monthly_sums: dict = defaultdict(Decimal)
+    monthly_entries: Dict[Tuple[int,int], List[Dict]] = defaultdict(list)
+    # seen keys to avoid duplicate additions: (tx_id, parcela_num_or_0)
+    monthly_seen: set = set()
+    grupos_vis = []
+    # índices para evitar duplicação entre transações diferentes com mesma assinatura
+    # assinatura = (desc_base_normalizada, parcela_total)
+    real_months_by_sig: Dict[Tuple[str, Optional[int]], set] = defaultdict(set)
+    projected_months_by_sig: Dict[Tuple[str, Optional[int]], set] = defaultdict(set)
+
+    for g in grupos:
+        trans_list = [trans_map.get(i) for i in g.lancamento_ids if trans_map.get(i)]
+        if not trans_list:
+            continue
+        # incluir grupo se alguma parcela estiver dentro do período filtrado
+        inclui = any((sd <= (t.fatura.competencia if getattr(t, 'fatura', None) and getattr(t.fatura, 'competencia', None) else date(t.data.year, t.data.month, 1)) <= ed) or (sd <= t.data <= ed) for t in trans_list)
+        if not inclui:
+            continue
+
+        # meses já presentes (evita duplicar quando existir lançamentos reais)
+        existentes = set(
+            (
+                (t.fatura.competencia.year, t.fatura.competencia.month)
+                if getattr(t, 'fatura', None) and getattr(t.fatura, 'competencia', None)
+                else (t.data.year, t.data.month)
+            )
+            for t in trans_list
+        )
+
+        # adiciona entradas reais e acumula valores
+        for t in trans_list:
+            inst_date_real = (t.fatura.competencia if getattr(t, 'fatura', None) and getattr(t.fatura, 'competencia', None) else date(t.data.year, t.data.month, 1))
+            if sd <= inst_date_real <= ed:
+                key = (inst_date_real.year, inst_date_real.month)
+
+                # parcela num/total (prefere campos do modelo, senão infere da descrição)
+                num = int(t.parcela_num) if (t.parcela_num or 0) > 0 else None
+                total = int(t.parcela_total) if (t.parcela_total or 0) > 0 else None
+                if (num is None or total is None) and (t.descricao or ''):
+                    try:
+                        inf_n, inf_t = _extract_num_total(t.descricao or '')
+                        if num is None:
+                            num = inf_n
+                        if total is None:
+                            total = inf_t
+                    except Exception:
+                        num, total = num, total
+
+                pnum = num or 0
+                seen_key = (t.pk, pnum)
+                if seen_key in monthly_seen:
+                    continue
+                monthly_seen.add(seen_key)
+
+                monthly_sums[key] += Decimal(t.valor or 0)
+
+                parcela_token = t.etiqueta_parcela or (f"PARC {num:02d}/{total:02d}" if (num and total) else '')
+                categoria_nome = (t.categoria.nome if getattr(t, 'categoria', None) else '')
+                membros_nomes = [m.nome for m in t.membros.all()]
+
+                monthly_entries[key].append({
+                    'tx_id': t.pk,
+                    'orig_date': t.data,
+                    'desc': _clean_desc(t.descricao),
+                    'cidade': t.cidade,
+                    'inst_label': f"{inst_date_real.month:02d}/{inst_date_real.year}",
+                    'parcela_token': parcela_token,
+                    'parcela_num': num,
+                    'parcela_total': total,
+                    'amount': Decimal(t.valor or 0),
+                    'categoria': categoria_nome,
+                    'membros': membros_nomes,
+                    'is_real': True,
+                    'grupo_id': g.group_id,
+                })
+                # marca mês real para esta assinatura (desc_base do grupo)
+                try:
+                    sig = (g.desc_base, g.parcela_total)
+                    real_months_by_sig.setdefault(sig, set()).add(key)
+                except Exception:
+                    pass
+
+        # Projeta parcelas futuras a partir da num/total (campo ou inferido pela descrição)
+        for t in trans_list:
+            num = int(t.parcela_num) if (t.parcela_num or 0) > 0 else None
+            total = int(t.parcela_total) if (t.parcela_total or 0) > 0 else None
+            if (num is None or total is None) and (t.descricao or ''):
+                try:
+                    inf_n, inf_t = _extract_num_total(t.descricao or '')
+                    if num is None:
+                        num = inf_n
+                    if total is None:
+                        total = inf_t
+                except Exception:
+                    num, total = num, total
+
+            if not (num and total) or num >= total:
+                continue
+
+            base = (t.fatura.competencia if getattr(t, 'fatura', None) and getattr(t.fatura, 'competencia', None) else date(t.data.year, t.data.month, 1))
+
+            for idx in range(num + 1, total + 1):
+                offset = idx - num
+                inst_date = _add_months(base, offset)
+                # considera apenas dentro do intervalo filtrado
+                if not (date(sd.year, sd.month, 1) <= date(inst_date.year, inst_date.month, 1) <= date(ed.year, ed.month, 1)):
+                    continue
+                key = (inst_date.year, inst_date.month)
+                # evita somar se já houver lançamento real nesse mês (no próprio grupo)
+                if key in existentes:
+                    continue
+                # evita duplicação entre transações com mesma assinatura (desc_base + parcela_total)
+                sig = (g.desc_base, g.parcela_total)
+                if key in real_months_by_sig.get(sig, set()):
+                    continue
+                if key in projected_months_by_sig.get(sig, set()):
+                    continue
+                # avoid duplicate projected entries (same tx, same parcela index)
+                seen_key = (t.pk, idx)
+                if seen_key in monthly_seen:
+                    continue
+                monthly_seen.add(seen_key)
+
+                monthly_sums[key] += Decimal(t.valor or 0)
+
+                total_proj = total
+                parcela_token = f"PARC {idx:02d}/{total_proj:02d}" if total_proj else ''
+                categoria_nome = (t.categoria.nome if getattr(t, 'categoria', None) else '')
+                membros_nomes = [m.nome for m in t.membros.all()]
+
+                monthly_entries[key].append({
+                    'tx_id': t.pk,
+                    'orig_date': t.data,
+                    'desc': _clean_desc(t.descricao),
+                    'cidade': t.cidade,
+                    'inst_label': f"{inst_date.month:02d}/{inst_date.year}",
+                    'parcela_token': parcela_token,
+                    'parcela_num': idx,
+                    'parcela_total': total_proj,
+                    'amount': Decimal(t.valor or 0),
+                    'categoria': categoria_nome,
+                    'membros': membros_nomes,
+                    'is_real': False,
+                    'grupo_id': g.group_id,
+                })
+                # marca mês projetado para esta assinatura
+                projected_months_by_sig.setdefault(sig, set()).add(key)
+
+        grupos_vis.append({'grupo': g, 'transacoes': sorted(trans_list, key=lambda x: (x.descricao or '').lower())})
+
+    # --- Incluir transações "single" que têm informação de parcela (etiqueta/parcela_total/descrição)
+    # Estas transações não formaram cadeias (por terem apenas uma linha presente no banco),
+    # mas é importante projetar as parcelas futuras a partir de num/total.
+    try:
+        singles_qs = TransacaoCartao.objects.filter(
+            oculta=False
+        ).exclude(pk__in=all_ids).select_related('fatura', 'fatura__cartao', 'categoria').prefetch_related('membros')
+    except Exception:
+        singles_qs = []
+
+    # Filtra em Python mais estritamente: aceitar apenas descrições/etiquetas com PARC xx/yy
+    candidates = []
+    for t in list(singles_qs):
+        desc = (t.descricao or '')
+        etiqueta = (t.etiqueta_parcela or '')
+        if _tem_padrao_parcelado(desc):
+            candidates.append(t)
+            continue
+        if etiqueta and 'PARC' in etiqueta.upper():
+            candidates.append(t)
+            continue
+        if (t.parcela_total or 0) > 0 and 'PARC' in desc.upper():
+            candidates.append(t)
+
+    for t in candidates:
+        trans_list = [t]
+        # incluir se parcela real ou projeção cair dentro do período
+        inst_real = (t.fatura.competencia if getattr(t, 'fatura', None) and getattr(t.fatura, 'competencia', None) else date(t.data.year, t.data.month, 1))
+        # determina se há qualquer parcela (real ou projetada) no intervalo
+        num = int(t.parcela_num) if (t.parcela_num or 0) > 0 else None
+        total = int(t.parcela_total) if (t.parcela_total or 0) > 0 else None
+        if (num is None or total is None) and (t.descricao or ''):
+            try:
+                inf_n, inf_t = _extract_num_total(t.descricao or '')
+                if num is None:
+                    num = inf_n
+                if total is None:
+                    total = inf_t
+            except Exception:
+                num, total = num, total
+
+        includes_period = False
+        # check real date
+        if sd <= inst_real <= ed:
+            includes_period = True
+        # check projected months
+        if not includes_period and num and total and num < total:
+            base = inst_real
+            for idx in range(num + 1, total + 1):
+                offset = idx - num
+                inst_date = _add_months(base, offset)
+                if date(sd.year, sd.month, 1) <= date(inst_date.year, inst_date.month, 1) <= date(ed.year, ed.month, 1):
+                    includes_period = True
+                    break
+
+        if not includes_period:
+            continue
+
+        existentes = set(((inst_real.year, inst_real.month),))
+
+        # adiciona entrada real (com deduplicação)
+        if sd <= inst_real <= ed:
+            key = (inst_real.year, inst_real.month)
+            pnum = num or 0
+            seen_key = (t.pk, pnum)
+            if seen_key not in monthly_seen:
+                monthly_seen.add(seen_key)
+                monthly_sums[key] += Decimal(t.valor or 0)
+                parcela_token = t.etiqueta_parcela or (f"PARC {num:02d}/{total:02d}" if (num and total) else '')
+                categoria_nome = (t.categoria.nome if getattr(t, 'categoria', None) else '')
+                membros_nomes = [m.nome for m in t.membros.all()]
+                monthly_entries[key].append({
+                    'tx_id': t.pk,
+                    'orig_date': t.data,
+                    'desc': _clean_desc(t.descricao),
+                    'cidade': t.cidade,
+                    'inst_label': f"{inst_real.month:02d}/{inst_real.year}",
+                    'parcela_token': parcela_token,
+                    'parcela_num': num,
+                    'parcela_total': total,
+                    'amount': Decimal(t.valor or 0),
+                    'categoria': categoria_nome,
+                    'membros': membros_nomes,
+                    'is_real': True,
+                    'grupo_id': None,
+                })
+                # marca mês real para esta assinatura (normaliza descrição)
+                try:
+                    sig = (_try_normalizar(t.descricao or ''), total)
+                    real_months_by_sig.setdefault(sig, set()).add(key)
+                except Exception:
+                    pass
+
+        # projeta parcelas futuras (com deduplicação)
+        if num and total and num < total:
+            base = inst_real
+            for idx in range(num + 1, total + 1):
+                offset = idx - num
+                inst_date = _add_months(base, offset)
+                if not (date(sd.year, sd.month, 1) <= date(inst_date.year, inst_date.month, 1) <= date(ed.year, ed.month, 1)):
+                    continue
+                key = (inst_date.year, inst_date.month)
+                if key in existentes:
+                    continue
+                # evita duplicação por assinatura entre diferentes transações
+                sig = (_try_normalizar(t.descricao or ''), total)
+                if key in real_months_by_sig.get(sig, set()):
+                    continue
+                if key in projected_months_by_sig.get(sig, set()):
+                    continue
+                seen_key = (t.pk, idx)
+                if seen_key in monthly_seen:
+                    continue
+                monthly_seen.add(seen_key)
+                monthly_sums[key] += Decimal(t.valor or 0)
+                parcela_token = f"PARC {idx:02d}/{total:02d}" if total else ''
+                categoria_nome = (t.categoria.nome if getattr(t, 'categoria', None) else '')
+                membros_nomes = [m.nome for m in t.membros.all()]
+                monthly_entries[key].append({
+                    'tx_id': t.pk,
+                    'orig_date': t.data,
+                    'desc': _clean_desc(t.descricao),
+                    'cidade': t.cidade,
+                    'inst_label': f"{inst_date.month:02d}/{inst_date.year}",
+                    'parcela_token': parcela_token,
+                    'parcela_num': idx,
+                    'parcela_total': total,
+                    'amount': Decimal(t.valor or 0),
+                    'categoria': categoria_nome,
+                    'membros': membros_nomes,
+                    'is_real': False,
+                    'grupo_id': None,
+                })
+                # marca mês projetado para esta assinatura
+                projected_months_by_sig.setdefault(sig, set()).add(key)
+
+        grupos_vis.append({'grupo': None, 'transacoes': sorted(trans_list, key=lambda x: (x.descricao or '').lower())})
+
+    # Deduplica entradas por mês: para cada compra (grupo ou assinatura desc+total),
+    # mantém apenas uma entrada — prefere real sobre projetada e, entre reais, a de
+    # maior parcela_num (parcela mais recente da cadeia que caiu naquele mês).
+    for key in list(monthly_entries.keys()):
+        entries = monthly_entries[key]
+        if len(entries) <= 1:
+            continue
+        best: dict = {}  # purchase_key -> entry
+        for e in entries:
+            gid = e.get('grupo_id')
+            if gid is not None:
+                pkey = ('g', gid)
+            else:
+                try:
+                    nd = _try_normalizar(e.get('desc') or '')
+                except Exception:
+                    nd = (e.get('desc') or '').upper().strip()
+                pkey = ('s', nd, e.get('parcela_total'))
+
+            existing = best.get(pkey)
+            if existing is None:
+                best[pkey] = e
+            else:
+                e_real = e.get('is_real', False)
+                ex_real = existing.get('is_real', False)
+                e_num = e.get('parcela_num') or 0
+                ex_num = existing.get('parcela_num') or 0
+                # entrada real sempre vence projetada; entre iguais, maior parcela_num
+                if (e_real and not ex_real) or (e_real == ex_real and e_num > ex_num):
+                    best[pkey] = e
+
+        monthly_entries[key] = list(best.values())
+        monthly_sums[key] = sum(e['amount'] for e in monthly_entries[key])
+
+    # anexa entradas e totais a cada mês (para uso direto no template)
+    for m in months:
+        key = (m['year'], m['month'])
+        m_total = monthly_sums.get(key, Decimal('0.00'))
+        m['total'] = m_total
+        # ordena entradas alfabeticamente pela descrição
+        entries = monthly_entries.get(key, [])
+        entries_sorted = sorted(entries, key=lambda e: ((e.get('desc') or '').lower()))
+        m['entries'] = entries_sorted
+
+    monthly_totals = [{'label': m['label'], 'total': m['total']} for m in months]
+
+    # Totais do período
+    credits_total = sum((v for v in monthly_sums.values() if v > 0), Decimal('0.00'))
+    debits_total = sum((v for v in monthly_sums.values() if v < 0), Decimal('0.00'))
+    total_period = credits_total + debits_total
+    # total_compras = soma absoluta de todas as parcelas do período (após dedup)
+    total_compras = abs(sum(monthly_sums.values(), Decimal('0.00')))
+    transactions_count = sum(len(m['entries']) for m in months)
+
+    return render(request, 'cartao_credito/parcelados/lista.html', {
+        'grupos': grupos_vis,
+        'monthly_totals': monthly_totals,
+        'months': months,
+        'start': sd,
+        'end': ed,
+        'total_compras': total_compras,
+        'period': period,
+        'credits_total': credits_total,
+        'debits_total': debits_total,
+        'total_period': total_period,
+        'transactions_count': transactions_count,
+    })
 

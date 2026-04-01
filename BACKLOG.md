@@ -9,6 +9,12 @@ Colocar login
 Fazer controle de pagamentos parcelados
 Criar uma forma visual de ver os pagamentos parcelados futuros
     fazer gráfico de parcelados mes a mes para ver se o volume esta aumentando ou diminuindo
+Separa parcelados por mes
+Mostra até o último mes de compras parceladas
+Faz a logica de competencia x parcelas
+Mostra o total de compras parceladas
+grafico mostrando o valor total das compras parceladas por mes
+
 
 
 ## Investimentos
@@ -19,17 +25,19 @@ Hoje só aparece a despesa completa, deveria descontar o pagamento dos amigos
 Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi uma renda extra
 
 ## Planejamento
-  Nas tabelas deve mostrar o total sem os investimentos e com os investimentos, hoje está mostrando sempre com
-  Está apresentando valores confusos porque o créditos - débitos não dá o total (porque está somando os rendimentos)
-  Colocar na tabela: 
-    mes, creditos, debitos, parcial, investimentos, saldo do mes
   Fazer uma nova template com o que foi projetado e o que foi realizado. 
     AInda não sei como fazer isso porque tudo é calculado na hora
     uma opção é usar o mês seguinte como parametro
 
+  No patrimonio liquido é preciso colocar um rendimento mensal no montante total
+    Já posso colocar o rendimento mensal em cada investimento
+    Os investimentos que não tem rendimento mensal, devem entrar na regra de rendimento global (Ex: 0,7% ao mês)
+
   ## Lançamentos recorrentes (conta corrente)
   Contas variáveis (água, luz):pega média dos últimos 12 meses
   precisa de um botao para recalcular, mas eu mudei o nome, acho que vai precisar guardar o nome original no BD
+
+
 
 
 ## Obs

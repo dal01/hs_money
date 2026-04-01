@@ -1,0 +1,198 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Parcelados — Cartão de Crédito — HS Money{% endblock %}
+
+{% block extra_head %}
+<style>
+  .period-btn.active { background-color: #0d6efd; color: #fff; border-color: #0d6efd; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">💳 Parcelados — Cartão de Crédito</h4>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-4">
+  <div class="col-auto">
+    <label class="form-label small mb-1">Início (mês)</label>
+    <input type="month" name="start" class="form-control form-control-sm" value="{{ start|date:'Y-m' }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1">Fim (mês)</label>
+    <input type="month" name="end" class="form-control form-control-sm" value="{{ end|date:'Y-m' }}">
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-sm btn-primary">Filtrar</button>
+  </div>
+  <div class="col-auto ms-2 d-flex gap-1 align-items-center">
+    <a class="btn btn-sm btn-outline-secondary period-btn {% if period == '' or period == 'default' %}active{% endif %}" href="?">Padrão</a>
+    <a class="btn btn-sm btn-outline-secondary period-btn {% if period == '12m' %}active{% endif %}" href="?period=12m">12 meses</a>
+    <a class="btn btn-sm btn-outline-secondary period-btn {% if period == '24m' %}active{% endif %}" href="?period=24m">24 meses</a>
+    <a class="btn btn-sm btn-outline-secondary period-btn {% if period == 'year' %}active{% endif %}" href="?period=year">Ano atual</a>
+    <a class="btn btn-sm btn-outline-secondary period-btn {% if period == 'prev_year' %}active{% endif %}" href="?period=prev_year">Ano anterior</a>
+  </div>
+</form>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-lg-8">
+    <div class="card p-3">
+      <canvas id="chartParcelados" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="px-3">Competência</th>
+              <th class="text-end">Transações</th>
+              <th class="text-end px-3">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in months %}
+              <tr>
+                <td class="px-3">{{ m.label }}</td>
+                <td class="text-end text-muted small">{{ m.entries|length }}</td>
+                <td class="text-end px-3">
+                  {% if m.entries %}
+                    <button type="button"
+                            class="btn btn-link btn-sm p-0 fw-semibold text-decoration-none"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modal-{{ m.year }}-{{ m.month }}">
+                      {{ m.total|brl }}
+                    </button>
+                  {% else %}
+                    <span class="text-muted small">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <th class="px-3">Total</th>
+              <th class="text-end text-muted small">{{ transactions_count }}</th>
+              <th class="text-end px-3 fw-semibold">{{ total_compras|brl }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card p-3">
+      <div class="small text-muted mb-2">Resumo do período</div>
+      <div class="d-flex justify-content-between small"><div>Transações</div><div>{{ transactions_count }}</div></div>
+      <hr class="my-2">
+      <div class="d-flex justify-content-between fw-semibold"><div>Total</div><div>{{ total_compras|brl }}</div></div>
+    </div>
+  </div>
+</div>
+
+{# Modais de detalhamento por mês #}
+{% for m in months %}
+  {% if m.entries %}
+  <div class="modal fade" id="modal-{{ m.year }}-{{ m.month }}" tabindex="-1" aria-labelledby="modal-label-{{ m.year }}-{{ m.month }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h6 class="modal-title" id="modal-label-{{ m.year }}-{{ m.month }}">
+            Parcelados — {{ m.label }}
+            <span class="text-muted fw-normal small ms-2">{{ m.entries|length }} transação{{ m.entries|length|pluralize:",ões" }}</span>
+          </h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light small sticky-top">
+              <tr>
+                <th class="px-3" style="width:100px">Compra</th>
+                <th>Descrição</th>
+                <th style="width:110px">Competência</th>
+                <th style="width:110px">Parcela</th>
+                <th class="text-end px-3" style="width:120px">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in m.entries %}
+                <tr class="{% if not e.is_real %}table-secondary{% endif %}">
+                  <td class="small text-muted px-3">{{ e.orig_date|date:'d/m/Y' }}</td>
+                  <td class="small">{{ e.desc }}</td>
+                  <td class="small text-muted">{{ e.inst_label }}</td>
+                  <td class="small text-muted">{{ e.parcela_token }}</td>
+                  <td class="text-end fw-semibold px-3">{{ e.amount|brl }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+              <tr>
+                <td colspan="4" class="text-end fw-semibold px-3 small">Total</td>
+                <td class="text-end fw-semibold px-3">{{ m.total|brl }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const labels = [{% for m in monthly_totals %}'{{ m.label }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+  const rawValues = [{% for m in monthly_totals %}{{ m.total|floatformat:2 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+  const data = rawValues.map(v => Math.abs(Number(v)));
+
+  const ctx = document.getElementById('chartParcelados');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Parcelados',
+        data: data,
+        backgroundColor: 'rgba(13,110,253,0.75)',
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              return ' R$ ' + c.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: function(v) {
+              return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

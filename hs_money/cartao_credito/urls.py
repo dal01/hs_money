@@ -23,6 +23,7 @@ urlpatterns = [
 
     # Transações
     path('transacoes/',                              views.transacoes_lista,          name='transacoes_lista'),
+    path('parcelados/',                              views.parcelados,                name='parcelados'),
     path('transacoes/<int:pk>/ocultar/',             views.transacao_toggle_oculta,   name='transacao_toggle_oculta'),
     path('transacoes/bulk/',                         views.transacoes_bulk_action,    name='transacoes_bulk_action'),
     path('transacoes/<int:pk>/anotacao/',            views.transacao_anotacao,        name='transacao_anotacao'),

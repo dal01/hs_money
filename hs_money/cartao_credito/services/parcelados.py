@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from django.db.models import QuerySet
 
-from cartao_credito.models import Lancamento
+from hs_money.cartao_credito.models import Transacao as Lancamento
 
 # =======================
 # Configurações ajustáveis
@@ -28,6 +28,7 @@ RE_DE_FORM     = re.compile(r"\b(\d{1,2})\s*de\s*(\d{1,2})\b", re.IGNORECASE)  #
 RE_X_SIMPLE    = re.compile(r"\b(\d{1,2})\s*[xX]\b")                           # 12x
 RE_X_PAIR      = re.compile(r"\b(\d{1,2})\s*[xX]\s*(?:de\s*)?(\d{1,2})\b", re.IGNORECASE)  # 12x10, 12x de 10
 RE_EM_X        = re.compile(r"\bem\s+(\d{1,2})[xX]\b", re.IGNORECASE)          # em 12x
+RE_PARC_FRAC   = re.compile(r"\bPARC\b\s*\d{1,2}\s*/\s*\d{1,2}", re.IGNORECASE)
 
 # =======================
 # Normalização de descrição
@@ -86,15 +87,23 @@ def _extract_num_total(desc: str) -> Tuple[Optional[int], Optional[int]]:
 def _tem_padrao_parcelado(texto: str) -> bool:
     if not texto:
         return False
-    return any(p.search(texto) for p in (RE_WORD_PARC, RE_FRAC, RE_DE_FORM, RE_X_PAIR, RE_X_SIMPLE, RE_EM_X))
+    # Considera como parcelado apenas quando há token "PARC" seguido do padrão num/total
+    # Ex.: "PARC 01/10". Isso evita falsos positivos quando aparece uma data ou outro 01/03.
+    if RE_PARC_FRAC.search(texto):
+        return True
+    return False
 
 def _eh_candidato(l: Lancamento) -> bool:
+    # Só considera candidato quando há indicação explícita de PARC xx/yy
     if _tem_padrao_parcelado(l.descricao or ""):
         return True
-    if l.etiqueta_parcela:
+    # etiqueta_parcela pode conter o token PARC xx/yy
+    if l.etiqueta_parcela and RE_PARC_FRAC.search(l.etiqueta_parcela):
         return True
+    # quando parcela_total está preenchido, aceitar somente se houver o token PARC na descrição
     if (l.parcela_total or 0) > 0:
-        return True
+        if RE_WORD_PARC.search(l.descricao or "") or (l.etiqueta_parcela and RE_WORD_PARC.search(l.etiqueta_parcela)):
+            return True
     return False
 
 # =======================
