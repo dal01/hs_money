@@ -17,7 +17,7 @@
 <form method="post">
   {% csrf_token %}
   <div class="card shadow-sm mb-4">
-    <table class="table table-hover mb-0">
+    <table class="table table-hover mb-0 hs-table-fixed">
       <thead class="table-light">
         <tr>
           <th style="width:40px"></th>
@@ -25,8 +25,8 @@
           <th>Membro</th>
           <th>Instituição</th>
           <th>Tipo</th>
-          <th class="text-end">Último saldo</th>
-          <th class="text-end text-muted small">Referência</th>
+          <th class="pl-col-valor">Último saldo</th>
+          <th class="text-muted small">Referência</th>
         </tr>
       </thead>
       <tbody>
@@ -41,9 +41,9 @@
           <td class="small">{{ row.inv.membro|default:"—" }}</td>
           <td class="small">{{ row.inv.instituicao }}</td>
           <td class="small">{{ row.inv.get_tipo_display }}</td>
-          <td class="text-end fw-semibold {% if row.inv.tipo_financeiro == 'DEBITO' %}text-danger{% else %}text-success{% endif %}">
-            {% if row.saldo is not None %}
-              {% if row.inv.tipo_financeiro == 'DEBITO' %}-{% endif %}R$ {{ row.saldo|brl }}
+            <td class="pl-col-valor fw-semibold {% if row.inv.tipo_financeiro == 'DEBITO' %}text-danger{% else %}text-success{% endif %}">
+              {% if row.saldo is not None %}
+              {% if row.inv.tipo_financeiro == 'DEBITO' %}-{% endif %}{{ row.saldo|brl }}
             {% else %}
               <span class="text-muted small">sem saldo</span>
             {% endif %}
