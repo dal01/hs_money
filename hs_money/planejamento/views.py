@@ -242,7 +242,12 @@ def index(request):
                 'rendimento': float(rendimento),
             })
 
-        total_mes = creditos + debitos + total_cartao + crescimento_inv
+        # debitos is a negative value (sum of negative transactions); include cartão
+        debitos_total = debitos + total_cartao
+        # parcial: créditos menos débitos (considera cartão) -> creditos + debitos_total
+        parcial = creditos + debitos_total
+
+        total_mes = parcial + crescimento_inv
         saldo_acumulado += total_mes
 
         meses.append({
@@ -253,10 +258,12 @@ def index(request):
             'e_atual': e_atual,
             'ocorrencias': ocorrencias,
             'creditos': creditos,
-            'debitos': debitos + total_cartao,
+            'debitos': debitos_total,
             'total_cartao': total_cartao,
+            'parcial': parcial,
             'crescimento_inv': crescimento_inv,
             'crescimento_inv_json': json.dumps(crescimento_inv_detail, ensure_ascii=False),
+            'investimentos': crescimento_inv,
             'total_mes': total_mes,
             'saldo_final': saldo_acumulado,
         })
@@ -272,7 +279,11 @@ def index(request):
                 'meses': yr_meses,
                 'total_debitos': sum(m['debitos'] for m in yr_meses),
                 'total_creditos': sum(m['creditos'] for m in yr_meses),
+                'total_parcial': sum(m['parcial'] for m in yr_meses),
+                'total_investimentos': sum(m['crescimento_inv'] for m in yr_meses),
                 'total_saldo': sum(m['total_mes'] for m in yr_meses),
+                # Patrimônio líquido ao final do ano (saldo acumulado no último mês do ano)
+                'total_patrimonio': yr_meses[-1]['saldo_final'],
             })
 
     meses = meses[:12]
@@ -284,7 +295,11 @@ def index(request):
         'meses': ano_atual_meses,
         'total_debitos': sum(m['debitos'] for m in ano_atual_meses),
         'total_creditos': sum(m['creditos'] for m in ano_atual_meses),
+        'total_parcial': sum(m['parcial'] for m in ano_atual_meses),
+        'total_investimentos': sum(m['crescimento_inv'] for m in ano_atual_meses),
         'total_saldo': sum(m['total_mes'] for m in ano_atual_meses),
+        # Patrimônio ao final do período exibido (último mês disponível) — fallback para patrimônio inicial
+        'total_patrimonio': (ano_atual_meses[-1]['saldo_final'] if ano_atual_meses else patrimonio),
     }
 
     return render(request, 'planejamento/index.html', {

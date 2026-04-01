@@ -229,33 +229,48 @@
 <h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano_atual.ano }}</h5>
 <div class="card shadow-sm mb-4">
   <table class="table table-sm table-hover mb-0 hs-table-fixed">
+    <colgroup>
+      <col style="width:var(--pl-col-mes)">
+      <col>
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+    </colgroup>
     <thead class="table-light">
       <tr>
         <th>Mês</th>
-        <th class="pl-col-valor">Patrimônio Líquido</th>
-        <th class="pl-col-valor">Total de Débitos</th>
-        <th class="pl-col-valor">Total de Créditos</th>
-        <th class="pl-col-valor">Saldo do Mês</th>
+         <th class="pl-col-valor">Créditos</th>
+         <th class="pl-col-valor">Débitos</th>
+         <th class="pl-col-valor">Parcial</th>
+         <th class="pl-col-valor">Investimentos</th>
+         <th class="pl-col-valor">Saldo do Mês</th>
+         <th class="pl-col-valor">Patrimônio líquido</th>
       </tr>
     </thead>
     <tbody>
       {% for mes in ano_atual.meses %}
       <tr>
         <td>{{ mes.mes_nome }}</td>
-        <td class="pl-col-valor fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
-        <td class="pl-col-valor saldo-negativo">{{ mes.debitos|brl }}</td>
-        <td class="pl-col-valor saldo-positivo">{{ mes.creditos|brl }}</td>
-        <td class="pl-col-valor fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+          <td class="pl-col-valor saldo-positivo">{{ mes.creditos|brl }}</td>
+          <td class="pl-col-valor saldo-negativo">{{ mes.debitos|brl }}</td>
+          <td class="pl-col-valor fw-semibold {% if mes.parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.parcial|brl }}</td>
+          <td class="pl-col-valor {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
+              <td class="pl-col-valor fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+              <td class="pl-col-valor fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
       </tr>
       {% endfor %}
     </tbody>
     <tfoot class="table-secondary fw-bold border-top">
       <tr>
         <td>Total</td>
-        <td></td>
-        <td class="pl-col-valor saldo-negativo">{{ ano_atual.total_debitos|brl }}</td>
-        <td class="pl-col-valor saldo-positivo">{{ ano_atual.total_creditos|brl }}</td>
-        <td class="pl-col-valor {% if ano_atual.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_saldo|brl }}</td>
+          <td class="pl-col-valor saldo-positivo">{{ ano_atual.total_creditos|brl }}</td>
+          <td class="pl-col-valor saldo-negativo">{{ ano_atual.total_debitos|brl }}</td>
+          <td class="pl-col-valor {% if ano_atual.total_parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_parcial|brl }}</td>
+          <td class="pl-col-valor {% if ano_atual.total_investimentos >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_investimentos|brl }}</td>
+            <td class="pl-col-valor {% if ano_atual.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_saldo|brl }}</td>
+            <td class="pl-col-valor {% if ano_atual.total_patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_patrimonio|brl }}</td>
       </tr>
     </tfoot>
   </table>
@@ -265,33 +280,48 @@
 <h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano_data.ano }}</h5>
 <div class="card shadow-sm mb-4">
   <table class="table table-sm table-hover mb-0 hs-table-fixed">
+    <colgroup>
+      <col style="width:var(--pl-col-mes)">
+      <col>
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+      <col style="width:var(--pl-col-valor)">
+    </colgroup>
     <thead class="table-light">
       <tr>
         <th>Mês</th>
-        <th class="pl-col-valor">Patrimônio Líquido</th>
-        <th class="pl-col-valor">Total de Débitos</th>
-        <th class="pl-col-valor">Total de Créditos</th>
-        <th class="pl-col-valor">Saldo do Mês</th>
+         <th class="pl-col-valor">Créditos</th>
+         <th class="pl-col-valor">Débitos</th>
+         <th class="pl-col-valor">Parcial</th>
+         <th class="pl-col-valor">Investimentos</th>
+         <th class="pl-col-valor">Saldo do Mês</th>
+         <th class="pl-col-valor">Patrimônio líquido</th>
       </tr>
     </thead>
     <tbody>
       {% for mes in ano_data.meses %}
       <tr>
         <td>{{ mes.mes_nome }}</td>
-        <td class="pl-col-valor fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
-        <td class="pl-col-valor saldo-negativo">{{ mes.debitos|brl }}</td>
-        <td class="pl-col-valor saldo-positivo">{{ mes.creditos|brl }}</td>
-        <td class="pl-col-valor fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+          <td class="pl-col-valor saldo-positivo">{{ mes.creditos|brl }}</td>
+          <td class="pl-col-valor saldo-negativo">{{ mes.debitos|brl }}</td>
+          <td class="pl-col-valor fw-semibold {% if mes.parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.parcial|brl }}</td>
+          <td class="pl-col-valor {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
+          <td class="pl-col-valor fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+          <td class="pl-col-valor fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
       </tr>
       {% endfor %}
     </tbody>
     <tfoot class="table-secondary fw-bold border-top">
       <tr>
         <td>Total</td>
-        <td></td>
-        <td class="pl-col-valor saldo-negativo">{{ ano_data.total_debitos|brl }}</td>
-        <td class="pl-col-valor saldo-positivo">{{ ano_data.total_creditos|brl }}</td>
-        <td class="pl-col-valor {% if ano_data.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_saldo|brl }}</td>
+          <td class="pl-col-valor saldo-positivo">{{ ano_data.total_creditos|brl }}</td>
+          <td class="pl-col-valor saldo-negativo">{{ ano_data.total_debitos|brl }}</td>
+          <td class="pl-col-valor {% if ano_data.total_parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_parcial|brl }}</td>
+          <td class="pl-col-valor {% if ano_data.total_investimentos >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_investimentos|brl }}</td>
+            <td class="pl-col-valor {% if ano_data.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_saldo|brl }}</td>
+            <td class="pl-col-valor {% if ano_data.total_patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_patrimonio|brl }}</td>
       </tr>
     </tfoot>
   </table>
