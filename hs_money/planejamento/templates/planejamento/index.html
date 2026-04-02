@@ -1,4 +1,4 @@
-{% extends "core/base.html" %}
+﻿{% extends "core/base.html" %}
 {% load hs_filters %}
 
 {% block title %}Planejamento{% endblock %}
@@ -7,24 +7,23 @@
 <style>
   .saldo-positivo { color: #198754; }
   .saldo-negativo { color: #dc3545; }
-  .mes-passado .accordion-button { opacity: .6; }
+  td.clickable-cell { cursor: pointer; text-decoration: underline dotted; }
+  td.clickable-cell:hover { background-color: rgba(0,0,0,.04); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="h3 mb-0">📅 Planejamento</h1>
+  <h1 class="h3 mb-0"> Planejamento</h1>
   <div class="d-flex gap-2">
     <a href="{% url 'planejamento:lancamento_criar' %}" class="btn btn-primary">+ Novo Lançamento</a>
     <div class="dropdown">
-      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Configurações">
-        ⚙️
-      </button>
+      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Configurações"></button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item" href="{% url 'planejamento:sugerir' %}">🔍 Sugerir recorrentes</a></li>
-        <li><a class="dropdown-item" href="{% url 'planejamento:ajuste_cartao_lista' %}">💳 Ajustes cartão</a></li>
+        <li><a class="dropdown-item" href="{% url 'planejamento:sugerir' %}"> Sugerir recorrentes</a></li>
+        <li><a class="dropdown-item" href="{% url 'planejamento:ajuste_cartao_lista' %}"> Ajustes cartão</a></li>
         <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{% url 'planejamento:patrimonio_config' %}">🏦 Configurar patrimônio</a></li>
+        <li><a class="dropdown-item" href="{% url 'planejamento:patrimonio_config' %}"> Configurar patrimônio</a></li>
       </ul>
     </div>
   </div>
@@ -36,9 +35,7 @@
     <div class="card text-center border-primary" role="button" data-bs-toggle="modal" data-bs-target="#modalPatrimonio" style="cursor:pointer">
       <div class="card-body py-2">
         <div class="small text-muted">Patrimônio líquido</div>
-        <div class="fs-5 fw-bold {% if patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
-          {{ patrimonio|brl }}
-        </div>
+        <div class="fs-5 fw-bold {% if patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ patrimonio|brl }}</div>
       </div>
     </div>
   </div>
@@ -46,310 +43,176 @@
     <div class="card text-center">
       <div class="card-body py-2">
         <div class="small text-muted">Média mensal cartão (3m)</div>
-        <div class="fs-5 fw-bold saldo-negativo">— {{ media_cartao|brl }}</div>
+        <div class="fs-5 fw-bold saldo-negativo"> {{ media_cartao|brl }}</div>
       </div>
     </div>
   </div>
 </div>
 
-{# Modal detalhamento patrimônio #}
-<div class="modal fade" id="modalPatrimonio" tabindex="-1" aria-labelledby="modalPatrimonioLabel" aria-hidden="true">
+{# Modal patrimônio #}
+<div class="modal fade" id="modalPatrimonio" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalPatrimonioLabel">Composição do Patrimônio Líquido</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        <h5 class="modal-title">Composição do Patrimônio Líquido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-0">
-        <table class="table table-sm mb-0 hs-table-fixed">
+        <table class="table table-sm mb-0">
           <tbody>
             {% for item in inv_itens %}
             <tr>
-              <td class="ps-3">
-                {{ item.nome }}
-                {% if item.data_ref %}<span class="text-muted ms-1" style="font-size:.75rem">{{ item.data_ref|date:"d/m/Y" }}</span>{% endif %}
-              </td>
-              <td class="pl-col-valor pe-3 fw-semibold {% if item.saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
-                {{ item.saldo|brl }}
-              </td>
+              <td class="ps-3">{{ item.nome }}{% if item.data_ref %}<span class="text-muted ms-1" style="font-size:.75rem">{{ item.data_ref|date:"d/m/Y" }}</span>{% endif %}</td>
+              <td class="text-end pe-3 fw-semibold {% if item.saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ item.saldo|brl }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="2" class="ps-3 fst-italic text-muted">Nenhum investimento selecionado. <a href="{% url 'planejamento:patrimonio_config' %}">Configurar ⚙️</a></td></tr>
+            <tr><td colspan="2" class="ps-3 fst-italic text-muted">Nenhum investimento selecionado. <a href="{% url 'planejamento:patrimonio_config' %}">Configurar </a></td></tr>
             {% endfor %}
           </tbody>
-          <tfoot class="table-light border-top">
-            <tr class="fw-bold">
+          <tfoot class="table-light border-top fw-bold">
+            <tr>
               <td class="ps-3">Total</td>
-              <td class="pl-col-valor pe-3 {% if patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
-                {{ patrimonio|brl }}
-              </td>
+              <td class="text-end pe-3 {% if patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ patrimonio|brl }}</td>
             </tr>
           </tfoot>
         </table>
       </div>
       <div class="modal-footer">
-        <a href="{% url 'planejamento:patrimonio_config' %}" class="btn btn-outline-secondary btn-sm">⚙️ Configurar</a>
+        <a href="{% url 'planejamento:patrimonio_config' %}" class="btn btn-outline-secondary btn-sm"> Configurar</a>
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
       </div>
     </div>
   </div>
 </div>
 
-{# Month projections #}
-<div class="accordion" id="accordionMeses" style="max-width:900px">
-{% for mes in meses %}
-<div class="accordion-item {% if mes.e_passado %}mes-passado{% endif %}">
-  <h2 class="accordion-header">
-    <button class="accordion-button collapsed" type="button"
-            data-bs-toggle="collapse" data-bs-target="#mes-{{ mes.ano }}-{{ mes.mes }}"
-            aria-expanded="false">
-      <span class="me-auto">{{ mes.mes_nome }} {{ mes.ano }}</span>
-      <span class="me-2 fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
-        {{ mes.saldo_final|brl }}
-      </span>
-    </button>
-  </h2>
-  <div id="mes-{{ mes.ano }}-{{ mes.mes }}" class="accordion-collapse collapse">
-    <div class="accordion-body p-0">
-      <table class="table table-sm mb-0 hs-table-fixed">
-        <colgroup>
-          <col style="width:80px">
-          <col>
-          <col style="width:140px">
-          {% if not mes.e_passado %}<col style="width:40px">{% endif %}
-        </colgroup>
-        <tbody>
-
-          {# ── Débitos ── #}
-          <tr class="table-light">
-            <td colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}" class="ps-3 fw-semibold small text-danger">
-              ↓ Débitos
-            </td>
-          </tr>
-          {% for oc in mes.ocorrencias %}{% if oc.valor < 0 %}
-          <tr>
-            <td class="ps-3 pl-col-dia text-muted small">{{ oc.data|date:"d/m" }}</td>
-            <td>{{ oc.descricao }}</td>
-            <td class="pl-col-valor pe-3 fw-semibold saldo-negativo">{{ oc.valor|brl }}</td>
-            {% if not mes.e_passado %}
-            <td class="pe-2">
-              <a href="{% url 'planejamento:lancamento_editar' oc.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">✏</a>
-            </td>
-            {% endif %}
-          </tr>
-          {% endif %}{% endfor %}
-          {# CC projection row #}
-          <tr class="table-warning">
-            <td class="ps-3 text-muted small"></td>
-            <td class="fst-italic text-muted small">💳 Cartão de crédito (estimativa)</td>
-            <td class="pl-col-valor pe-3 fw-semibold saldo-negativo">{{ mes.total_cartao|brl }}</td>
-            {% if not mes.e_passado %}<td></td>{% endif %}
-          </tr>
-
-          {# ── Créditos ── #}
-          <tr class="table-light border-top">
-            <td colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}" class="ps-3 fw-semibold small text-success">
-              ↑ Créditos
-            </td>
-          </tr>
-          {% for oc in mes.ocorrencias %}{% if oc.valor >= 0 %}
-          <tr>
-            <td class="ps-3 text-muted small">{{ oc.data|date:"d/m" }}</td>
-            <td>{{ oc.descricao }}</td>
-            <td class="pl-col-valor pe-3 fw-semibold saldo-positivo">{{ oc.valor|brl }}</td>
-            {% if not mes.e_passado %}
-            <td class="pe-2">
-              <a href="{% url 'planejamento:lancamento_editar' oc.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">✏</a>
-            </td>
-            {% endif %}
-          </tr>
-          {% endif %}{% endfor %}
-          {% if mes.crescimento_inv %}
-          <tr class="table-success" style="cursor:pointer"
-              data-bs-toggle="modal" data-bs-target="#modalRendimento"
-              data-label="{{ mes.mes_nome }} {{ mes.ano }}"
-              data-detail='{{ mes.crescimento_inv_json }}'
-              title="Ver detalhamento">
-            <td class="ps-3 text-muted small"></td>
-            <td class="fst-italic text-muted small">📈 Rendimento investimentos <span class="text-muted" style="font-size:.75rem">▸</span></td>
-            <td class="pl-col-valor pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
-            {% if not mes.e_passado %}<td></td>{% endif %}
-          </tr>
-          {% endif %}
-          {% if not mes.ocorrencias %}
-          <tr><td colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}" class="ps-3 text-muted small fst-italic">Sem lançamentos pontuais</td></tr>
-          {% endif %}
-
-        </tbody>
-        <tfoot>
-          <tr class="table-light border-top">
-            <td class="ps-3 fw-semibold small text-muted" colspan="{% if not mes.e_passado %}4{% else %}3{% endif %}">Total</td>
-          </tr>
-          <tr>
-            <td class="ps-3 text-muted small"></td>
-            <td class="small">Créditos</td>
-            <td class="pl-col-valor pe-3 fw-semibold saldo-positivo">{{ mes.creditos|brl }}</td>
-            {% if not mes.e_passado %}<td></td>{% endif %}
-          </tr>
-          <tr>
-            <td class="ps-3 text-muted small"></td>
-            <td class="small">Débitos (incl. cartão)</td>
-            <td class="pl-col-valor pe-3 fw-semibold saldo-negativo">{{ mes.debitos|brl }}</td>
-            {% if not mes.e_passado %}<td></td>{% endif %}
-          </tr>
-          {% if mes.crescimento_inv %}
-          <tr>
-            <td class="ps-3 text-muted small"></td>
-            <td class="small">Rendimento investimentos</td>
-            <td class="pl-col-valor pe-3 fw-semibold {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
-            {% if not mes.e_passado %}<td></td>{% endif %}
-          </tr>
-          {% endif %}
-          <tr class="table-secondary fw-bold">
-            <td class="ps-3" colspan="2">Saldo do mês</td>
-            <td class="pl-col-valor pe-3 {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
-              {{ mes.total_mes|brl }}
-            </td>
-            {% if not mes.e_passado %}<td></td>{% endif %}
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  </div>
-</div>
-{% endfor %}
-</div>
-
 {# Annual projection tables #}
 {% if ano_atual.meses or anos_proj %}
-<h4 class="mt-5 mb-3">Projeção Anual</h4>
-<div style="max-width:900px">
-{% if ano_atual.meses %}
-<h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano_atual.ano }}</h5>
-<div class="card shadow-sm mb-4">
-  <table class="table table-sm table-hover mb-0 hs-table-fixed">
-    <colgroup>
-      <col style="width:var(--pl-col-mes)">
-      <col>
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-    </colgroup>
-    <thead class="table-light">
-      <tr>
-        <th>Mês</th>
-         <th class="pl-col-valor">Créditos</th>
-         <th class="pl-col-valor">Débitos</th>
-         <th class="pl-col-valor">Parcial</th>
-         <th class="pl-col-valor">Investimentos</th>
-         <th class="pl-col-valor">Saldo do Mês</th>
-         <th class="pl-col-valor">Patrimônio líquido</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for mes in ano_atual.meses %}
-      <tr>
-        <td>{{ mes.mes_nome }}</td>
-          <td class="pl-col-valor saldo-positivo">{{ mes.creditos|brl }}</td>
-          <td class="pl-col-valor saldo-negativo">{{ mes.debitos|brl }}</td>
-          <td class="pl-col-valor fw-semibold {% if mes.parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.parcial|brl }}</td>
-          <td class="pl-col-valor {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
-              <td class="pl-col-valor fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
-              <td class="pl-col-valor fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-    <tfoot class="table-secondary fw-bold border-top">
-      <tr>
-        <td>Total</td>
-          <td class="pl-col-valor saldo-positivo">{{ ano_atual.total_creditos|brl }}</td>
-          <td class="pl-col-valor saldo-negativo">{{ ano_atual.total_debitos|brl }}</td>
-          <td class="pl-col-valor {% if ano_atual.total_parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_parcial|brl }}</td>
-          <td class="pl-col-valor {% if ano_atual.total_investimentos >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_investimentos|brl }}</td>
-            <td class="pl-col-valor {% if ano_atual.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_saldo|brl }}</td>
-            <td class="pl-col-valor {% if ano_atual.total_patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_atual.total_patrimonio|brl }}</td>
-      </tr>
-    </tfoot>
-  </table>
-</div>
-{% endif %}
-{% for ano_data in anos_proj %}
-<h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano_data.ano }}</h5>
-<div class="card shadow-sm mb-4">
-  <table class="table table-sm table-hover mb-0 hs-table-fixed">
-    <colgroup>
-      <col style="width:var(--pl-col-mes)">
-      <col>
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-      <col style="width:var(--pl-col-valor)">
-    </colgroup>
-    <thead class="table-light">
-      <tr>
-        <th>Mês</th>
-         <th class="pl-col-valor">Créditos</th>
-         <th class="pl-col-valor">Débitos</th>
-         <th class="pl-col-valor">Parcial</th>
-         <th class="pl-col-valor">Investimentos</th>
-         <th class="pl-col-valor">Saldo do Mês</th>
-         <th class="pl-col-valor">Patrimônio líquido</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for mes in ano_data.meses %}
-      <tr>
-        <td>{{ mes.mes_nome }}</td>
-          <td class="pl-col-valor saldo-positivo">{{ mes.creditos|brl }}</td>
-          <td class="pl-col-valor saldo-negativo">{{ mes.debitos|brl }}</td>
-          <td class="pl-col-valor fw-semibold {% if mes.parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.parcial|brl }}</td>
-          <td class="pl-col-valor {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.crescimento_inv|brl }}</td>
-          <td class="pl-col-valor fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
-          <td class="pl-col-valor fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-    <tfoot class="table-secondary fw-bold border-top">
-      <tr>
-        <td>Total</td>
-          <td class="pl-col-valor saldo-positivo">{{ ano_data.total_creditos|brl }}</td>
-          <td class="pl-col-valor saldo-negativo">{{ ano_data.total_debitos|brl }}</td>
-          <td class="pl-col-valor {% if ano_data.total_parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_parcial|brl }}</td>
-          <td class="pl-col-valor {% if ano_data.total_investimentos >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_investimentos|brl }}</td>
-            <td class="pl-col-valor {% if ano_data.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_saldo|brl }}</td>
-            <td class="pl-col-valor {% if ano_data.total_patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano_data.total_patrimonio|brl }}</td>
-      </tr>
-    </tfoot>
-  </table>
-</div>
-{% endfor %}
+<h4 class="mt-2 mb-3">Projeção Anual</h4>
+<p class="text-muted small mb-3">Clique em Créditos, Débitos ou Investimentos de um mês para ver o detalhamento.</p>
+<div style="max-width:960px">
+
+  {% if ano_atual.meses %}
+  {% with ano=ano_atual %}
+  <h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano.ano }}</h5>
+  <div class="card shadow-sm mb-4">
+    <table class="table table-sm table-hover mb-0 hs-table-fixed">
+      <colgroup>
+        <col style="width:var(--pl-col-mes,90px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+      </colgroup>
+      <thead class="table-light">
+        <tr>
+          <th>Mês</th>
+          <th class="text-end">Créditos</th>
+          <th class="text-end">Débitos</th>
+          <th class="text-end">Parcial</th>
+          <th class="text-end">Investimentos</th>
+          <th class="text-end">Saldo mês</th>
+          <th class="text-end">Patrimônio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mes in ano.meses %}
+        <tr data-mes="{{ mes.mes_nome }}" data-ocorrencias='{{ mes.ocorrencias_json }}' data-crescimento='{{ mes.crescimento_inv_json }}' data-cartao='{{ mes.total_cartao|floatformat:2 }}'>
+          <td>{{ mes.mes_nome }}</td>
+          <td class="text-end saldo-positivo clickable-cell" data-tipo="creditos">{{ mes.creditos|brl }}</td>
+          <td class="text-end saldo-negativo clickable-cell" data-tipo="debitos">{{ mes.debitos|brl }}</td>
+          <td class="text-end fw-semibold {% if mes.parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.parcial|brl }}</td>
+          <td class="text-end {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %} clickable-cell" data-tipo="investimentos">{{ mes.crescimento_inv|brl }}</td>
+          <td class="text-end fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+          <td class="text-end fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-secondary fw-bold border-top">
+        <tr>
+          <td>Total</td>
+          <td class="text-end saldo-positivo">{{ ano.total_creditos|brl }}</td>
+          <td class="text-end saldo-negativo">{{ ano.total_debitos|brl }}</td>
+          <td class="text-end {% if ano.total_parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_parcial|brl }}</td>
+          <td class="text-end {% if ano.total_investimentos >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_investimentos|brl }}</td>
+          <td class="text-end {% if ano.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_saldo|brl }}</td>
+          <td class="text-end {% if ano.total_patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_patrimonio|brl }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% endwith %}
+  {% endif %}
+
+  {% for ano in anos_proj %}
+  <h5 class="mt-4 mb-2 fw-semibold text-secondary">{{ ano.ano }}</h5>
+  <div class="card shadow-sm mb-4">
+    <table class="table table-sm table-hover mb-0 hs-table-fixed">
+      <colgroup>
+        <col style="width:var(--pl-col-mes,90px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+        <col style="width:var(--pl-col-valor,110px)">
+      </colgroup>
+      <thead class="table-light">
+        <tr>
+          <th>Mês</th>
+          <th class="text-end">Créditos</th>
+          <th class="text-end">Débitos</th>
+          <th class="text-end">Parcial</th>
+          <th class="text-end">Investimentos</th>
+          <th class="text-end">Saldo mês</th>
+          <th class="text-end">Patrimônio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mes in ano.meses %}
+        <tr data-mes="{{ mes.mes_nome }}" data-ocorrencias='{{ mes.ocorrencias_json }}' data-crescimento='{{ mes.crescimento_inv_json }}' data-cartao='{{ mes.total_cartao|floatformat:2 }}'>
+          <td>{{ mes.mes_nome }}</td>
+          <td class="text-end saldo-positivo clickable-cell" data-tipo="creditos">{{ mes.creditos|brl }}</td>
+          <td class="text-end saldo-negativo clickable-cell" data-tipo="debitos">{{ mes.debitos|brl }}</td>
+          <td class="text-end fw-semibold {% if mes.parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.parcial|brl }}</td>
+          <td class="text-end {% if mes.crescimento_inv >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %} clickable-cell" data-tipo="investimentos">{{ mes.crescimento_inv|brl }}</td>
+          <td class="text-end fw-semibold {% if mes.total_mes >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.total_mes|brl }}</td>
+          <td class="text-end fw-semibold {% if mes.saldo_final >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ mes.saldo_final|brl }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-secondary fw-bold border-top">
+        <tr>
+          <td>Total</td>
+          <td class="text-end saldo-positivo">{{ ano.total_creditos|brl }}</td>
+          <td class="text-end saldo-negativo">{{ ano.total_debitos|brl }}</td>
+          <td class="text-end {% if ano.total_parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_parcial|brl }}</td>
+          <td class="text-end {% if ano.total_investimentos >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_investimentos|brl }}</td>
+          <td class="text-end {% if ano.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_saldo|brl }}</td>
+          <td class="text-end {% if ano.total_patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_patrimonio|brl }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% endfor %}
+
 </div>
 {% endif %}
 
-{# Modal detalhamento rendimento investimentos #}
-<div class="modal fade" id="modalRendimento" tabindex="-1" aria-labelledby="modalRendimentoLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+{# Modal de detalhamento único, populado via JS #}
+<div class="modal fade" id="modalDetalhe" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalRendimentoLabel">📈 Rendimento investimentos</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        <h5 class="modal-title" id="modalDetalheTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-0">
-        <p class="px-3 pt-3 mb-2 text-muted small" id="modalRendimentoSubtitle"></p>
-        <table class="table table-sm mb-0 hs-table-fixed">
-          <thead class="table-light">
-            <tr>
-              <th class="ps-3">Investimento</th>
-              <th class="pl-col-valor">Saldo início</th>
-              <th class="pl-col-valor">Rendimento</th>
-              <th class="pl-col-valor pe-3">Saldo fim</th>
-            </tr>
-          </thead>
-          <tbody id="modalRendimentoBody"></tbody>
-          <tfoot class="table-light border-top fw-bold" id="modalRendimentoFoot"></tfoot>
+        <table class="table table-sm mb-0">
+          <thead class="table-light" id="modalDetalheThead"></thead>
+          <tbody id="modalDetalheBody"></tbody>
+          <tfoot class="table-light border-top fw-bold" id="modalDetalheFoot"></tfoot>
         </table>
       </div>
       <div class="modal-footer">
@@ -359,53 +222,103 @@
   </div>
 </div>
 
+{% block extra_scripts %}
 <script>
 (function () {
   function brl(v) {
-    return v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    return Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
   }
-  function colorClass(v) {
-    return v >= 0 ? 'saldo-positivo' : 'saldo-negativo';
-  }
+  function colorCls(v) { return v >= 0 ? 'saldo-positivo' : 'saldo-negativo'; }
 
-  document.getElementById('modalRendimento').addEventListener('show.bs.modal', function (e) {
-    const row = e.relatedTarget;
-    const label = row.dataset.label;
-    const detail = JSON.parse(row.dataset.detail);
+  const detalheEl    = document.getElementById('modalDetalhe');
+  const detalheTitle = document.getElementById('modalDetalheTitle');
+  const detalheThead = document.getElementById('modalDetalheThead');
+  const detalheBody  = document.getElementById('modalDetalheBody');
+  const detalheFoot  = document.getElementById('modalDetalheFoot');
 
-    document.getElementById('modalRendimentoSubtitle').textContent = label;
+  document.addEventListener('click', function (e) {
+    const cell = e.target.closest('td.clickable-cell');
+    if (!cell) return;
+    const tr   = cell.closest('tr');
+    const tipo = cell.dataset.tipo;
+    const mes  = tr.dataset.mes;
 
-    const tbody = document.getElementById('modalRendimentoBody');
-    tbody.innerHTML = '';
-    let totalAntes = 0, totalRendimento = 0, totalDepois = 0;
-    detail.forEach(function (d) {
-      const rend = d.rendimento;
-      let desc = [];
-      if (d.pct !== 0) desc.push(d.pct.toLocaleString('pt-BR', {maximumFractionDigits: 4}) + '%');
-      if (d.adic !== 0) desc.push((d.adic >= 0 ? '+' : '') + brl(d.adic));
-      const descStr = desc.length ? ' <span class="text-muted" style="font-size:.75rem">[' + desc.join(', ') + ']</span>' : '';
-      tbody.insertAdjacentHTML('beforeend',
-        '<tr>' +
-        '<td class="ps-3">' + d.nome + descStr + '</td>' +
-        '<td class="text-end">' + brl(d.saldo_antes) + '</td>' +
-        '<td class="text-end fw-semibold ' + colorClass(rend) + '">' + brl(rend) + '</td>' +
-        '<td class="text-end pe-3">' + brl(d.saldo_depois) + '</td>' +
-        '</tr>'
-      );
-      totalAntes += d.saldo_antes;
-      totalRendimento += d.rendimento;
-      totalDepois += d.saldo_depois;
-    });
+    const ocorrencias = JSON.parse(tr.dataset.ocorrencias || '[]');
+    const crescimento = JSON.parse(tr.dataset.crescimento || '[]');
+    const cartao      = parseFloat(tr.dataset.cartao || '0');
 
-    const tfoot = document.getElementById('modalRendimentoFoot');
-    tfoot.innerHTML =
-      '<tr>' +
-      '<td class="ps-3">Total</td>' +
-      '<td class="text-end">' + brl(totalAntes) + '</td>' +
-      '<td class="text-end ' + colorClass(totalRendimento) + '">' + brl(totalRendimento) + '</td>' +
-      '<td class="text-end pe-3">' + brl(totalDepois) + '</td>' +
-      '</tr>';
+    detalheTitle.textContent = '';
+    detalheThead.innerHTML   = '';
+    detalheBody.innerHTML    = '';
+    detalheFoot.innerHTML    = '';
+
+    if (tipo === 'creditos') {
+      detalheTitle.textContent = ' Créditos  ' + mes;
+      detalheThead.innerHTML = '<tr><th class="ps-3">Data</th><th>Descrição</th><th class="text-end pe-3">Valor</th></tr>';
+      const itens = ocorrencias.filter(o => o.valor > 0);
+      let total = 0;
+      itens.forEach(function(o) {
+        total += o.valor;
+        detalheBody.insertAdjacentHTML('beforeend',
+          '<tr><td class="ps-3 text-muted small">' + o.data + '</td><td>' + o.descricao +
+          '</td><td class="text-end pe-3 fw-semibold saldo-positivo">' + brl(o.valor) + '</td></tr>');
+      });
+      if (!itens.length) {
+        detalheBody.innerHTML = '<tr><td colspan="3" class="ps-3 text-muted fst-italic">Sem créditos neste mês.</td></tr>';
+      } else {
+        detalheFoot.innerHTML = '<tr><td class="ps-3" colspan="2">Total</td><td class="text-end pe-3 saldo-positivo">' + brl(total) + '</td></tr>';
+      }
+
+    } else if (tipo === 'debitos') {
+      detalheTitle.textContent = ' Débitos  ' + mes;
+      detalheThead.innerHTML = '<tr><th class="ps-3">Data</th><th>Descrição</th><th class="text-end pe-3">Valor</th></tr>';
+      const itens = ocorrencias.filter(o => o.valor < 0);
+      let total = 0;
+      itens.forEach(function(o) {
+        total += o.valor;
+        detalheBody.insertAdjacentHTML('beforeend',
+          '<tr><td class="ps-3 text-muted small">' + o.data + '</td><td>' + o.descricao +
+          '</td><td class="text-end pe-3 fw-semibold saldo-negativo">' + brl(o.valor) + '</td></tr>');
+      });
+      if (cartao < 0) {
+        total += cartao;
+        detalheBody.insertAdjacentHTML('beforeend',
+          '<tr class="table-warning"><td class="ps-3 text-muted small"></td>' +
+          '<td class="fst-italic text-muted"> Cartão de crédito (estimativa)</td>' +
+          '<td class="text-end pe-3 fw-semibold saldo-negativo">' + brl(cartao) + '</td></tr>');
+      }
+      if (!itens.length && !(cartao < 0)) {
+        detalheBody.innerHTML = '<tr><td colspan="3" class="ps-3 text-muted fst-italic">Sem débitos neste mês.</td></tr>';
+      } else {
+        detalheFoot.innerHTML = '<tr><td class="ps-3" colspan="2">Total</td><td class="text-end pe-3 saldo-negativo">' + brl(total) + '</td></tr>';
+      }
+
+    } else if (tipo === 'investimentos') {
+      detalheTitle.textContent = ' Investimentos  ' + mes;
+      detalheThead.innerHTML = '<tr><th class="ps-3">Investimento</th><th class="text-end">Saldo início</th><th class="text-end">Rendimento</th><th class="text-end pe-3">Saldo fim</th></tr>';
+      let totalRend = 0;
+      crescimento.forEach(function(d) {
+        totalRend += d.rendimento;
+        let desc = [];
+        if (d.pct) desc.push(d.pct.toLocaleString('pt-BR', {maximumFractionDigits:4}) + '%');
+        if (d.adic) desc.push((d.adic >= 0 ? '+' : '') + brl(d.adic));
+        const tag = desc.length ? ' <span class="text-muted" style="font-size:.75rem">[' + desc.join(', ') + ']</span>' : '';
+        detalheBody.insertAdjacentHTML('beforeend',
+          '<tr><td class="ps-3">' + d.nome + tag + '</td>' +
+          '<td class="text-end">' + brl(d.saldo_antes) + '</td>' +
+          '<td class="text-end fw-semibold ' + colorCls(d.rendimento) + '">' + brl(d.rendimento) + '</td>' +
+          '<td class="text-end pe-3">' + brl(d.saldo_depois) + '</td></tr>');
+      });
+      if (!crescimento.length) {
+        detalheBody.innerHTML = '<tr><td colspan="4" class="ps-3 text-muted fst-italic">Sem dados de investimento.</td></tr>';
+      } else {
+        detalheFoot.innerHTML = '<tr><td class="ps-3" colspan="2">Total rendimento</td><td class="text-end ' + colorCls(totalRend) + '">' + brl(totalRend) + '</td><td></td></tr>';
+      }
+    }
+
+    bootstrap.Modal.getOrCreateInstance(detalheEl).show();
   });
 }());
 </script>
+{% endblock %}
 {% endblock %}

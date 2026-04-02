@@ -252,6 +252,11 @@ def index(request):
         total_mes = parcial + crescimento_inv
         saldo_acumulado += total_mes
 
+        ocorrencias_json = json.dumps(
+            [{'data': o['data'].strftime('%d/%m'), 'descricao': o['descricao'], 'valor': float(o['valor'])} for o in ocorrencias],
+            ensure_ascii=False,
+        )
+
         meses.append({
             'ano': ano,
             'mes': mes_num,
@@ -259,6 +264,7 @@ def index(request):
             'e_passado': e_passado,
             'e_atual': e_atual,
             'ocorrencias': ocorrencias,
+            'ocorrencias_json': ocorrencias_json,
             'creditos': creditos,
             'debitos': debitos_total,
             'total_cartao': total_cartao,
