@@ -6,16 +6,6 @@ Colocar login
 ## Conta corrente
 
 ## Cartao de credito
-Fazer controle de pagamentos parcelados
-Criar uma forma visual de ver os pagamentos parcelados futuros
-    fazer gráfico de parcelados mes a mes para ver se o volume esta aumentando ou diminuindo
-Separa parcelados por mes
-Mostra até o último mes de compras parceladas
-Faz a logica de competencia x parcelas
-Mostra o total de compras parceladas
-grafico mostrando o valor total das compras parceladas por mes
-
-
 
 ## Investimentos
   
@@ -23,6 +13,7 @@ grafico mostrando o valor total das compras parceladas por mes
 Precisa achar solucao pra pagamentos que fazemos para os amigos. Ex: paguei Xique xique para todos e depois dividimos
 Hoje só aparece a despesa completa, deveria descontar o pagamento dos amigos
 Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi uma renda extra
+Preciso de um template onde eu posso ver os gastos por membro. Ex: gastos por categoria
 
 ## Planejamento
   Fazer uma nova template com o que foi projetado e o que foi realizado. 
