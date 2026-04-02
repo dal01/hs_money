@@ -7,7 +7,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">📋 Lançamentos Planejados</h1>
   <div class="d-flex gap-2">
-    <a href="{% url 'planejamento:index' %}" class="btn btn-outline-primary">📅 Calendário</a>
     <a href="{% url 'planejamento:sugerir' %}" class="btn btn-outline-success">🔍 Sugerir recorrentes</a>
     <a href="{% url 'planejamento:lancamento_criar' %}" class="btn btn-primary">+ Novo</a>
   </div>
@@ -19,42 +18,29 @@
 
 {% if pontual_list %}
 <h5 class="text-muted mt-3 mb-2">Pontual</h5>
+<div class="row">
+  <div class="col-md-6">
 <div class="card shadow-sm mb-4">
   <table class="table table-hover mb-0 hs-table-fixed">
     <thead class="table-light">
       <tr>
         <th>Descrição</th>
-        <th>Descrição</th>
-        <th class="pl-col-dia">Data</th>
+        <th class="pl-col-dia-lg">Data</th>
         <th class="pl-col-valor">Valor</th>
-        <th class="pl-col-action">Ativo</th>
-        <th class="pl-col-action"></th>
       </tr>
     </thead>
     <tbody>
       {% for l in pontual_list %}
-      <tr class="{% if not l.ativo %}text-muted opacity-50{% endif %}">
+      <tr class="clickable-row {% if not l.ativo %}text-muted opacity-50{% endif %}" data-pk="{{ l.pk }}">
         <td>{{ l.descricao }}</td>
-        <td class="pl-col-dia small">{{ l.data|date:"d/m/Y" }}</td>
-          <td class="pl-col-valor fw-semibold {% if l.valor >= 0 %}text-success{% else %}text-danger{% endif %}">{{ l.valor|brl }}</td>
-        <td class="pl-col-action">
-          <form method="post" action="{% url 'planejamento:lancamento_toggle_ativo' l.pk %}" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button type="submit" class="btn btn-sm {% if l.ativo %}btn-success{% else %}btn-outline-secondary{% endif %} py-0 px-2">{% if l.ativo %}✓{% else %}✗{% endif %}</button>
-          </form>
-        </td>
-        <td class="pl-col-action pe-3">
-          <a href="{% url 'planejamento:lancamento_editar' l.pk %}" class="btn btn-sm btn-outline-secondary">✏</a>
-          <form method="post" action="{% url 'planejamento:lancamento_excluir' l.pk %}" class="d-inline" onsubmit="return confirm('Excluir este lançamento?')">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-danger">🗑</button>
-          </form>
-        </td>
+        <td class="pl-col-dia-lg small">{{ l.data|date:"d/m/Y" }}</td>
+        <td class="pl-col-valor fw-semibold {% if l.valor >= 0 %}text-success{% else %}text-danger{% endif %}">{{ l.valor|brl }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+</div>
+  </div>
 </div>
 {% endif %}
 
@@ -65,28 +51,33 @@
     <div class="col-md-6">
       <div class="card shadow-sm mb-3">
         <div class="card-body p-2">
-          <strong>Créditos</strong>
+          <strong>Débitos</strong>
           <table class="table table-sm table-borderless mb-0 mt-2 hs-table-fixed">
             <tbody>
-              {% for l in per.creditos %}
-              <tr class="{% if not l.ativo %}text-muted opacity-50{% endif %}">
+              {% for l in per.debitos %}
+              <tr class="clickable-row {% if not l.ativo %}text-muted opacity-50{% endif %}" data-pk="{{ l.pk }}">
                 <td>{{ l.descricao }}</td>
                 <td class="pl-col-dia small">
-                  {% if l.periodicidade == 'anual' %}
-                    dia {{ l.dia_do_mes }}/{{ l.mes_do_ano|stringformat:"02d" }}
-                  {% elif l.periodicidade == 'semanal' %}
-                    {{ l.get_dia_da_semana_display }}
-                  {% else %}
-                    dia {{ l.dia_do_mes }}
+                  {% if l.periodicidade == 'anual' %}{{ l.dia_do_mes }}/{{ l.mes_do_ano|stringformat:"02d" }}
+                  {% elif l.periodicidade == 'semanal' %}{{ l.get_dia_da_semana_display }}
+                  {% else %}{{ l.dia_do_mes }}
                   {% endif %}
                 </td>
-                <td class="pl-col-valor fw-semibold text-success">{{ l.valor|brl }}</td>
-                <td class="pl-col-action pe-3"><a href="{% url 'planejamento:lancamento_editar' l.pk %}" class="btn btn-sm btn-outline-secondary">✏</a></td>
+                <td class="pl-col-valor fw-semibold text-danger">{{ l.valor|brl }}</td>
               </tr>
               {% empty %}
-              <tr><td class="text-muted">Nenhum crédito planejado.</td></tr>
+              <tr><td class="text-muted">Nenhum débito planejado.</td></tr>
               {% endfor %}
             </tbody>
+            {% if per.debitos %}
+            <tfoot>
+              <tr class="table-secondary fw-bold">
+                <td>Total</td>
+                <td></td>
+                <td class="pl-col-valor text-danger">{{ per.total_debitos|brl }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
           </table>
         </div>
       </div>
@@ -95,32 +86,120 @@
     <div class="col-md-6">
       <div class="card shadow-sm mb-3">
         <div class="card-body p-2">
-          <strong>Débitos</strong>
+          <strong>Créditos</strong>
           <table class="table table-sm table-borderless mb-0 mt-2 hs-table-fixed">
             <tbody>
-              {% for l in per.debitos %}
-              <tr class="{% if not l.ativo %}text-muted opacity-50{% endif %}">
+              {% for l in per.creditos %}
+              <tr class="clickable-row {% if not l.ativo %}text-muted opacity-50{% endif %}" data-pk="{{ l.pk }}">
                 <td>{{ l.descricao }}</td>
                 <td class="pl-col-dia small">
-                  {% if l.periodicidade == 'anual' %}
-                    dia {{ l.dia_do_mes }}/{{ l.mes_do_ano|stringformat:"02d" }}
-                  {% elif l.periodicidade == 'semanal' %}
-                    {{ l.get_dia_da_semana_display }}
-                  {% else %}
-                    dia {{ l.dia_do_mes }}
+                  {% if l.periodicidade == 'anual' %}{{ l.dia_do_mes }}/{{ l.mes_do_ano|stringformat:"02d" }}
+                  {% elif l.periodicidade == 'semanal' %}{{ l.get_dia_da_semana_display }}
+                  {% else %}{{ l.dia_do_mes }}
                   {% endif %}
                 </td>
-                <td class="pl-col-valor fw-semibold text-danger">{{ l.valor|brl }}</td>
-                <td class="pl-col-action pe-3"><a href="{% url 'planejamento:lancamento_editar' l.pk %}" class="btn btn-sm btn-outline-secondary">✏</a></td>
+                <td class="pl-col-valor fw-semibold text-success">{{ l.valor|brl }}</td>
               </tr>
               {% empty %}
-              <tr><td class="text-muted">Nenhum débito planejado.</td></tr>
+              <tr><td class="text-muted">Nenhum crédito planejado.</td></tr>
               {% endfor %}
             </tbody>
+            {% if per.creditos %}
+            <tfoot>
+              <tr class="table-secondary fw-bold">
+                <td>Total</td>
+                <td></td>
+                <td class="pl-col-valor text-success">{{ per.total_creditos|brl }}</td>
+              </tr>
+            </tfoot>
+            {% endif %}
           </table>
         </div>
       </div>
     </div>
   </div>
 {% endfor %}
+  
+<!-- Modal placeholder -->
+<div class="modal fade" id="lancamentoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body" id="lancamentoModalBody">
+        <!-- content loaded via AJAX -->
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_scripts %}
+<script>
+// Open edit modal when clicking row or edit button
+(function () {
+  const modalEl = document.getElementById('lancamentoModal');
+  const modalBody = document.getElementById('lancamentoModalBody');
+  let modalInstance = null;
+
+  // clear modal contents and dispose instance when hidden (fixes backdrop stuck)
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    modalBody.innerHTML = '';
+    if (modalInstance) {
+      try { modalInstance.dispose(); } catch (e) { /* ignore */ }
+      modalInstance = null;
+    }
+  });
+
+  function fetchForm(pk) {
+    fetch(`{% url 'planejamento:lancamento_editar' 0 %}`.replace('/0/', `/${pk}/`), { headers: {'x-requested-with':'XMLHttpRequest'} })
+      .then(r => r.json())
+      .then(data => {
+        modalBody.innerHTML = data.html;
+        modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalInstance.show();
+        bindFormSubmit();
+      });
+  }
+
+  function bindFormSubmit() {
+    const form = modalBody.querySelector('form');
+    if (!form) return;
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      const url = form.getAttribute('action') || window.location.href;
+      const data = new FormData(form);
+      fetch(url, { method: 'POST', body: data, headers: {'x-requested-with':'XMLHttpRequest'} })
+        .then(resp => {
+          if (resp.ok) return resp.json();
+          return resp.json().then(j => { throw j; });
+        })
+        .then(j => {
+          // success -> hide modal then reload page to reflect changes
+          try { const inst = bootstrap.Modal.getInstance(modalEl); inst && inst.hide(); } catch (e) {}
+          location.reload();
+        }).catch(err => {
+          if (err && err.html) {
+            modalBody.innerHTML = err.html;
+            bindFormSubmit();
+          } else {
+            console.error(err);
+          }
+        });
+    });
+  }
+
+  // delegate clicks on .open-edit
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.open-edit');
+    if (btn) {
+      const pk = btn.dataset.pk;
+      fetchForm(pk);
+    }
+    const tr = e.target.closest('tr.clickable-row');
+    if (tr && !e.target.closest('button') && !e.target.closest('a')) {
+      const pk = tr.dataset.pk;
+      fetchForm(pk);
+    }
+  });
+})();
+</script>
+{% endblock %}
 {% endblock %}
