@@ -1,22 +1,6 @@
-{% extends "core/base.html" %}
-
-{% block title %}{{ titulo }}{% endblock %}
-
-{% block extra_head %}
-<style>
-  .field-pontual, .field-recorrente { transition: .2s; }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="d-flex align-items-center mb-4 gap-3">
-  <a href="{% url 'planejamento:lancamento_lista' %}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
-  <h1 class="h4 mb-0">{{ titulo }}</h1>
-</div>
-
 <div class="card shadow-sm" style="max-width:600px">
   <div class="card-body">
-    <form method="post">
+    <form method="post" id="modal-lancamento-form">
       {% csrf_token %}
 
       <div class="mb-3">
@@ -39,7 +23,6 @@
         </div>
       </div>
 
-      {# Pontual fields #}
       <div id="rows-pontual">
         <div class="mb-3">
           <label class="form-label">Data</label>
@@ -48,7 +31,6 @@
         </div>
       </div>
 
-      {# Recorrente fields #}
       <div id="rows-recorrente">
         <div class="mb-3">
           <label class="form-label">Periodicidade</label>
@@ -88,52 +70,49 @@
         <label class="form-check-label">Ativo</label>
       </div>
 
-      <div class="d-flex gap-2 align-items-center">
-        <div>
-          <button type="submit" class="btn btn-primary">💾 Salvar</button>
-          <a href="{% url 'planejamento:lancamento_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
-        </div>
-        {% if lancamento %}
-        <div class="ms-auto">
-          <form method="post" action="{% url 'planejamento:lancamento_excluir' lancamento.pk %}" onsubmit="return confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
-          </form>
-        </div>
-        {% endif %}
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">💾 Salvar</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
       </div>
+      {% if lancamento %}
+      <div class="mt-2">
+        <form method="post" action="{% url 'planejamento:lancamento_excluir' lancamento.pk %}" onsubmit="return confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
+        </form>
+      </div>
+      {% endif %}
     </form>
   </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
 <script>
+// Small behavior mirroring the inline form script (keeps fields in sync when loaded via AJAX)
 (function () {
-  const tipoSel     = document.getElementById('id_tipo');
-  const periodSel   = document.getElementById('id_periodicidade');
-  const rowPontual     = document.getElementById('rows-pontual');
-  const rowRecorrente  = document.getElementById('rows-recorrente');
-  const rowMesAno      = document.getElementById('row-mes-ano');
-  const rowDiaMes      = document.getElementById('row-dia-mes');
-  const rowDiaSemana   = document.getElementById('row-dia-semana');
-
+  const container = document.getElementById('modal-lancamento-form');
+  if (!container) return;
+  const tipoSel = document.getElementById('id_tipo');
+  const periodSel = document.getElementById('id_periodicidade');
+  const rowPontual = document.getElementById('rows-pontual');
+  const rowRecorrente = document.getElementById('rows-recorrente');
+  const rowMesAno = document.getElementById('row-mes-ano');
+  const rowDiaMes = document.getElementById('row-dia-mes');
+  const rowDiaSemana = document.getElementById('row-dia-semana');
   function update() {
-    const isPontual  = tipoSel.value === 'pontual';
-    const isSemanal  = periodSel.value === 'semanal';
-    const isAnual    = periodSel.value === 'anual';
-    rowPontual.style.display    = isPontual ? '' : 'none';
+    if (!tipoSel || !periodSel) return;
+    const isPontual = tipoSel.value === 'pontual';
+    const isSemanal = periodSel.value === 'semanal';
+    const isAnual = periodSel.value === 'anual';
+    rowPontual.style.display = isPontual ? '' : 'none';
     rowRecorrente.style.display = isPontual ? 'none' : '';
     if (!isPontual) {
-      rowDiaMes.style.display    = isSemanal ? 'none' : '';
-      rowMesAno.style.display    = isAnual   ? '' : 'none';
+      rowDiaMes.style.display = isSemanal ? 'none' : '';
+      rowMesAno.style.display = isAnual ? '' : 'none';
       rowDiaSemana.style.display = isSemanal ? '' : 'none';
     }
   }
-
-  tipoSel.addEventListener('change', update);
-  periodSel.addEventListener('change', update);
+  tipoSel && tipoSel.addEventListener('change', update);
+  periodSel && periodSel.addEventListener('change', update);
   update();
 })();
 </script>
-{% endblock %}

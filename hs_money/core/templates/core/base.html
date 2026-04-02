@@ -23,17 +23,25 @@
     }
     /* Dimensões configuráveis para colunas do planejamento */
     :root {
-      --pl-col-dia: 64px;
+      --pl-col-dia: 82px;
+      --pl-col-dia-lg: 110px;
       --pl-col-valor: 160px;
       --pl-col-action: 56px;
+      --pl-col-action-lg: 110px;
       --pl-col-checkbox: 36px;
       --pl-col-mes: 140px;
     }
     .pl-col-mes { width: var(--pl-col-mes); text-align: left; padding-left: .75rem; }
     .pl-col-dia { width: var(--pl-col-dia); text-align: right; padding-right: .75rem; }
+    .pl-col-dia-lg { width: var(--pl-col-dia-lg); text-align: right; padding-right: .75rem; }
     .pl-col-valor { width: var(--pl-col-valor); text-align: right; padding-right: .75rem; }
     .pl-col-action { width: var(--pl-col-action); text-align: center; }
+    .pl-col-action-lg { width: var(--pl-col-action-lg); text-align: center; }
     .pl-col-checkbox { width: var(--pl-col-checkbox); text-align: center; }
+
+    /* Botões de ícone mais discretos (pequenos, menos destaque) */
+    .btn-icon { padding: .12rem .38rem; font-size: .9rem; line-height: 1; opacity: .9; border-radius: .35rem; }
+    .btn-icon:hover { opacity: 1; }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
@@ -127,6 +135,11 @@
       <li class="nav-item mt-2">
         <a class="nav-link {% if request.resolver_match.app_name == 'planejamento' %}active{% endif %}"
            href="{% url 'planejamento:index' %}">📅 Planejamento</a>
+        <ul class="nav flex-column ms-3 mt-1">
+          <li class="nav-item">
+            <a class="nav-link py-1 {% if request.resolver_match.url_name == 'lancamento_lista' %}active{% endif %}" href="{% url 'planejamento:lancamento_lista' %}">📋 Lançamentos</a>
+          </li>
+        </ul>
       </li>
     </ul>
   </nav>

@@ -16,6 +16,8 @@ from django.contrib import messages
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from django.template.loader import render_to_string
+from django.http import JsonResponse
 
 from hs_money.core.models import Categoria, Membro
 from hs_money.planejamento.forms import AjusteCartaoMesForm, LancamentoPlanejadoForm
@@ -250,6 +252,11 @@ def index(request):
         total_mes = parcial + crescimento_inv
         saldo_acumulado += total_mes
 
+        ocorrencias_json = json.dumps(
+            [{'data': o['data'].strftime('%d/%m'), 'descricao': o['descricao'], 'valor': float(o['valor'])} for o in ocorrencias],
+            ensure_ascii=False,
+        )
+
         meses.append({
             'ano': ano,
             'mes': mes_num,
@@ -257,6 +264,7 @@ def index(request):
             'e_passado': e_passado,
             'e_atual': e_atual,
             'ocorrencias': ocorrencias,
+            'ocorrencias_json': ocorrencias_json,
             'creditos': creditos,
             'debitos': debitos_total,
             'total_cartao': total_cartao,
@@ -358,7 +366,12 @@ def lancamento_lista(request):
     for key, label in periods:
         creditos = [l for l in recorrente_list if l.periodicidade == key and l.valor > ZERO]
         debitos = [l for l in recorrente_list if l.periodicidade == key and l.valor < ZERO]
-        rec_periods.append({'key': key, 'label': label, 'creditos': creditos, 'debitos': debitos})
+        rec_periods.append({
+            'key': key, 'label': label,
+            'creditos': creditos, 'debitos': debitos,
+            'total_creditos': sum((l.valor for l in creditos), ZERO),
+            'total_debitos': sum((l.valor for l in debitos), ZERO),
+        })
 
     return render(request, 'planejamento/lancamento_lista.html', {
         'lancamentos': lancamentos,
@@ -384,10 +397,25 @@ def lancamento_criar(request):
 def lancamento_editar(request, pk):
     lancamento = get_object_or_404(LancamentoPlanejado, pk=pk)
     form = LancamentoPlanejadoForm(request.POST or None, instance=lancamento)
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, 'Lançamento atualizado.')
-        return redirect('planejamento:lancamento_lista')
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+    if request.method == 'POST':
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Lançamento atualizado.')
+            if is_ajax:
+                return JsonResponse({'ok': True})
+            return redirect('planejamento:lancamento_lista')
+        else:
+            if is_ajax:
+                # return rendered form fragment (with errors)
+                html = render_to_string('planejamento/_lancamento_form_fragment.html', {'form': form, 'lancamento': lancamento}, request=request)
+                return JsonResponse({'ok': False, 'html': html}, status=400)
+
+    if is_ajax:
+        # return only the form fragment for modal
+        html = render_to_string('planejamento/_lancamento_form_fragment.html', {'form': form, 'lancamento': lancamento}, request=request)
+        return JsonResponse({'html': html})
+
     return render(request, 'planejamento/lancamento_form.html', {
         'form': form,
         'lancamento': lancamento,
