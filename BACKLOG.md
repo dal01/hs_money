@@ -12,8 +12,15 @@ Colocar login
 ## Relatorios
 Precisa achar solucao pra pagamentos que fazemos para os amigos. Ex: paguei Xique xique para todos e depois dividimos
 Hoje só aparece a despesa completa, deveria descontar o pagamento dos amigos
+Preciso pensar se uma coisa compensa outra, já que quando fazem pix, entra como credito/receita - quando analisa os gastos pode parecer que gastou mais
+  Pode ser irrelevante porque sao valores pequenos
+
 Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi uma renda extra
-Preciso de um template onde eu posso ver os gastos por membro. Ex: gastos por categoria
+  ## relatorio individual
+  Visualizacao dos dados individuais
+    graficos de gastos
+    agrupamento de lancamentos por estabelecimento, categoria
+
 
 ## Planejamento
   Fazer uma nova template com o que foi projetado e o que foi realizado. 

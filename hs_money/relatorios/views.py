@@ -106,15 +106,16 @@ def _por_mes(lista_cc, lista_cartao):
         saldo_cc     = cc_cred + cc_deb
         saldo_cartao = ca_cred + ca_deb
         rows.append({
-            'mes':         m,
-            'mes_nome':    MESES_NOME[m],
-            'cc_creditos': cc_cred,
-            'cc_debitos':  cc_deb,
-            'cc_saldo':    saldo_cc,
-            'ca_gastos':   ca_deb,
-            'ca_creditos': ca_cred,
-            'ca_saldo':    saldo_cartao,
-            'total':       saldo_cc + saldo_cartao,
+            'mes':          m,
+            'mes_nome':     MESES_NOME[m],
+            'cc_creditos':  cc_cred,
+            'cc_debitos':   cc_deb,
+            'cc_saldo':     saldo_cc,
+            'ca_gastos':    ca_deb,
+            'ca_creditos':  ca_cred,
+            'ca_saldo':     saldo_cartao,
+            'total_saidas': cc_deb + ca_deb,
+            'total':        saldo_cc + saldo_cartao,
         })
     return rows
 

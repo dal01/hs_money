@@ -1,6 +1,6 @@
 <div class="card shadow-sm" style="max-width:600px">
   <div class="card-body">
-    <form method="post" id="modal-lancamento-form">
+    <form method="post" action="{% if lancamento %}{% url 'planejamento:lancamento_editar' lancamento.pk %}{% endif %}" id="modal-lancamento-form">
       {% csrf_token %}
 
       <div class="mb-3">
@@ -74,15 +74,15 @@
         <button type="submit" class="btn btn-primary">💾 Salvar</button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
       </div>
-      {% if lancamento %}
-      <div class="mt-2">
-        <form method="post" action="{% url 'planejamento:lancamento_excluir' lancamento.pk %}" onsubmit="return confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
-        </form>
-      </div>
-      {% endif %}
     </form>
+    {% if lancamento %}
+    <div class="mt-2">
+      <form method="post" action="{% url 'planejamento:lancamento_excluir' lancamento.pk %}" onsubmit="return confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
+      </form>
+    </div>
+    {% endif %}
   </div>
 </div>
 

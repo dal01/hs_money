@@ -115,7 +115,7 @@
 </form>
 
 <!-- ── KPIs ── -->
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4" style="max-width:1200px">
 
   <!-- Entradas -->
   <div class="col-12 col-md-4">
@@ -253,7 +253,7 @@
   <!-- ── Por Mês ── -->
   {% if por_mes %}
   <div class="col-12">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm" style="max-width:900px">
       <div class="card-body">
         <div class="section-title">📅 Evolução mensal — {{ ano_sel }}</div>
         <div class="table-responsive">
@@ -263,10 +263,8 @@
                 <th>Mês</th>
                 <th class="text-end">Entradas CC</th>
                 <th class="text-end">Saídas CC</th>
-                <th class="text-end">Saldo CC</th>
                 <th class="text-end">Gastos Cartão</th>
-                <th class="text-end">Créd. Cartão</th>
-                <th class="text-end">Saldo Cartão</th>
+                <th class="text-end fw-semibold">Total Saídas</th>
                 <th class="text-end fw-semibold">Total</th>
               </tr>
             </thead>
@@ -282,19 +280,12 @@
                     style="cursor:pointer;text-decoration:underline dotted"
                     data-mes="{{ r.mes }}" data-fonte="cc_debitos"
                     title="Ver lançamentos">{{ r.cc_debitos|brl }}</td>
-                <td class="text-end small {% if r.cc_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
-                  {{ r.cc_saldo|brl }}
-                </td>
                 <td class="text-end text-danger small detalhe-mes"
                     style="cursor:pointer;text-decoration:underline dotted"
                     data-mes="{{ r.mes }}" data-fonte="ca_gastos"
                     title="Ver lançamentos">{{ r.ca_gastos|brl }}</td>
-                <td class="text-end text-success small detalhe-mes"
-                    style="cursor:pointer;text-decoration:underline dotted"
-                    data-mes="{{ r.mes }}" data-fonte="ca_creditos"
-                    title="Ver lançamentos">{{ r.ca_creditos|brl }}</td>
-                <td class="text-end small {% if r.ca_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
-                  {{ r.ca_saldo|brl }}
+                <td class="text-end fw-semibold text-danger small">
+                  {{ r.total_saidas|brl }}
                 </td>
                 <td class="text-end fw-semibold {% if r.total >= 0 %}text-success{% else %}text-danger{% endif %}">
                   {{ r.total|brl }}
@@ -311,7 +302,7 @@
 
   <!-- ── Por Categoria ── -->
   <div class="col-12 col-lg-6">
-    <div class="card border-0 shadow-sm h-100">
+    <div class="card border-0 shadow-sm h-100" style="max-width:900px">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div class="section-title mb-0">🏷️ Gastos por categoria (top 20)</div>
