@@ -6,6 +6,8 @@ Colocar login
 ## Conta corrente
 
 ## Cartao de credito
+  ## parcelados
+  Colocar o quanto já foi gasto (não pago), mes atual até o final das parcelas - para ter uma ideia do quanto foi de compras e ainda não pagou
 
 ## Investimentos
   

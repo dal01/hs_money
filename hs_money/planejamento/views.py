@@ -191,7 +191,7 @@ def index(request):
         if item['projecao_percentual'] is not None or item['projecao_adicional'] is not None
     }
 
-    for i in range(72):
+    for i in range(240):
         total_offset = (today.month - 1 + i)
         mes_num = total_offset % 12 + 1
         ano = today.year + total_offset // 12
@@ -290,8 +290,22 @@ def index(request):
                 'total_parcial': sum(m['parcial'] for m in yr_meses),
                 'total_investimentos': sum(m['crescimento_inv'] for m in yr_meses),
                 'total_saldo': sum(m['total_mes'] for m in yr_meses),
-                # Patrimônio líquido ao final do ano (saldo acumulado no último mês do ano)
                 'total_patrimonio': yr_meses[-1]['saldo_final'],
+            })
+
+    # Build 20-year summary (one row per year, no monthly detail)
+    anos_20 = []
+    for yr in range(today.year, today.year + 21):
+        yr_meses = [m for m in meses if m['ano'] == yr]
+        if yr_meses:
+            anos_20.append({
+                'ano': yr,
+                'total_debitos':      sum(m['debitos'] for m in yr_meses),
+                'total_creditos':     sum(m['creditos'] for m in yr_meses),
+                'total_parcial':      sum(m['parcial'] for m in yr_meses),
+                'total_investimentos':sum(m['crescimento_inv'] for m in yr_meses),
+                'total_saldo':        sum(m['total_mes'] for m in yr_meses),
+                'total_patrimonio':   yr_meses[-1]['saldo_final'],
             })
 
     meses = meses[:12]
@@ -313,6 +327,7 @@ def index(request):
     return render(request, 'planejamento/index.html', {
         'meses': meses,
         'anos_proj': anos_proj,
+        'anos_20': anos_20,
         'ano_atual': ano_atual,
         'patrimonio': patrimonio,
         'inv_itens': inv_itens,

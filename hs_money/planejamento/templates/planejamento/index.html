@@ -200,6 +200,41 @@
 </div>
 {% endif %}
 
+{# 20-year summary table #}
+{% if anos_20 %}
+<h4 class="mt-4 mb-3">Resumo 20 anos</h4>
+<div style="max-width:960px">
+  <div class="card shadow-sm mb-4">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width:70px">Ano</th>
+          <th class="text-end">Créditos</th>
+          <th class="text-end">Débitos</th>
+          <th class="text-end">Parcial</th>
+          <th class="text-end">Investimentos</th>
+          <th class="text-end">Saldo ano</th>
+          <th class="text-end">Patrimônio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ano in anos_20 %}
+        <tr>
+          <td class="fw-semibold">{{ ano.ano }}</td>
+          <td class="text-end saldo-positivo">{{ ano.total_creditos|brl }}</td>
+          <td class="text-end saldo-negativo">{{ ano.total_debitos|brl }}</td>
+          <td class="text-end fw-semibold {% if ano.total_parcial >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_parcial|brl }}</td>
+          <td class="text-end {% if ano.total_investimentos >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_investimentos|brl }}</td>
+          <td class="text-end fw-semibold {% if ano.total_saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_saldo|brl }}</td>
+          <td class="text-end fw-semibold {% if ano.total_patrimonio >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">{{ ano.total_patrimonio|brl }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 {# Modal de detalhamento único, populado via JS #}
 <div class="modal fade" id="modalDetalhe" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">

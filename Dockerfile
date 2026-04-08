@@ -18,4 +18,4 @@ RUN python manage.py collectstatic --noinput || true
 
 EXPOSE 8000
 
-CMD ["gunicorn", "hs_money.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "hs_money.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--worker-class", "gthread", "--threads", "4", "--timeout", "120", "--keep-alive", "2"]
