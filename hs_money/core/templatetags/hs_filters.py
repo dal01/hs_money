@@ -50,3 +50,13 @@ def dict_get(d, key):
     if d is None:
         return None
     return d.get(key)
+
+
+@register.filter
+def abs(value):
+    """Retorna o valor absoluto de um número."""
+    try:
+        v = Decimal(str(value))
+        return v if v >= 0 else -v
+    except (InvalidOperation, TypeError, ValueError):
+        return value

@@ -524,9 +524,241 @@ def categoria_transacoes_json(request):
     })
 
 
-def graficos(request):
+def individual(request):
+    """Relatório individual por membro — entradas, saídas, categorias e evolução mensal."""
     import datetime
     import json
+
+    hoje = datetime.date.today()
+
+    # ── período ──
+    periodo = request.GET.get('periodo', 'ano_atual')
+    ano_ini_str = request.GET.get('ano_ini', str(hoje.year))
+    mes_ini_str = request.GET.get('mes_ini', '1')
+    ano_fim_str = request.GET.get('ano_fim', str(hoje.year))
+    mes_fim_str = request.GET.get('mes_fim', str(hoje.month))
+
+    def _parse_int(s, default):
+        try:
+            return int(s)
+        except (TypeError, ValueError):
+            return default
+
+    if periodo == 'ano_atual':
+        ano_ini, mes_ini = hoje.year, 1
+        ano_fim, mes_fim = hoje.year, 12
+    elif periodo == 'ano_anterior':
+        ano_ini, mes_ini = hoje.year - 1, 1
+        ano_fim, mes_fim = hoje.year - 1, 12
+    elif periodo == '12m':
+        d = hoje.replace(day=1)
+        # 11 meses atrás
+        m = d.month - 11
+        y = d.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        ano_ini, mes_ini = y, m
+        ano_fim, mes_fim = hoje.year, hoje.month
+    elif periodo == '6m':
+        m = hoje.month - 5
+        y = hoje.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        ano_ini, mes_ini = y, m
+        ano_fim, mes_fim = hoje.year, hoje.month
+    else:  # 'custom'
+        ano_ini = _parse_int(ano_ini_str, hoje.year)
+        mes_ini = _parse_int(mes_ini_str, 1)
+        ano_fim = _parse_int(ano_fim_str, hoje.year)
+        mes_fim = _parse_int(mes_fim_str, hoje.month)
+
+    from hs_money.core.models import Categoria as _Cat
+
+    ids_fatura = list(
+        _Cat.objects.filter(nome__icontains='fatura do cart')
+        .values_list('pk', flat=True)
+    )
+
+    membros = list(Membro.objects.order_by('ordem', 'nome'))
+    membro_sel_id = request.GET.get('membro')
+    if membro_sel_id and membro_sel_id.isdigit():
+        membro_ativo = next((m for m in membros if m.pk == int(membro_sel_id)), membros[0] if membros else None)
+    else:
+        membro_ativo = membros[0] if membros else None
+
+    # anos disponíveis para o select custom
+    from hs_money.conta_corrente.models import Transacao as _TCC
+    from hs_money.cartao_credito.models import FaturaCartao
+    anos_cc     = set(d.year for d in _TCC.objects.dates('data', 'year'))
+    anos_cartao = set(d.year for d in FaturaCartao.objects.dates('competencia', 'year'))
+    anos_disponiveis = sorted(anos_cc | anos_cartao)
+
+    def _dados_membro(membro):
+        # CC
+        cc_qs = (TransacaoCC.objects
+                 .filter(oculta=False, extrato__conta__membro_id=membro.pk)
+                 .exclude(categoria_id__in=ids_fatura)
+                 .select_related('categoria', 'categoria__categoria_pai')
+                 .order_by('data'))
+        cc_qs = cc_qs.filter(data__year__gte=ano_ini, data__year__lte=ano_fim)
+        cc_qs = cc_qs.filter(
+            data__gte=datetime.date(ano_ini, mes_ini, 1),
+            data__lte=datetime.date(ano_fim, mes_fim,
+                datetime.date(ano_fim, mes_fim, 1).replace(
+                    day=28, month=mes_fim + 1 if mes_fim < 12 else 1,
+                    year=ano_fim if mes_fim < 12 else ano_fim + 1
+                ).replace(day=1).__class__(ano_fim, mes_fim,
+                    __import__('calendar').monthrange(ano_fim, mes_fim)[1]).day)
+        )
+        # Cartão
+        ca_qs = (TransacaoCartao.objects
+                 .filter(oculta=False, fatura__cartao__membro_id=membro.pk)
+                 .select_related('categoria', 'categoria__categoria_pai')
+                 .order_by('data'))
+        ca_qs = ca_qs.filter(
+            fatura__competencia__gte=datetime.date(ano_ini, mes_ini, 1),
+            fatura__competencia__lte=datetime.date(ano_fim, mes_fim,
+                __import__('calendar').monthrange(ano_fim, mes_fim)[1])
+        )
+        return list(cc_qs), list(ca_qs)
+
+    import calendar as _cal
+
+    def _dados_membro_v2(membro):
+        d_ini = datetime.date(ano_ini, mes_ini, 1)
+        d_fim_cc = datetime.date(ano_fim, mes_fim, _cal.monthrange(ano_fim, mes_fim)[1])
+        d_fim_ca = datetime.date(ano_fim, mes_fim, 1)
+
+        # Filtra por atribuição M2M de membros (não só pelo dono da conta/cartão)
+        cc_qs = (TransacaoCC.objects
+                 .filter(oculta=False, membros__pk=membro.pk,
+                         data__gte=d_ini, data__lte=d_fim_cc)
+                 .exclude(categoria_id__in=ids_fatura)
+                 .select_related('categoria', 'categoria__categoria_pai')
+                 .prefetch_related('membros')
+                 .order_by('data'))
+        ca_qs = (TransacaoCartao.objects
+                 .filter(oculta=False, membros__pk=membro.pk,
+                         fatura__competencia__gte=d_ini,
+                         fatura__competencia__lte=d_fim_ca)
+                 .select_related('categoria', 'categoria__categoria_pai', 'fatura')
+                 .prefetch_related('membros')
+                 .order_by('data'))
+
+        # Retorna tuplas (transacao, valor_proporcional)
+        cc_items = []
+        for t in cc_qs:
+            n = len(list(t.membros.all())) or 1
+            cc_items.append((t, t.valor / n))
+        ca_items = []
+        for t in ca_qs:
+            n = len(list(t.membros.all())) or 1
+            ca_items.append((t, t.valor / n))
+        return cc_items, ca_items
+
+    def _totais_m(items_cc, items_ca):
+        cred = sum((v for _, v in items_cc if v > ZERO), ZERO)
+        deb_cc = sum((v for _, v in items_cc if v < ZERO), ZERO)
+        deb_ca = sum((v for _, v in items_ca if v < ZERO), ZERO)
+        return cred, deb_cc + deb_ca, cred + deb_cc + deb_ca
+
+    def _categorias_m(items_cc, items_ca):
+        cat_map = defaultdict(lambda: {'nome': '', 'total': ZERO})
+        for t, v in items_cc:
+            if v >= ZERO:
+                continue
+            key = t.categoria_id or 0
+            nome = (t.categoria.nome if t.categoria else '— Sem categoria —')
+            cat_map[key]['nome'] = nome
+            cat_map[key]['total'] += v
+        for t, v in items_ca:
+            if v >= ZERO:
+                continue
+            key = t.categoria_id or 0
+            nome = (t.categoria.nome if t.categoria else '— Sem categoria —')
+            cat_map[key]['nome'] = nome
+            cat_map[key]['total'] += v
+        rows = [{'pk': k, 'nome': v['nome'], 'total': v['total']}
+                for k, v in cat_map.items()]
+        rows.sort(key=lambda r: r['total'])
+        return rows[:15]
+
+    def _mensal_m(items_cc, items_ca):
+        # Gera lista de meses no período
+        meses_iter = []
+        y, m = ano_ini, mes_ini
+        while (y, m) <= (ano_fim, mes_fim):
+            meses_iter.append((y, m))
+            m += 1
+            if m > 12:
+                m, y = 1, y + 1
+
+        cc_mes = defaultdict(lambda: [ZERO, ZERO])
+        ca_mes = defaultdict(lambda: ZERO)
+        for t, v in items_cc:
+            k = (t.data.year, t.data.month)
+            if v > 0:
+                cc_mes[k][0] += v
+            else:
+                cc_mes[k][1] += v
+        for t, v in items_ca:
+            if v < 0:
+                k = (t.fatura.competencia.year, t.fatura.competencia.month)
+                ca_mes[k] += v
+
+        rows = []
+        MESES_ABR = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',
+                     7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'}
+        for y, m in meses_iter:
+            k = (y, m)
+            cred = cc_mes[k][0]
+            deb = cc_mes[k][1] + ca_mes[k]
+            rows.append({
+                'label': f"{MESES_ABR[m]}/{str(y)[2:]}",
+                'entradas': float(cred),
+                'saidas': float(abs(deb)),
+                'saldo': float(cred + deb),
+            })
+        return rows
+
+    # ── dados do membro ativo ──
+    dados_membros = {}
+    for m in membros:
+        items_cc, items_ca = _dados_membro_v2(m)
+        cred, deb, saldo = _totais_m(items_cc, items_ca)
+        cats = _categorias_m(items_cc, items_ca)
+        mensal = _mensal_m(items_cc, items_ca)
+        dados_membros[m.pk] = {
+            'membro': m,
+            'creditos': cred,
+            'debitos': deb,
+            'saldo': saldo,
+            'categorias': cats,
+            'mensal': mensal,
+            'mensal_json': json.dumps(mensal, ensure_ascii=False),
+            'cat_max': abs(cats[0]['total']) if cats else 1,
+        }
+
+    membro_ativo_dados = dados_membros.get(membro_ativo.pk) if membro_ativo else None
+
+    return render(request, 'relatorios/individual.html', {
+        'membros': membros,
+        'membro_ativo': membro_ativo,
+        'membro_ativo_dados': membro_ativo_dados,
+        'dados_membros': dados_membros,
+        'periodo': periodo,
+        'ano_ini': ano_ini,
+        'mes_ini': mes_ini,
+        'ano_fim': ano_fim,
+        'mes_fim': mes_fim,
+        'anos_disponiveis': anos_disponiveis,
+        'meses': MESES,
+    })
+
+
+def graficos(request):
     from collections import defaultdict
     from django.db.models import Sum, Q
     from django.db.models.functions import TruncMonth

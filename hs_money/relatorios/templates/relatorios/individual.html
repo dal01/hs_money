@@ -1,0 +1,294 @@
+{% extends "core/base.html" %}
+{% load hs_filters %}
+
+{% block title %}Relatório Individual — HS Money{% endblock %}
+
+{% block extra_head %}
+<style>
+  .kpi-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; }
+  .kpi-val   { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+  .section-title { font-size: .78rem; font-weight: 600; text-transform: uppercase;
+                   letter-spacing: .06em; color: #6c757d; border-bottom: 1px solid #dee2e6;
+                   padding-bottom: 4px; margin-bottom: 12px; }
+  .bar-wrap { background: #f0f0f0; border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .period-btn.active { background-color: #0d6efd; color: #fff; border-color: #0d6efd; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">👤 Relatório Individual</h4>
+</div>
+
+{# ── Filtro de período ── #}
+<form method="get" class="mb-4" id="frmPeriodo">
+  {% if membro_ativo %}<input type="hidden" name="membro" value="{{ membro_ativo.pk }}">{% endif %}
+  <div class="d-flex flex-wrap gap-2 align-items-end">
+    <div class="btn-group btn-group-sm" role="group">
+      <a href="?membro={% if membro_ativo %}{{ membro_ativo.pk }}{% endif %}&periodo=ano_atual"
+         class="btn btn-outline-secondary period-btn {% if periodo == 'ano_atual' %}active{% endif %}">Ano atual</a>
+      <a href="?membro={% if membro_ativo %}{{ membro_ativo.pk }}{% endif %}&periodo=ano_anterior"
+         class="btn btn-outline-secondary period-btn {% if periodo == 'ano_anterior' %}active{% endif %}">Ano anterior</a>
+      <a href="?membro={% if membro_ativo %}{{ membro_ativo.pk }}{% endif %}&periodo=12m"
+         class="btn btn-outline-secondary period-btn {% if periodo == '12m' %}active{% endif %}">12 meses</a>
+      <a href="?membro={% if membro_ativo %}{{ membro_ativo.pk }}{% endif %}&periodo=6m"
+         class="btn btn-outline-secondary period-btn {% if periodo == '6m' %}active{% endif %}">6 meses</a>
+      <button type="submit" name="periodo" value="custom"
+              class="btn btn-outline-secondary period-btn {% if periodo == 'custom' %}active{% endif %}">Personalizado</button>
+    </div>
+    {% if periodo == 'custom' %}
+    <div class="d-flex gap-2 align-items-center">
+      <div>
+        <label class="form-label small mb-1">De</label>
+        <div class="d-flex gap-1">
+          <select name="mes_ini" class="form-select form-select-sm" style="width:90px">
+            {% for num, nome in meses %}<option value="{{ num }}" {% if num == mes_ini %}selected{% endif %}>{{ nome }}</option>{% endfor %}
+          </select>
+          <select name="ano_ini" class="form-select form-select-sm" style="width:85px">
+            {% for a in anos_disponiveis %}<option value="{{ a }}" {% if a == ano_ini %}selected{% endif %}>{{ a }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label small mb-1">Até</label>
+        <div class="d-flex gap-1">
+          <select name="mes_fim" class="form-select form-select-sm" style="width:90px">
+            {% for num, nome in meses %}<option value="{{ num }}" {% if num == mes_fim %}selected{% endif %}>{{ nome }}</option>{% endfor %}
+          </select>
+          <select name="ano_fim" class="form-select form-select-sm" style="width:85px">
+            {% for a in anos_disponiveis %}<option value="{{ a }}" {% if a == ano_fim %}selected{% endif %}>{{ a }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="align-self-end">
+        <button type="submit" name="periodo" value="custom" class="btn btn-sm btn-primary">Filtrar</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</form>
+
+{# ── Abas por membro ── #}
+{% if membros %}
+<ul class="nav nav-tabs mb-4" id="membroTabs">
+  {% for m in membros %}
+  <li class="nav-item">
+    <a class="nav-link {% if membro_ativo.pk == m.pk %}active{% endif %}"
+       href="?membro={{ m.pk }}&periodo={{ periodo }}{% if periodo == 'custom' %}&ano_ini={{ ano_ini }}&mes_ini={{ mes_ini }}&ano_fim={{ ano_fim }}&mes_fim={{ mes_fim }}{% endif %}">
+      {{ m.nome }}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if membro_ativo_dados %}
+{% with d=membro_ativo_dados %}
+
+{# ── KPIs ── #}
+<div class="row g-3 mb-4" style="max-width:800px">
+  <div class="col-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="kpi-label mb-1">↑ Entradas</div>
+        <div class="kpi-val text-success">{{ d.creditos|brl }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="kpi-label mb-1">↓ Saídas</div>
+        <div class="kpi-val text-danger">{{ d.debitos|brl }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="kpi-label mb-1">⚖️ Saldo</div>
+        <div class="kpi-val {% if d.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">{{ d.saldo|brl }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  {# ── Gráfico Evolução Mensal ── #}
+  <div class="col-12" style="max-width:900px">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-title">📅 Evolução mensal</div>
+        <canvas id="chartMensal" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {# ── Tabela Evolução Mensal ── #}
+  <div class="col-12" style="max-width:700px">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-title">📋 Detalhamento mensal</div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Mês</th>
+                <th class="text-end">Entradas</th>
+                <th class="text-end">Saídas</th>
+                <th class="text-end fw-semibold">Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in d.mensal %}
+              <tr>
+                <td class="fw-semibold">{{ r.label }}</td>
+                <td class="text-end text-success small">{{ r.entradas|brl }}</td>
+                <td class="text-end text-danger small">{{ r.saidas|brl }}</td>
+                <td class="text-end fw-semibold small {% if r.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                  {{ r.saldo|brl }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-semibold">
+              <tr>
+                <td>Total</td>
+                <td class="text-end text-success">{{ d.creditos|brl }}</td>
+                <td class="text-end text-danger">{{ d.debitos|brl }}</td>
+                <td class="text-end {% if d.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">{{ d.saldo|brl }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Gastos por Categoria ── #}
+  <div class="col-12" style="max-width:700px">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-title">🏷️ Gastos por categoria (top 15)</div>
+        {% if d.categorias %}
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Categoria</th>
+              <th class="text-end" style="width:130px">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in d.categorias %}
+            <tr>
+              <td class="small">
+                {{ r.nome }}
+                <div class="bar-wrap mt-1">
+                  <div class="bar-fill bg-danger"
+                       style="width:{% widthratio r.total|abs d.cat_max 100 %}%"></div>
+                </div>
+              </td>
+              <td class="text-end small fw-semibold text-danger">{{ r.total|brl }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <p class="text-muted small">Nenhuma despesa no período.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>{# /row #}
+
+<script id="mensal-data" type="application/json">{{ d.mensal_json|safe }}</script>
+
+{% endwith %}
+{% else %}
+  <div class="alert alert-info">Nenhum dado encontrado para este membro no período selecionado.</div>
+{% endif %}
+
+{% else %}
+  <div class="alert alert-warning">Nenhum membro cadastrado.</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const raw = document.getElementById('mensal-data');
+  if (!raw) return;
+  const mensal = JSON.parse(raw.textContent);
+  const labels   = mensal.map(r => r.label);
+  const entradas = mensal.map(r => r.entradas);
+  const saidas   = mensal.map(r => r.saidas);
+  const saldo    = mensal.map(r => r.saldo);
+
+  const ctx = document.getElementById('chartMensal');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Entradas',
+          data: entradas,
+          backgroundColor: 'rgba(25,135,84,0.7)',
+          borderRadius: 4,
+          order: 2,
+        },
+        {
+          label: 'Saídas',
+          data: saidas,
+          backgroundColor: 'rgba(220,53,69,0.7)',
+          borderRadius: 4,
+          order: 2,
+        },
+        {
+          label: 'Saldo',
+          data: saldo,
+          type: 'line',
+          borderColor: '#0d6efd',
+          backgroundColor: 'rgba(13,110,253,0.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          fill: false,
+          tension: 0.3,
+          order: 1,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: function(c) {
+              return ' ' + c.dataset.label + ': R$ ' +
+                c.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: function(v) {
+              return 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}
