@@ -105,6 +105,7 @@ def _saldo_investimentos_selecionados(membro_id=None) -> tuple[Decimal, list]:
             'data_ref': ultimo.data if ultimo else None,
             'projecao_percentual': inv.projecao_percentual,
             'projecao_adicional': inv.projecao_adicional,
+            'tipo_financeiro': inv.tipo_financeiro,
         })
     return total, itens
 
@@ -232,6 +233,9 @@ def index(request):
             pct = item['projecao_percentual'] or ZERO
             adic = item['projecao_adicional'] or ZERO
             s_novo = s * (1 + pct / 100) + adic
+            # For DEBITO investments (saldo is negative): clamp to 0 when fully paid off
+            if item['tipo_financeiro'] == 'DEBITO' and s_novo >= ZERO:
+                s_novo = ZERO
             rendimento = s_novo - s
             crescimento_inv += rendimento
             saldos_proj[nome] = s_novo

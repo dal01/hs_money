@@ -44,7 +44,7 @@
 </div>
 
 <div class="row g-3">
-  <div class="col-12 col-lg-8">
+  <div class="col-12 col-lg-4">
     <div class="card">
       <div class="card-body p-0">
         <table class="table table-sm table-hover mb-0">
@@ -87,12 +87,18 @@
     </div>
   </div>
 
-  <div class="col-12 col-lg-4">
-    <div class="card p-3">
+  <div class="col-12 col-lg-3">
+    <div class="card p-3 mb-3">
       <div class="small text-muted mb-2">Resumo do período</div>
       <div class="d-flex justify-content-between small"><div>Transações</div><div>{{ transactions_count }}</div></div>
       <hr class="my-2">
       <div class="d-flex justify-content-between fw-semibold"><div>Total</div><div>{{ total_compras|brl }}</div></div>
+    </div>
+    <div class="card p-3">
+      <div class="small text-muted mb-2">Parcelas não pagas</div>
+      <div class="small text-muted mb-1">Mês atual + futuros</div>
+      <hr class="my-2">
+      <div class="d-flex justify-content-between fw-semibold text-danger"><div>Total</div><div>{{ total_nao_pago|brl }}</div></div>
     </div>
   </div>
 </div>

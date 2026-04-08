@@ -1170,6 +1170,13 @@ def parcelados(request):
     total_compras = abs(sum(monthly_sums.values(), Decimal('0.00')))
     transactions_count = sum(len(m['entries']) for m in months)
 
+    # Parcelas não pagas: mês atual + futuros
+    mes_atual_inicio = date(hoje.year, hoje.month, 1)
+    total_nao_pago = abs(sum(
+        v for (yr, mn), v in monthly_sums.items()
+        if date(yr, mn, 1) >= mes_atual_inicio
+    ))
+
     return render(request, 'cartao_credito/parcelados/lista.html', {
         'grupos': grupos_vis,
         'monthly_totals': monthly_totals,
@@ -1177,6 +1184,7 @@ def parcelados(request):
         'start': sd,
         'end': ed,
         'total_compras': total_compras,
+        'total_nao_pago': total_nao_pago,
         'period': period,
         'credits_total': credits_total,
         'debits_total': debits_total,
