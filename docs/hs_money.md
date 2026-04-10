@@ -31,7 +31,7 @@ Venda de acoes tenho que ocultar do relatorio, porque passa a impressao que foi 
 
   No patrimonio liquido é preciso colocar um rendimento mensal no montante total
     Já posso colocar o rendimento mensal em cada investimento
-    Os investimentos que não tem rendimento mensal, devem entrar na regra de rendimento global (Ex: 0,7% ao mês)
+    Os investimentos que não tem rendimento mensal, devem entrar na regra de rendimento global (Ex: 0,7% ao mês) 
 
   ## Lançamentos recorrentes (conta corrente)
   Contas variáveis (água, luz):pega média dos últimos 12 meses
