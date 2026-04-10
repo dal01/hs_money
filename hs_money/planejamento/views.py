@@ -182,6 +182,15 @@ def index(request):
             if l.membro_id is None or l.membro_id == membro_id
         ]
 
+    # Taxa de juros anual (%) aplicada sobre a porção do patrimônio não investida.
+    # Investimentos já têm seu próprio rendimento calculado via saldos_proj.
+    try:
+        taxa_juros = max(Decimal('0'), min(Decimal('100'), Decimal(str(request.GET.get('taxa_juros', '3.5')))))
+    except Exception:
+        taxa_juros = Decimal('3.5')
+    # Taxa mensal equivalente: (1 + taxa_anual/100)^(1/12) - 1
+    monthly_rate = (1 + float(taxa_juros) / 100) ** (1 / 12) - 1
+
     meses = []
     saldo_acumulado = patrimonio
 
@@ -192,7 +201,18 @@ def index(request):
         if item['projecao_percentual'] is not None or item['projecao_adicional'] is not None
     }
 
-    for i in range(240):
+    # Saldo de investimentos SEM regra de projeção (ficam constantes ao longo do loop)
+    saldo_untracked_inv = sum(
+        item['saldo'] for item in inv_itens
+        if item['projecao_percentual'] is None and item['projecao_adicional'] is None
+    )
+
+    # Run the loop long enough to fill December of today.year+20 completely.
+    # Starting from today.month, the plain 240-month window (20 years) ends mid-year,
+    # leaving the last calendar year in anos_20 with only a partial set of months.
+    # Adding (12 - today.month + 1) extra months closes the gap.
+    _loop_months = 240 + (12 - today.month + 1)
+    for i in range(_loop_months):
         total_offset = (today.month - 1 + i)
         mes_num = total_offset % 12 + 1
         ano = today.year + total_offset // 12
@@ -255,6 +275,13 @@ def index(request):
 
         total_mes = parcial + crescimento_inv
         saldo_acumulado += total_mes
+
+        # Juros sobre a porção não investida do patrimônio acumulado.
+        # A porção investida já cresce via saldos_proj; evitamos dupla contagem.
+        inv_total = sum(saldos_proj.values(), ZERO) + saldo_untracked_inv
+        non_inv = saldo_acumulado - inv_total
+        juros_mes = Decimal(str(round(float(non_inv) * monthly_rate, 2)))
+        saldo_acumulado += juros_mes
 
         ocorrencias_json = json.dumps(
             [{'data': o['data'].strftime('%d/%m'), 'descricao': o['descricao'], 'valor': float(o['valor'])} for o in ocorrencias],
@@ -339,6 +366,7 @@ def index(request):
         'membros': membros,
         'membro_id': membro_id,
         'today': today,
+        'taxa_juros': taxa_juros,
     })
 
 
