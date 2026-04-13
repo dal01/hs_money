@@ -3,6 +3,8 @@ relatorios/views.py — Dashboard consolidado (Conta Corrente + Cartão de Créd
 """
 from __future__ import annotations
 
+import datetime
+import json
 from collections import defaultdict
 from decimal import Decimal
 
