@@ -16,6 +16,7 @@ def transacao_anotacao(request, pk):
 
 
 import hashlib
+import json
 import re
 from datetime import date
 from pathlib import Path
@@ -619,6 +620,81 @@ def transacoes_lista(request):
     anos_disponiveis = FaturaCartao.objects.dates('competencia', 'year', order='DESC')
     membros   = Membro.objects.order_by('ordem', 'nome')
     cartoes   = Cartao.objects.select_related('membro', 'instituicao').filter(ativo=True)
+
+    # ── Gráfico: totais mensais (últimos 12 meses, respeita filtros membro/cartao) ──
+    today = date.today()
+    grafico_qs = (TransacaoCartao.objects
+                  .filter(oculta=False)
+                  .select_related('fatura__cartao__membro'))
+    if membro_sel:
+        grafico_qs = grafico_qs.filter(fatura__cartao__membro_id=membro_sel)
+    if cartao_sel:
+        grafico_qs = grafico_qs.filter(fatura__cartao_id=cartao_sel)
+    grafico_list = list(grafico_qs)  # evaluate once
+
+    # build list of (year, month) for last 12 months
+    months_seq = []
+    grafico_labels = []
+    for i in range(11, -1, -1):
+        total_months = today.year * 12 + today.month - 1 - i
+        y, m_idx = divmod(total_months, 12)
+        m = m_idx + 1
+        months_seq.append((y, m))
+        grafico_labels.append(f'{m:02d}/{y}')
+
+    # per-member series (only members that appear in grafico_list)
+    member_map = {}  # pk -> nome
+    for t in grafico_list:
+        mb = t.fatura.cartao.membro
+        if mb and mb.pk not in member_map:
+            member_map[mb.pk] = mb.nome
+    # also include "sem membro" bucket if needed
+    has_no_member = any(t.fatura.cartao.membro is None for t in grafico_list if t.valor < 0)
+
+    COLORS = [
+        'rgba(13,110,253,0.78)',
+        'rgba(25,135,84,0.78)',
+        'rgba(255,193,7,0.85)',
+        'rgba(111,66,193,0.78)',
+        'rgba(253,126,20,0.78)',
+    ]
+    datasets = []
+    for idx, (pk, nome) in enumerate(member_map.items()):
+        values = []
+        for y, m in months_seq:
+            total = sum(
+                abs(t.valor) for t in grafico_list
+                if t.fatura.cartao.membro_id == pk
+                and t.fatura.competencia.year == y
+                and t.fatura.competencia.month == m
+                and t.valor < 0
+            )
+            values.append(float(total))
+        datasets.append({
+            'label': nome,
+            'data': values,
+            'backgroundColor': COLORS[idx % len(COLORS)],
+            'borderRadius': 3,
+        })
+    if has_no_member:
+        values = []
+        for y, m in months_seq:
+            total = sum(
+                abs(t.valor) for t in grafico_list
+                if t.fatura.cartao.membro is None
+                and t.fatura.competencia.year == y
+                and t.fatura.competencia.month == m
+                and t.valor < 0
+            )
+            values.append(float(total))
+        datasets.append({
+            'label': 'Sem membro',
+            'data': values,
+            'backgroundColor': 'rgba(108,117,125,0.72)',
+            'borderRadius': 3,
+        })
+
+    grafico_json = json.dumps({'labels': grafico_labels, 'datasets': datasets})
     categorias = (Categoria.objects
                   .filter(nivel=1)
                   .prefetch_related('subcategorias')
@@ -648,6 +724,7 @@ def transacoes_lista(request):
         'tab_sel':                tab_sel,
         'order_sel':              order_sel,
         'dir_sel':                dir_sel,
+        'grafico_json':           grafico_json,
     }
     return render(request, 'cartao_credito/transacoes/lista.html', context)
 

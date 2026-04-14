@@ -127,6 +127,11 @@
 
 </form>
 
+<!-- Gráfico mensal -->
+<div class="card mb-4 p-3">
+  <canvas id="chartTransacoes" height="160"></canvas>
+</div>
+
 <!-- Abas -->
 <ul class="nav nav-tabs mb-0" id="tabsTransacoes" role="tablist">
   <li class="nav-item" role="presentation">
@@ -669,6 +674,51 @@
 
   setupBulk('vis');
   setupBulk('ocultas');
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const raw = {{ grafico_json|safe }};
+  const ctx = document.getElementById('chartTransacoes');
+  if (!ctx) return;
+
+  const brl = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: raw.labels,
+      datasets: raw.datasets,
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: raw.datasets.length > 1 },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: c => ` ${c.dataset.label}: ${brl(c.parsed.y)}`,
+            footer: items => {
+              const total = items.reduce((s, i) => s + i.parsed.y, 0);
+              return `Total: ${brl(total)}`;
+            },
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true },
+        y: {
+          stacked: true,
+          ticks: {
+            callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+          }
+        }
+      }
+    }
+  });
 })();
 </script>
 
