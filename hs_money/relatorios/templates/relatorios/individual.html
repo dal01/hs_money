@@ -86,28 +86,54 @@
 {% with d=membro_ativo_dados %}
 
 {# ── KPIs ── #}
-<div class="row g-3 mb-4" style="max-width:800px">
-  <div class="col-4">
+<div class="row g-3 mb-4" style="max-width:1000px">
+  <div class="col-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
         <div class="kpi-label mb-1">↑ Entradas</div>
         <div class="kpi-val text-success">{{ d.creditos|brl }}</div>
+        {% if d.media_entradas is not None %}
+        <div class="mt-2" style="font-size:.75rem; color:#6c757d;">
+          <span>Média: <strong class="text-success">{{ d.media_entradas|brl }}</strong></span><br>
+          <span>Mediana: <strong class="text-success">{{ d.mediana_entradas|brl }}</strong></span>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
-  <div class="col-4">
+  <div class="col-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
         <div class="kpi-label mb-1">↓ Saídas</div>
         <div class="kpi-val text-danger">{{ d.debitos|brl }}</div>
+        {% if d.media_saidas is not None %}
+        <div class="mt-2" style="font-size:.75rem; color:#6c757d;">
+          <span>Média: <strong class="text-danger">{{ d.media_saidas|brl }}</strong></span><br>
+          <span>Mediana: <strong class="text-danger">{{ d.mediana_saidas|brl }}</strong></span>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
-  <div class="col-4">
+  <div class="col-3">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
         <div class="kpi-label mb-1">⚖️ Saldo</div>
         <div class="kpi-val {% if d.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">{{ d.saldo|brl }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="kpi-label mb-1">📊 Saídas / Entradas</div>
+        {% if d.pct_saidas is not None %}
+        <div class="kpi-val {% if d.pct_saidas <= 80 %}text-success{% elif d.pct_saidas <= 100 %}text-warning{% else %}text-danger{% endif %}">
+          {{ d.pct_saidas }}%
+        </div>
+        {% else %}
+        <div class="kpi-val text-muted">—</div>
+        {% endif %}
       </div>
     </div>
   </div>

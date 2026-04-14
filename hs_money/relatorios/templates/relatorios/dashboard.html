@@ -123,6 +123,12 @@
       <div class="card-body">
         <div class="kpi-label mb-1">↑ Total Entradas</div>
         <div class="kpi-val text-success mb-2">{{ total_creditos|brl }}</div>
+        {% if media_creditos is not None %}
+        <div class="mb-2" style="font-size:.75rem; color:#6c757d;">
+          <span>Média: <strong class="text-success">{{ media_creditos|brl }}</strong></span>&nbsp;&nbsp;
+          <span>Mediana: <strong class="text-success">{{ mediana_creditos|brl }}</strong></span>
+        </div>
+        {% endif %}
         {% if kpi_membros_cred %}
         <table class="table table-sm mb-0" style="font-size:.78rem">
           <thead class="table-light">
@@ -160,6 +166,12 @@
       <div class="card-body">
         <div class="kpi-label mb-1">↓ Total Saídas</div>
         <div class="kpi-val text-danger mb-2">{{ total_debitos|brl }}</div>
+        {% if media_debitos is not None %}
+        <div class="mb-2" style="font-size:.75rem; color:#6c757d;">
+          <span>Média: <strong class="text-danger">{{ media_debitos|brl }}</strong></span>&nbsp;&nbsp;
+          <span>Mediana: <strong class="text-danger">{{ mediana_debitos|brl }}</strong></span>
+        </div>
+        {% endif %}
         {% if kpi_membros_deb %}
         <table class="table table-sm mb-0" style="font-size:.78rem">
           <thead class="table-light">
@@ -207,7 +219,6 @@
               <th>Membro</th>
               <th class="text-end">Entradas</th>
               <th class="text-end">Saídas</th>
-              <th class="text-end">%</th>
             </tr>
           </thead>
           <tbody>
@@ -216,9 +227,6 @@
               <td>{{ m.nome }}</td>
               <td class="text-end text-success">{% if m.total_cred %}{{ m.total_cred|brl }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
               <td class="text-end text-danger">{% if m.total_deb %}{{ m.total_deb|brl }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-              <td class="text-end {% if m.pct %}{% if m.pct > 100 %}text-danger{% else %}text-success{% endif %} fw-semibold{% else %}text-muted{% endif %}">
-                {% if m.pct %}{{ m.pct|floatformat:0 }}%{% else %}—{% endif %}
-              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -283,8 +291,8 @@
   {% endif %}
 
   <!-- ── Por Categoria ── -->
-  <div class="col-12 col-lg-6">
-    <div class="card border-0 shadow-sm h-100" style="max-width:900px">
+  <div class="col-12 col-lg-8">
+    <div class="card border-0 shadow-sm h-100">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div class="section-title mb-0">🏷️ Gastos por categoria (top 20)</div>

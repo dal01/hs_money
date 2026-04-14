@@ -316,6 +316,19 @@ def dashboard(request):
     por_categoria = _por_categoria(lista_cc, lista_cartao, agrupar=cat_nivel)
     por_membro    = _por_membro(lista_cc, lista_cartao, membros)
     _km           = _kpi_membros(lista_cc, lista_cartao, membros)
+
+    # --- média / mediana mensal (só quando visualizando o ano inteiro) ---
+    import statistics as _stats
+    def _med(vals):
+        vs = [v for v in vals if v]
+        if not vs:
+            return None, None
+        return Decimal(str(round(sum(vs) / len(vs), 2))), Decimal(str(round(_stats.median(vs), 2)))
+
+    _ent_vals = [r['cc_creditos'] for r in por_mes]
+    _sai_vals = [abs(r['total_saidas']) for r in por_mes]
+    media_creditos,  mediana_creditos  = _med(_ent_vals)
+    media_debitos,   mediana_debitos   = _med(_sai_vals)
     for r in _km:
         r['pct_cred'] = round(r['total_cred'] / total_creditos * 100, 1) if total_creditos else None
         r['pct_deb']  = round(abs(r['total_deb']) / abs(total_debitos) * 100, 1) if total_debitos else None
@@ -349,6 +362,10 @@ def dashboard(request):
         'kpi_membros_cred': kpi_membros_cred,
         'kpi_membros_deb':  kpi_membros_deb,
         'kpi_membros':      kpi_membros,
+        'media_creditos':   media_creditos,
+        'mediana_creditos': mediana_creditos,
+        'media_debitos':    media_debitos,
+        'mediana_debitos':  mediana_debitos,
         'cat_nivel':        cat_nivel,
         'macros_cats':      macros_cats,
         'excluir_cats':     excluir_cats,
@@ -726,17 +743,35 @@ def individual(request):
         return rows
 
     # ── dados do membro ativo ──
+    import statistics as _stats
+
+    def _media_mediana(valores):
+        vs = [v for v in valores if v]
+        if not vs:
+            return None, None
+        return Decimal(str(round(sum(vs) / len(vs), 2))), Decimal(str(round(_stats.median(vs), 2)))
+
     dados_membros = {}
     for m in membros:
         items_cc, items_ca = _dados_membro_v2(m)
         cred, deb, saldo = _totais_m(items_cc, items_ca)
         cats = _categorias_m(items_cc, items_ca)
         mensal = _mensal_m(items_cc, items_ca)
+        entradas_mensais = [r['entradas'] for r in mensal]
+        saidas_mensais   = [r['saidas']   for r in mensal]
+        media_ent,   mediana_ent   = _media_mediana(entradas_mensais)
+        media_sai,   mediana_sai   = _media_mediana(saidas_mensais)
+        pct_saidas = round(abs(deb) / cred * 100, 1) if cred else None
         dados_membros[m.pk] = {
             'membro': m,
             'creditos': cred,
             'debitos': deb,
             'saldo': saldo,
+            'media_entradas':   media_ent,
+            'mediana_entradas': mediana_ent,
+            'media_saidas':     media_sai,
+            'mediana_saidas':   mediana_sai,
+            'pct_saidas':       pct_saidas,
             'categorias': cats,
             'mensal': mensal,
             'mensal_json': json.dumps(mensal, ensure_ascii=False),
