@@ -686,7 +686,7 @@ def transacoes_lista(request):
     from django.db.models import Min, Max
 
     # --- parâmetros do filtro ---
-    ano_sel    = request.GET.get('ano',         '').strip()
+    ano_sel    = request.GET.get('ano',         str(date.today().year)).strip()
     mes_sel    = request.GET.get('mes',         '').strip()
     membro_sel = request.GET.get('membro',      '').strip()
     inst_sel   = request.GET.get('instituicao', '').strip()

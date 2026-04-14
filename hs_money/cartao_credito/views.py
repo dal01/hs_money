@@ -549,7 +549,7 @@ MESES = [
 
 
 def transacoes_lista(request):
-    ano_sel    = request.GET.get('ano', '')
+    ano_sel    = request.GET.get('ano', str(date.today().year))
     mes_sel    = request.GET.get('mes', '')
     membro_sel = request.GET.get('membro', '')
     cartao_sel = request.GET.get('cartao', '')

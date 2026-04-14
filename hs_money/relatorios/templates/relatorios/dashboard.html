@@ -128,8 +128,6 @@
           <thead class="table-light">
             <tr>
               <th>Membro</th>
-              <th class="text-end">CC</th>
-              <th class="text-end">Cartão</th>
               <th class="text-end">Total</th>
               <th class="text-end">%</th>
             </tr>
@@ -138,8 +136,6 @@
             {% for m in kpi_membros_cred %}
             <tr>
               <td>{{ m.nome }}</td>
-              <td class="text-end text-success">{{ m.cc_cred|brl }}</td>
-              <td class="text-end text-muted">—</td>
               <td class="text-end text-success fw-semibold">{{ m.total_cred|brl }}</td>
               <td class="text-end text-muted">{% if m.pct_cred %}{{ m.pct_cred }}%{% else %}—{% endif %}</td>
             </tr>
@@ -148,8 +144,6 @@
           <tfoot class="table-light fw-bold">
             <tr>
               <td>Total</td>
-              <td class="text-end text-success">{{ cc_creditos|brl }}</td>
-              <td class="text-end text-success">{{ ca_creditos|brl }}</td>
               <td class="text-end text-success">{{ total_creditos|brl }}</td>
               <td class="text-end">100%</td>
             </tr>
@@ -171,8 +165,6 @@
           <thead class="table-light">
             <tr>
               <th>Membro</th>
-              <th class="text-end">CC</th>
-              <th class="text-end">Cartão</th>
               <th class="text-end">Total</th>
               <th class="text-end">%</th>
             </tr>
@@ -181,14 +173,6 @@
             {% for m in kpi_membros_deb %}
             <tr>
               <td>{{ m.nome }}</td>
-              <td class="text-end {% if m.cc_deb %}text-danger detalhe-membro{% else %}text-muted{% endif %}"
-                  {% if m.cc_deb %}style="cursor:pointer;text-decoration:underline dotted" data-membro-id="{{ m.pk|default:'' }}" data-membro-nome="{{ m.nome }}" data-fonte="cc" title="Ver lançamentos"{% endif %}>
-                {% if m.cc_deb %}{{ m.cc_deb|brl }}{% else %}—{% endif %}
-              </td>
-              <td class="text-end {% if m.ca_deb %}text-danger detalhe-membro{% else %}text-muted{% endif %}"
-                  {% if m.ca_deb %}style="cursor:pointer;text-decoration:underline dotted" data-membro-id="{{ m.pk|default:'' }}" data-membro-nome="{{ m.nome }}" data-fonte="cartao" title="Ver lançamentos"{% endif %}>
-                {% if m.ca_deb %}{{ m.ca_deb|brl }}{% else %}—{% endif %}
-              </td>
               <td class="text-end text-danger fw-semibold">{{ m.total_deb|brl }}</td>
               <td class="text-end text-muted">{% if m.pct_deb %}{{ m.pct_deb }}%{% else %}—{% endif %}</td>
             </tr>
@@ -197,8 +181,6 @@
           <tfoot class="table-light fw-bold">
             <tr>
               <td>Total</td>
-              <td class="text-end text-danger">{{ cc_debitos|brl }}</td>
-              <td class="text-end text-danger">{{ ca_debitos|brl }}</td>
               <td class="text-end text-danger">{{ total_debitos|brl }}</td>
               <td class="text-end">100%</td>
             </tr>
