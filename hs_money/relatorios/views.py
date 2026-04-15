@@ -387,7 +387,7 @@ def membro_transacoes_json(request):
     def _fmt_brl(v):
         abs_v = abs(v)
         s = f"{abs_v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-        return f"R$ {'-' if v < 0 else ''}{s}"
+        return f"{'-' if v < 0 else ''}{s}"
 
     rows = []
     total = ZERO
@@ -473,7 +473,7 @@ def categoria_transacoes_json(request):
     def _fmt_brl(v):
         abs_v = abs(v)
         s = f"{abs_v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-        return f"R$ {'-' if v < 0 else ''}{s}"
+        return f"{'-' if v < 0 else ''}{s}"
 
     def _filter_cat(qs):
         if cat_pk == 0:
@@ -937,7 +937,7 @@ def mes_transacoes_json(request):
     def _fmt_brl(v):
         abs_v = abs(v)
         s = f"{abs_v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-        return f"R$ {'-' if v < 0 else ''}{s}"
+        return f"{'-' if v < 0 else ''}{s}"
 
     rows = []
     total = ZERO

@@ -396,8 +396,8 @@
 
     function _val(row) {
       var txt = (row.cells[col] ? row.cells[col].textContent : '').trim();
-      // BRL numeric: "1.234,56" or "-1.234,56"
-      var norm = txt.replace(/\./g, '').replace(',', '.');
+      // BRL numeric: "1.234,56" or "-1.234,56" (strip R$ prefix if present)
+      var norm = txt.replace(/R\$\s*/gi, '').trim().replace(/\./g, '').replace(',', '.');
       var num  = parseFloat(norm);
       if (!isNaN(num) && norm !== '') return num;
       return txt.toLowerCase();
@@ -558,12 +558,10 @@
             _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
             return;
           }
-          var mostrarFonte = (fonte === 'total');
           var html = '<div class="table-responsive">';
           html += '<table class="table table-sm table-hover align-middle mb-0">';
           html += '<thead class="table-light"><tr>';
           html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
-          if (mostrarFonte) html += '<th onclick="_sortTable(this)" style="width:70px;cursor:pointer;user-select:none">Fonte</th>';
           html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
           html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Membros</th>';
           html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
@@ -571,16 +569,14 @@
           data.transacoes.forEach(function (t) {
             html += '<tr>';
             html += '<td class="small text-nowrap">' + t.data + '</td>';
-            if (mostrarFonte) html += '<td class="small text-muted">' + t.fonte + '</td>';
             html += '<td class="small">' + t.descricao + '</td>';
-            html += '<td class="small text-muted">' + t.membros + '</td>';
+            html += '<td class="text-muted" style="font-size:.7rem">' + t.membros + '</td>';
             html += '<td class="text-end small text-danger">' + t.valor_fmt + '</td>';
             html += '</tr>';
           });
           html += '</tbody>';
-          var colspan = mostrarFonte ? 4 : 3;
           html += '<tfoot><tr class="table-light fw-semibold">';
-          html += '<td colspan="' + colspan + '">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html += '<td colspan="3">Total (' + data.transacoes.length + ' lançamentos)</td>';
           html += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
           html += '</tr></tfoot></table></div>';
           _setModal(titulo, html);
