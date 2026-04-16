@@ -538,6 +538,29 @@
   });
 
   // ── Gastos por Categoria ──
+  function _fmtBrl(val) {
+    var neg = val < 0;
+    var parts = Math.abs(val).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (neg ? '-' : '') + parts[0] + ',' + parts[1];
+  }
+
+  function _parseBrl(s) {
+    var neg = s.charAt(0) === '-';
+    var n = parseFloat(s.replace(/-/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+    return neg ? -n : n;
+  }
+
+  var _normDesc = (window.HS && window.HS.normDesc) || function (desc) {
+    return desc
+      .replace(/\([^)]*\)/g, '')
+      .replace(/[\d\/]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+      .toLowerCase()
+      .replace(/(?:^|\s)\S/g, function (c) { return c.toUpperCase(); });
+  };
+
   document.querySelectorAll('.detalhe-cat').forEach(function (cel) {
     cel.addEventListener('click', function () {
       const catPk    = this.dataset.catPk;
@@ -558,28 +581,79 @@
             _setModal(titulo, '<p class="text-muted small">Nenhuma transação encontrada.</p>');
             return;
           }
-          var html = '<div class="table-responsive">';
-          html += '<table class="table table-sm table-hover align-middle mb-0">';
-          html += '<thead class="table-light"><tr>';
-          html += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
-          html += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
-          html += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Membros</th>';
-          html += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
-          html += '</tr></thead><tbody>';
+
+          // ── Tab Detalhado ──
+          var html1 = '<div class="table-responsive">';
+          html1 += '<table class="table table-sm table-hover align-middle mb-0">';
+          html1 += '<thead class="table-light"><tr>';
+          html1 += '<th onclick="_sortTable(this)" style="width:95px;cursor:pointer;user-select:none">Data</th>';
+          html1 += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html1 += '<th onclick="_sortTable(this)" style="width:160px;cursor:pointer;user-select:none">Membros</th>';
+          html1 += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Valor</th>';
+          html1 += '</tr></thead><tbody>';
           data.transacoes.forEach(function (t) {
-            html += '<tr>';
-            html += '<td class="small text-nowrap">' + t.data + '</td>';
-            html += '<td class="small">' + t.descricao + '</td>';
-            html += '<td class="text-muted" style="font-size:.7rem">' + t.membros + '</td>';
-            html += '<td class="text-end small text-danger">' + t.valor_fmt + '</td>';
-            html += '</tr>';
+            html1 += '<tr>';
+            html1 += '<td class="small text-nowrap">' + t.data + '</td>';
+            html1 += '<td class="small">' + _normDesc(t.descricao) + '</td>';
+            html1 += '<td class="text-muted" style="font-size:.7rem">' + t.membros + '</td>';
+            html1 += '<td class="text-end small text-danger">' + t.valor_fmt + '</td>';
+            html1 += '</tr>';
           });
-          html += '</tbody>';
-          html += '<tfoot><tr class="table-light fw-semibold">';
-          html += '<td colspan="3">Total (' + data.transacoes.length + ' lançamentos)</td>';
-          html += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
-          html += '</tr></tfoot></table></div>';
-          _setModal(titulo, html);
+          html1 += '</tbody>';
+          html1 += '<tfoot><tr class="table-light fw-semibold">';
+          html1 += '<td colspan="3">Total (' + data.transacoes.length + ' lançamentos)</td>';
+          html1 += '<td class="text-end text-danger">' + data.total_fmt + '</td>';
+          html1 += '</tr></tfoot></table></div>';
+
+          // ── Tab Agrupado ──
+          var groups = {};
+          var groupOrder = [];
+          data.transacoes.forEach(function (t) {
+            var key = _normDesc(t.descricao);
+            if (!groups[key]) {
+              groups[key] = { descricao: key, qtd: 0, total_num: 0 };
+              groupOrder.push(key);
+            }
+            groups[key].qtd += 1;
+            groups[key].total_num += _parseBrl(t.valor_fmt);
+          });
+          groupOrder.sort(function (a, b) {
+            return groups[a].total_num - groups[b].total_num;
+          });
+
+          var html2 = '<div class="table-responsive">';
+          html2 += '<table class="table table-sm table-hover align-middle mb-0">';
+          html2 += '<thead class="table-light"><tr>';
+          html2 += '<th onclick="_sortTable(this)" style="cursor:pointer;user-select:none">Descrição</th>';
+          html2 += '<th class="text-center" onclick="_sortTable(this)" style="width:60px;cursor:pointer;user-select:none">Qtd</th>';
+          html2 += '<th class="text-end" onclick="_sortTable(this)" style="width:120px;cursor:pointer;user-select:none">Total</th>';
+          html2 += '</tr></thead><tbody>';
+          groupOrder.forEach(function (key) {
+            var g = groups[key];
+            html2 += '<tr>';
+            html2 += '<td class="small">' + g.descricao + '</td>';
+            html2 += '<td class="text-center small">' + g.qtd + '</td>';
+            html2 += '<td class="text-end small text-danger">' + _fmtBrl(g.total_num) + '</td>';
+            html2 += '</tr>';
+          });
+          var grandTotal = groupOrder.reduce(function (s, k) { return s + groups[k].total_num; }, 0);
+          html2 += '</tbody>';
+          html2 += '<tfoot><tr class="table-light fw-semibold">';
+          html2 += '<td colspan="2">Total (' + groupOrder.length + ' grupos)</td>';
+          html2 += '<td class="text-end text-danger">' + _fmtBrl(grandTotal) + '</td>';
+          html2 += '</tr></tfoot></table></div>';
+
+          // ── Wrapper com abas ──
+          var tabsHtml = '<ul class="nav nav-tabs mb-3" role="tablist">';
+          tabsHtml += '<li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#catTabDetalhado" type="button">Detalhado</button></li>';
+          tabsHtml += '<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#catTabAgrupado" type="button">Agrupado por descrição</button></li>';
+          tabsHtml += '</ul>';
+          tabsHtml += '<div class="tab-content">';
+          tabsHtml += '<div class="tab-pane fade show active" id="catTabDetalhado">' + html1 + '</div>';
+          tabsHtml += '<div class="tab-pane fade" id="catTabAgrupado">' + html2 + '</div>';
+          tabsHtml += '</div>';
+
+          _setModal(titulo, tabsHtml);
         })
         .catch(function () {
           _setModal(titulo, '<p class="text-danger small">Erro ao carregar transações.</p>');
